@@ -58,11 +58,15 @@ export function generateRoundRobinSchedule(
   // Count byes and determine who should play this round
   const byeCounts = countByes(players, existingMatches);
 
-  // Sort players by bye count (ascending) - those with fewer byes play first
+  // Sort players by bye count (descending) - those with MORE byes play first to catch up
+  // Add randomization for ties so the same player doesn't always get the bye
   const sortedPlayers = [...players].sort((a, b) => {
     const aCount = byeCounts.get(a.id) || 0;
     const bCount = byeCounts.get(b.id) || 0;
-    return aCount - bCount;
+    if (bCount !== aCount) {
+      return bCount - aCount; // More byes = play first
+    }
+    return Math.random() - 0.5; // Randomize ties
   });
 
   // Calculate how many can play (must be multiple of 4)
