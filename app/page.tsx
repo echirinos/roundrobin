@@ -1,65 +1,165 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { PlayerSetup } from "@/components/player-setup";
+import { Schedule } from "@/components/schedule";
+import { Standings } from "@/components/standings";
+import { Player, Match, PlayerStanding } from "@/lib/types";
+import {
+  generateRoundRobinSchedule,
+  calculateStandings,
+} from "@/lib/tournament";
+
+const STORAGE_KEY = "pickleball-round-robin-v2";
+
+interface TournamentState {
+  players: Player[];
+  matches: Match[];
+  tournamentStarted: boolean;
+}
+
+const initialState: TournamentState = {
+  players: [],
+  matches: [],
+  tournamentStarted: false,
+};
 
 export default function Home() {
+  const [state, setState] = useState<TournamentState>(initialState);
+  const [standings, setStandings] = useState<PlayerStanding[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setState(parsed);
+      } catch (e) {
+        console.error("Failed to load saved tournament:", e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [state, isLoaded]);
+
+  // Calculate standings whenever matches change
+  useEffect(() => {
+    if (state.players.length > 0) {
+      setStandings(calculateStandings(state.players, state.matches));
+    }
+  }, [state.players, state.matches]);
+
+  const handlePlayersChange = useCallback((players: Player[]) => {
+    setState((prev) => ({ ...prev, players }));
+  }, []);
+
+  const handleStartTournament = useCallback(() => {
+    const matches = generateRoundRobinSchedule(state.players);
+    setState((prev) => ({
+      ...prev,
+      matches,
+      tournamentStarted: true,
+    }));
+  }, [state.players]);
+
+  const handleUpdateMatch = useCallback(
+    (matchId: string, score1: number, score2: number) => {
+      setState((prev) => ({
+        ...prev,
+        matches: prev.matches.map((m) =>
+          m.id === matchId ? { ...m, score1, score2, completed: true } : m
+        ),
+      }));
+    },
+    []
+  );
+
+  const handleAddRound = useCallback((newMatches: Match[]) => {
+    setState((prev) => ({
+      ...prev,
+      matches: [...prev.matches, ...newMatches],
+    }));
+  }, []);
+
+  const handleResetTournament = useCallback(() => {
+    if (window.confirm("Reset tournament? All scores will be lost.")) {
+      setState(initialState);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  // Don't render until loaded to avoid hydration mismatch
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 sm:mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Pickleball Round Robin</h1>
+            <p className="text-sm text-muted-foreground">
+              Rotating partners each round
+            </p>
+          </div>
+          {state.tournamentStarted && (
+            <Button variant="destructive" size="sm" onClick={handleResetTournament}>
+              Reset
+            </Button>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        <Tabs defaultValue={state.tournamentStarted ? "schedule" : "setup"}>
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="setup" className="text-sm">Players</TabsTrigger>
+            <TabsTrigger value="schedule" disabled={!state.tournamentStarted} className="text-sm">
+              Matches
+            </TabsTrigger>
+            <TabsTrigger value="standings" disabled={!state.tournamentStarted} className="text-sm">
+              Standings
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="setup" className="mt-0">
+            <PlayerSetup
+              players={state.players}
+              onPlayersChange={handlePlayersChange}
+              onStartTournament={handleStartTournament}
+              tournamentStarted={state.tournamentStarted}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="mt-0">
+            {state.tournamentStarted && (
+              <Schedule
+                matches={state.matches}
+                players={state.players}
+                onUpdateMatch={handleUpdateMatch}
+                onAddRound={handleAddRound}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="standings" className="mt-0">
+            <Standings standings={standings} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
