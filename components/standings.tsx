@@ -111,19 +111,19 @@ export function Standings({ standings }: StandingsProps) {
                           <>
                             <span className="text-muted-foreground/50">•</span>
                             <motion.span
-                              key={`apd-${standing.apd}`}
+                              key={`diff-${standing.pointDiff}`}
                               initial={{ opacity: 0.5 }}
                               animate={{ opacity: 1 }}
                               className={
-                                standing.apd > 0
+                                standing.pointDiff > 0
                                   ? "text-green-600 dark:text-green-400"
-                                  : standing.apd < 0
+                                  : standing.pointDiff < 0
                                   ? "text-red-600 dark:text-red-400"
                                   : ""
                               }
                             >
-                              {standing.apd > 0 ? "+" : ""}
-                              {standing.apd.toFixed(2)} APD
+                              {standing.pointDiff > 0 ? "+" : ""}
+                              {standing.pointDiff} PD
                             </motion.span>
                           </>
                         )}
@@ -158,7 +158,7 @@ export function Standings({ standings }: StandingsProps) {
           animate={{ opacity: 1 }}
           className="text-xs text-muted-foreground text-center"
         >
-          Ranked by: Wins → APD (Avg Point Diff) → Points For
+          Ranked by: Wins → Head-to-Head → Point Diff → H2H Point Diff
         </motion.p>
       )}
     </div>

@@ -171,6 +171,81 @@ export function generateNextRound(
   return generateRoundRobinSchedule(players, existingMatches, currentRound + 1);
 }
 
+// Get head-to-head record between two players
+function getHeadToHead(
+  player1Id: string,
+  player2Id: string,
+  matches: Match[]
+): { wins1: number; wins2: number; diff1: number; diff2: number } {
+  let wins1 = 0;
+  let wins2 = 0;
+  let diff1 = 0;
+  let diff2 = 0;
+
+  matches
+    .filter((m) => m.completed && m.score1 !== undefined && m.score2 !== undefined)
+    .forEach((match) => {
+      const team1Ids = match.team1.map(p => p.id);
+      const team2Ids = match.team2.map(p => p.id);
+
+      const p1OnTeam1 = team1Ids.includes(player1Id);
+      const p1OnTeam2 = team2Ids.includes(player1Id);
+      const p2OnTeam1 = team1Ids.includes(player2Id);
+      const p2OnTeam2 = team2Ids.includes(player2Id);
+
+      // Only count games where they played AGAINST each other
+      if ((p1OnTeam1 && p2OnTeam2) || (p1OnTeam2 && p2OnTeam1)) {
+        const team1Won = match.score1! > match.score2!;
+
+        if (p1OnTeam1) {
+          diff1 += match.score1! - match.score2!;
+          diff2 += match.score2! - match.score1!;
+          if (team1Won) wins1++;
+          else if (match.score2! > match.score1!) wins2++;
+        } else {
+          diff1 += match.score2! - match.score1!;
+          diff2 += match.score1! - match.score2!;
+          if (team1Won) wins2++;
+          else if (match.score2! > match.score1!) wins1++;
+        }
+      }
+    });
+
+  return { wins1, wins2, diff1, diff2 };
+}
+
+// Get point differential against a specific player
+function getPointDiffVsPlayer(
+  playerId: string,
+  opponentId: string,
+  matches: Match[]
+): number {
+  let diff = 0;
+
+  matches
+    .filter((m) => m.completed && m.score1 !== undefined && m.score2 !== undefined)
+    .forEach((match) => {
+      const team1Ids = match.team1.map(p => p.id);
+      const team2Ids = match.team2.map(p => p.id);
+
+      const playerOnTeam1 = team1Ids.includes(playerId);
+      const playerOnTeam2 = team2Ids.includes(playerId);
+      const oppOnTeam1 = team1Ids.includes(opponentId);
+      const oppOnTeam2 = team2Ids.includes(opponentId);
+
+      // Games where they played against each other
+      if ((playerOnTeam1 && oppOnTeam2) || (playerOnTeam2 && oppOnTeam1)) {
+        if (playerOnTeam1) {
+          diff += match.score1! - match.score2!;
+        } else {
+          diff += match.score2! - match.score1!;
+        }
+      }
+    });
+
+  return diff;
+}
+
 export function calculateStandings(
   players: Player[],
   matches: Match[]
@@ -240,10 +315,33 @@ export function calculateStandings(
       : 0;
   });
 
-  // Sort by: Wins (desc) -> APD (desc) -> Points For (desc)
-  return Array.from(standings.values()).sort((a, b) => {
+  // Convert to array for sorting
+  const standingsArray = Array.from(standings.values());
+
+  // USA Pickleball/PPA Tiebreaker Order:
+  // 1. Matches Won (primary)
+  // 2. Head-to-Head among tied players
+  // 3. Point Differential (total)
+  // 4. Head-to-Head Point Differential
+  // 5. Point Diff vs Next Highest Team
+
+  standingsArray.sort((a, b) => {
+    // 1. Matches Won
     if (b.wins !== a.wins) return b.wins - a.wins;
-    if (b.apd !== a.apd) return b.apd - a.apd;
+
+    // 2. Head-to-Head (only for 2-way ties)
+    const h2h = getHeadToHead(a.player.id, b.player.id, matches);
+    if (h2h.wins1 !== h2h.wins2) return h2h.wins2 - h2h.wins1;
+
+    // 3. Point Differential (total)
+    if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
+
+    // 4. Head-to-Head Point Differential
+    if (h2h.diff2 !== h2h.diff1) return h2h.diff2 - h2h.diff1;
+
+    // 5. Points For as final tiebreaker
     return b.pointsFor - a.pointsFor;
   });
+
+  return standingsArray;
 }
