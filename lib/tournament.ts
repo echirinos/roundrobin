@@ -4,8 +4,42 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
+// Count byes for each player from existing matches
+function countByes(players: Player[], existingMatches: Match[]): Map<string, number> {
+  const byeCounts = new Map<string, number>();
+
+  // Initialize all players with 0 byes
+  players.forEach(p => byeCounts.set(p.id, 0));
+
+  // Group matches by round
+  const matchesByRound = existingMatches.reduce((acc, match) => {
+    if (!acc[match.round]) acc[match.round] = [];
+    acc[match.round].push(match);
+    return acc;
+  }, {} as Record<number, Match[]>);
+
+  // For each round, find who didn't play (had a bye)
+  Object.values(matchesByRound).forEach(roundMatches => {
+    const playedThisRound = new Set<string>();
+    roundMatches.forEach(m => {
+      m.team1.forEach(p => playedThisRound.add(p.id));
+      m.team2.forEach(p => playedThisRound.add(p.id));
+    });
+
+    // Players not in this round got a bye
+    players.forEach(p => {
+      if (!playedThisRound.has(p.id)) {
+        byeCounts.set(p.id, (byeCounts.get(p.id) || 0) + 1);
+      }
+    });
+  });
+
+  return byeCounts;
+}
+
 // Generate round robin schedule where partners rotate each round
 // Uses a modified circle method to ensure variety in partnerships
+// Fair bye system: everyone gets a bye before anyone gets a second bye
 export function generateRoundRobinSchedule(
   players: Player[],
   existingMatches: Match[] = [],
@@ -14,8 +48,6 @@ export function generateRoundRobinSchedule(
   const n = players.length;
   if (n < 4) return [];
 
-  const matches: Match[] = [];
-
   // Track which partnerships have been used
   const usedPartnerships = new Set<string>();
   existingMatches.forEach(m => {
@@ -23,18 +55,30 @@ export function generateRoundRobinSchedule(
     usedPartnerships.add(getPartnershipKey(m.team2[0].id, m.team2[1].id));
   });
 
-  // Calculate how many matches per round (floor of n/4 games, each game needs 4 players)
+  // Count byes and determine who should play this round
+  const byeCounts = countByes(players, existingMatches);
+
+  // Sort players by bye count (ascending) - those with fewer byes play first
+  const sortedPlayers = [...players].sort((a, b) => {
+    const aCount = byeCounts.get(a.id) || 0;
+    const bCount = byeCounts.get(b.id) || 0;
+    return aCount - bCount;
+  });
+
+  // Calculate how many can play (must be multiple of 4)
   const playersPerRound = Math.floor(n / 4) * 4;
   const matchesPerRound = playersPerRound / 4;
 
-  // Generate one round of matches
-  const availablePlayers = [...players];
+  // Players who will play this round (those with fewest byes)
+  const playingThisRound = sortedPlayers.slice(0, playersPerRound);
+
+  // Generate matches from the playing players
   const roundMatches: Match[] = [];
   const usedThisRound = new Set<string>();
 
   // Try to create matches with new partnerships
   for (let m = 0; m < matchesPerRound; m++) {
-    const available = availablePlayers.filter(p => !usedThisRound.has(p.id));
+    const available = playingThisRound.filter(p => !usedThisRound.has(p.id));
     if (available.length < 4) break;
 
     // Find best pairing (prefer new partnerships)
