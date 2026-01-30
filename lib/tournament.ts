@@ -187,6 +187,8 @@ export function calculateStandings(
       pointsAgainst: 0,
       pointDiff: 0,
       gamesPlayed: 0,
+      apd: 0,
+      winPct: 0,
     });
   });
 
@@ -227,15 +229,21 @@ export function calculateStandings(
       });
     });
 
-  // Calculate point differentials
+  // Calculate point differentials, APD, and win percentage
   standings.forEach((standing) => {
     standing.pointDiff = standing.pointsFor - standing.pointsAgainst;
+    standing.apd = standing.gamesPlayed > 0
+      ? Math.round((standing.pointDiff / standing.gamesPlayed) * 100) / 100
+      : 0;
+    standing.winPct = standing.gamesPlayed > 0
+      ? Math.round((standing.wins / standing.gamesPlayed) * 100)
+      : 0;
   });
 
-  // Sort by: Wins (desc) -> Point Diff (desc) -> Points For (desc)
+  // Sort by: Wins (desc) -> APD (desc) -> Points For (desc)
   return Array.from(standings.values()).sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
-    if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
+    if (b.apd !== a.apd) return b.apd - a.apd;
     return b.pointsFor - a.pointsFor;
   });
 }

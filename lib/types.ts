@@ -21,4 +21,6 @@ export interface PlayerStanding {
   pointsAgainst: number;
   pointDiff: number;
   gamesPlayed: number;
+  apd: number; // Average Point Differential
+  winPct: number; // Win percentage
 }

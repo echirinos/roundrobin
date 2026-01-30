@@ -35,6 +35,8 @@ export function Standings({ standings }: StandingsProps) {
         <CardContent className="space-y-2">
           {standings.map((standing, index) => {
             const isLeader = index === 0 && standing.wins > 0;
+            const initial = standing.player.name.charAt(0).toUpperCase();
+
             return (
               <div
                 key={standing.player.id}
@@ -44,52 +46,63 @@ export function Standings({ standings }: StandingsProps) {
                     : "bg-muted/50 border-transparent"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                        isLeader
-                          ? "bg-green-600 text-white"
-                          : "bg-muted-foreground/20"
-                      }`}
-                    >
-                      {index + 1}
+                <div className="flex items-center gap-3">
+                  {/* Rank */}
+                  <div className="text-lg font-bold text-muted-foreground w-6 text-center">
+                    {index + 1}
+                  </div>
+
+                  {/* Avatar */}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0 ${
+                      isLeader ? "bg-green-600" : "bg-primary"
+                    }`}
+                  >
+                    {initial}
+                  </div>
+
+                  {/* Name and record */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate flex items-center gap-2">
+                      {standing.player.name}
+                      {isLeader && (
+                        <Badge variant="default" className="text-xs shrink-0">
+                          Leader
+                        </Badge>
+                      )}
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate flex items-center gap-2">
-                        {standing.player.name}
-                        {isLeader && (
-                          <Badge variant="default" className="text-xs shrink-0">
-                            Leader
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {standing.wins}W - {standing.losses}L
-                        {standing.gamesPlayed > 0 && (
-                          <span className="ml-1">
-                            ({standing.gamesPlayed} game{standing.gamesPlayed !== 1 ? "s" : ""})
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span className="font-medium">
+                        {standing.wins}-{standing.losses}-0
+                      </span>
+                      {standing.gamesPlayed > 0 && (
+                        <>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span
+                            className={
+                              standing.apd > 0
+                                ? "text-green-600 dark:text-green-400"
+                                : standing.apd < 0
+                                ? "text-red-600 dark:text-red-400"
+                                : ""
+                            }
+                          >
+                            {standing.apd > 0 ? "+" : ""}
+                            {standing.apd.toFixed(2)} APD
                           </span>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
                   </div>
+
+                  {/* Win percentage */}
                   <div className="text-right shrink-0">
-                    <div
-                      className={`text-xl font-bold tabular-nums ${
-                        standing.pointDiff > 0
-                          ? "text-green-600 dark:text-green-400"
-                          : standing.pointDiff < 0
-                          ? "text-red-600 dark:text-red-400"
-                          : ""
-                      }`}
-                    >
-                      {standing.pointDiff > 0 ? "+" : ""}
-                      {standing.pointDiff}
+                    <div className="text-2xl font-bold tabular-nums">
+                      {standing.winPct}
                     </div>
-                    <div className="text-xs text-muted-foreground tabular-nums">
-                      {standing.pointsFor} - {standing.pointsAgainst}
-                    </div>
+                    {standing.gamesPlayed > 0 && (
+                      <div className="text-xs text-muted-foreground">WIN %</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -99,7 +112,7 @@ export function Standings({ standings }: StandingsProps) {
       </Card>
       {hasGames && (
         <p className="text-xs text-muted-foreground text-center">
-          Ranked by: Wins → Point Diff → Points For
+          Ranked by: Wins → APD (Avg Point Diff) → Points For
         </p>
       )}
     </div>

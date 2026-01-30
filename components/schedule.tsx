@@ -64,6 +64,9 @@ export function Schedule({
     return players.filter(p => !playingIds.has(p.id));
   };
 
+  // Calculate number of courts
+  const numCourts = Math.floor(players.length / 4);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -71,6 +74,7 @@ export function Schedule({
           <h2 className="text-lg font-semibold">Matches</h2>
           <p className="text-sm text-muted-foreground">
             {completedMatches} of {totalMatches} games completed
+            {numCourts > 1 && ` • ${numCourts} courts`}
           </p>
         </div>
         <Button onClick={handleAddRound} variant="outline" className="w-full sm:w-auto">
@@ -80,12 +84,21 @@ export function Schedule({
 
       {rounds.map((round) => {
         const byePlayers = getPlayersOnBye(round);
+        const roundComplete = matchesByRound[round].every(m => m.completed);
+
         return (
           <Card key={round}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
-                <span>Round {round}</span>
-                <Badge variant="secondary">
+                <div className="flex items-center gap-2">
+                  <span>Round {round}</span>
+                  {roundComplete && (
+                    <Badge variant="secondary" className="text-xs">
+                      Finished
+                    </Badge>
+                  )}
+                </div>
+                <Badge variant="outline">
                   {matchesByRound[round].filter((m) => m.completed).length}/
                   {matchesByRound[round].length}
                 </Badge>
@@ -96,71 +109,78 @@ export function Schedule({
                 </p>
               )}
             </CardHeader>
-            <CardContent className="space-y-2 pt-0">
-              {matchesByRound[round].map((match) => (
-                <button
-                  key={match.id}
-                  onClick={() => handleMatchClick(match)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    match.completed
-                      ? "bg-muted/50 border-transparent"
-                      : "bg-background border-dashed border-muted-foreground/25 hover:border-primary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`font-medium text-sm truncate ${
-                            match.completed && match.score1! > match.score2!
-                              ? "text-green-600 dark:text-green-400"
-                              : ""
-                          }`}
-                        >
-                          {match.team1[0].name} & {match.team1[1].name}
-                        </span>
-                        {match.completed ? (
-                          <span
-                            className={`text-xl font-bold tabular-nums ${
-                              match.score1! > match.score2!
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {match.score1}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`font-medium text-sm truncate ${
-                            match.completed && match.score2! > match.score1!
-                              ? "text-green-600 dark:text-green-400"
-                              : ""
-                          }`}
-                        >
-                          {match.team2[0].name} & {match.team2[1].name}
-                        </span>
-                        {match.completed ? (
-                          <span
-                            className={`text-xl font-bold tabular-nums ${
-                              match.score2! > match.score1!
-                                ? "text-green-600 dark:text-green-400"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {match.score2}
-                          </span>
-                        ) : null}
-                      </div>
+            <CardContent className="space-y-3 pt-0">
+              {matchesByRound[round].map((match, courtIndex) => (
+                <div key={match.id} className="space-y-1">
+                  {/* Court label */}
+                  {matchesByRound[round].length > 1 && (
+                    <div className="text-xs font-medium text-muted-foreground">
+                      Court {courtIndex + 1}
                     </div>
-                    {!match.completed && (
-                      <Badge variant="outline" className="shrink-0">
-                        Score
-                      </Badge>
-                    )}
-                  </div>
-                </button>
+                  )}
+                  <button
+                    onClick={() => handleMatchClick(match)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                      match.completed
+                        ? "bg-muted/50 border-transparent"
+                        : "bg-background border-dashed border-muted-foreground/25 hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`font-medium text-sm truncate ${
+                              match.completed && match.score1! > match.score2!
+                                ? "text-green-600 dark:text-green-400"
+                                : ""
+                            }`}
+                          >
+                            {match.team1[0].name} & {match.team1[1].name}
+                          </span>
+                          {match.completed ? (
+                            <span
+                              className={`text-xl font-bold tabular-nums ${
+                                match.score1! > match.score2!
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {match.score1}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`font-medium text-sm truncate ${
+                              match.completed && match.score2! > match.score1!
+                                ? "text-green-600 dark:text-green-400"
+                                : ""
+                            }`}
+                          >
+                            {match.team2[0].name} & {match.team2[1].name}
+                          </span>
+                          {match.completed ? (
+                            <span
+                              className={`text-xl font-bold tabular-nums ${
+                                match.score2! > match.score1!
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {match.score2}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {!match.completed && (
+                        <Badge variant="outline" className="shrink-0">
+                          Score
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                </div>
               ))}
             </CardContent>
           </Card>
