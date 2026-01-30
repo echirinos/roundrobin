@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { PlayerStanding } from "@/lib/types";
 
 interface StandingsProps {
@@ -39,6 +38,16 @@ export function Standings({ standings }: StandingsProps) {
               const isLeader = index === 0 && standing.wins > 0;
               const initial = standing.player.name.charAt(0).toUpperCase();
 
+              // Medal emojis for top 3
+              const getMedal = (rank: number) => {
+                if (!hasGames) return null;
+                if (rank === 0) return "🥇";
+                if (rank === 1) return "🥈";
+                if (rank === 2) return "🥉";
+                return null;
+              };
+              const medal = getMedal(index);
+
               return (
                 <motion.div
                   key={standing.player.id}
@@ -52,26 +61,36 @@ export function Standings({ standings }: StandingsProps) {
                   }}
                   className={`p-3 rounded-lg border ${
                     isLeader
-                      ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                      ? "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-700"
+                      : index === 1 && hasGames
+                      ? "bg-slate-50 dark:bg-slate-900/30 border-slate-300 dark:border-slate-600"
+                      : index === 2 && hasGames
+                      ? "bg-orange-50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-800"
                       : "bg-muted/50 border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    {/* Rank */}
+                    {/* Rank with medal */}
                     <motion.div
-                      className="text-lg font-bold text-muted-foreground w-6 text-center"
+                      className="text-xl font-bold w-8 text-center"
                       key={`rank-${index}`}
-                      initial={{ scale: 1.5, color: "#22c55e" }}
-                      animate={{ scale: 1, color: "inherit" }}
+                      initial={{ scale: 1.5 }}
+                      animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {index + 1}
+                      {medal || index + 1}
                     </motion.div>
 
                     {/* Avatar */}
                     <motion.div
                       className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0 ${
-                        isLeader ? "bg-green-600" : "bg-primary"
+                        index === 0 && hasGames
+                          ? "bg-yellow-500"
+                          : index === 1 && hasGames
+                          ? "bg-slate-400"
+                          : index === 2 && hasGames
+                          ? "bg-orange-400"
+                          : "bg-primary"
                       }`}
                       whileHover={{ scale: 1.1 }}
                       transition={{ type: "spring", stiffness: 400 }}
@@ -81,22 +100,8 @@ export function Standings({ standings }: StandingsProps) {
 
                     {/* Name and record */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate flex items-center gap-2">
+                      <div className="font-medium truncate">
                         {standing.player.name}
-                        <AnimatePresence>
-                          {isLeader && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0 }}
-                              transition={{ type: "spring", stiffness: 500 }}
-                            >
-                              <Badge variant="default" className="text-xs shrink-0">
-                                Leader
-                              </Badge>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-2">
                         <span className="font-medium">
