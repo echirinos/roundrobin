@@ -1,307 +1,589 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  QrCode,
+  RadioTower,
+  ScanLine,
+  Share2,
+  Shuffle,
+  Smartphone,
+  Sparkles,
+  Trophy,
+  UsersRound,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { ShineBorder } from "@/components/ui/shine-border";
+import { TextureButton } from "@/components/ui/texture-button";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { cn } from "@/lib/utils";
 
-const features = [
+const heroStats = [
+  { label: "players", value: 9 },
+  { label: "courts", value: 2 },
+  { label: "sitting", value: 1 },
+];
+
+const productSignals = [
   {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    ),
-    title: "Rotating Partners",
-    description: "Everyone plays with everyone. Our algorithm ensures fair matchups and maximizes variety.",
+    icon: QrCode,
+    title: "QR join and share",
+    detail: "Publish a session code, show the QR sheet, and let players open the live view.",
   },
   {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: "Live Standings",
-    description: "Real-time leaderboard with animated rank changes. Track wins, point differential, and more.",
+    icon: Smartphone,
+    title: "Courtside score entry",
+    detail: "Large tap targets, score pops, and round status that works from a phone browser.",
   },
   {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    title: "Instant Setup",
-    description: "Add players, pick a format, and start playing in under 60 seconds. No sign-up required.",
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-    title: "Any Group Size",
-    description: "Works with 4 to 32+ players. Smart bye management when you have odd numbers.",
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Multi-Court Support",
-    description: "Running multiple courts? We handle parallel games and keep everything synchronized.",
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Mobile First",
-    description: "Designed for phones. Enter scores courtside without switching between apps.",
+    icon: RadioTower,
+    title: "Live standings",
+    detail: "The board updates for spectators and players without passing one phone around.",
   },
 ];
 
-const formats = [
+const flowSteps = [
   {
-    name: "Popcorn",
-    description: "Classic rotating partners format",
-    players: "4-16",
+    icon: UsersRound,
+    eyebrow: "setup",
+    title: "Tell it players and courts",
+    detail: "Start with what the organizer actually knows: how many people showed up and how many courts are open.",
   },
   {
-    name: "King of the Court",
-    description: "Winners move up, losers move down",
-    players: "8-32",
+    icon: Shuffle,
+    eyebrow: "mode",
+    title: "Pick Popcorn or go competitive",
+    detail: "Popcorn is the social default. Gauntlet, King of the Court, brackets, and set teams stay close.",
   },
   {
-    name: "Mixer",
-    description: "Social play with fair matchups",
-    players: "4-24",
+    icon: Share2,
+    eyebrow: "live",
+    title: "Share the session code",
+    detail: "Players can join from their browser, check in, and follow the round without installing anything.",
+  },
+  {
+    icon: Trophy,
+    eyebrow: "score",
+    title: "Advance when scores are in",
+    detail: "PlaySync handles byes, court use, standings, and the next round queue.",
   },
 ];
 
-const steps = [
+const exampleMatches = [
   {
-    number: "1",
-    title: "Add Players",
-    description: "Enter names or import from DUPR. Drag to reorder seeding.",
+    court: "Court 1",
+    left: "Ana / Ben",
+    right: "Cara / Diego",
+    score: "8-6",
+    status: "In progress",
   },
   {
-    number: "2",
-    title: "Pick Format",
-    description: "Choose from Popcorn, King of the Court, Mixer, and more.",
-  },
-  {
-    number: "3",
-    title: "Generate Rounds",
-    description: "Tap to create matchups. Our algorithm handles the rest.",
-  },
-  {
-    number: "4",
-    title: "Enter Scores",
-    description: "Tap any match to enter the score. Standings update live.",
+    court: "Court 2",
+    left: "Eli / Fran",
+    right: "Gia / Hugo",
+    score: "0-0",
+    status: "Next up",
   },
 ];
+
+const standings = [
+  { name: "Ana", value: 3, meta: "3-0" },
+  { name: "Diego", value: 2, meta: "2-1" },
+  { name: "Fran", value: 2, meta: "2-1" },
+];
+
+function Reveal({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-96px" }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function SessionBoard({ className }: { className?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24, rotateX: 8 }}
+      animate={{ opacity: 1, y: 0, rotateX: 0 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+      className={cn("relative mx-auto w-full max-w-[35rem]", className)}
+    >
+      <div className="absolute -inset-8 rounded-full bg-primary/20 blur-3xl" />
+      <div className="landing-board-shell relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/86 p-3 shadow-[0_32px_110px_-56px_rgb(14_38_19_/_0.72)] backdrop-blur-2xl">
+        <ShineBorder
+          borderWidth={1}
+          duration={16}
+          shineColor={["var(--primary)", "var(--live)", "var(--accent)"]}
+        />
+        <div className="relative overflow-hidden rounded-[1.45rem] border border-border/70 bg-background/90">
+          <div className="landing-court-surface absolute inset-0 opacity-80" />
+          <div className="relative flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-live shadow-[0_0_18px_var(--live)]" />
+                <p className="font-data text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Live session
+                </p>
+              </div>
+              <p className="mt-1 truncate font-display text-xl font-semibold tracking-tight">
+                Monday Popcorn
+              </p>
+            </div>
+            <div className="rounded-xl border border-primary/45 bg-primary/12 px-3 py-2 text-right">
+              <p className="font-data text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
+                Code
+              </p>
+              <p className="font-display text-lg font-semibold">P7K4Q9</p>
+            </div>
+          </div>
+
+          <div className="relative grid gap-3 p-4 sm:grid-cols-[1.15fr_0.85fr] sm:p-5">
+            <div className="flex flex-col gap-3">
+              <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-display text-lg font-semibold">
+                      Popcorn round 1
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      8 players play. 1 sits.
+                    </p>
+                  </div>
+                  <Badge variant="outline">2 courts</Badge>
+                </div>
+                <div className="mt-4 h-2 overflow-hidden rounded-full bg-background/80">
+                  <motion.div
+                    initial={{ width: "18%" }}
+                    animate={{ width: "72%" }}
+                    transition={{
+                      duration: 1.8,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                      ease: "easeInOut",
+                    }}
+                    className="h-full rounded-full bg-primary"
+                  />
+                </div>
+              </div>
+
+              {exampleMatches.map((match, index) => (
+                <motion.div
+                  key={match.court}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.45,
+                    ease: [0.22, 1, 0.36, 1],
+                    delay: 0.25 + index * 0.09,
+                  }}
+                  className="rounded-2xl border border-border/70 bg-card/82 p-3"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <Badge variant={index === 0 ? "default" : "outline"}>
+                      {match.court}
+                    </Badge>
+                    <span className="font-data text-xs text-muted-foreground">
+                      {match.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                    <p className="truncate text-sm font-semibold">{match.left}</p>
+                    <p className="font-data rounded-lg bg-secondary px-2 py-1 text-sm font-semibold">
+                      {match.score}
+                    </p>
+                    <p className="truncate text-right text-sm font-semibold">
+                      {match.right}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-border/70 bg-card/82 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-display text-base font-semibold">
+                    Standings
+                  </p>
+                  <Badge variant="secondary">Live</Badge>
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  {standings.map((player, index) => (
+                    <div
+                      key={player.name}
+                      className="flex items-center justify-between gap-3 rounded-xl bg-background/68 px-3 py-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="font-data text-xs text-muted-foreground">
+                          {index + 1}
+                        </span>
+                        <span className="truncate text-sm font-semibold">
+                          {player.name}
+                        </span>
+                      </div>
+                      <span className="font-data text-xs text-muted-foreground">
+                        {player.meta}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/70 bg-foreground p-4 text-background">
+                <div className="flex items-center gap-2">
+                  <ScanLine className="size-4" />
+                  <p className="font-data text-xs uppercase tracking-[0.16em] text-background/70">
+                    QR ready
+                  </p>
+                </div>
+                <p className="mt-3 font-display text-2xl font-semibold">
+                  Share once. Everyone follows.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="hero-gradient absolute inset-0" />
-        <div className="bg-grid absolute inset-0" />
-        <div className="container relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32 lg:py-40">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-              Start pickleball play{" "}
-              <span className="text-gradient">from your phone</span>
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-              Open it courtside, add names, and generate the first round.
-              No sign-up, no spreadsheet, no app download.
-            </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/tournament?new=1&mode=rotating" className="w-full sm:w-auto">
-                <Button size="lg" className="h-12 px-8 text-base font-semibold">
-                  Start round robin
-                  <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+      <main>
+        <section className="landing-hero relative isolate overflow-hidden border-b border-border/60">
+          <div className="landing-court-surface absolute inset-0" />
+          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-background to-transparent" />
+          <div className="container relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:py-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-2xl"
+            >
+              <Badge variant="outline" className="mb-5">
+                Browser-native pickleball control room
+              </Badge>
+              <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl lg:text-[5.8rem]">
+                PlaySync keeps every court moving.
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+                Create a live session, share the QR, enter scores courtside,
+                and generate the next round before the group cools down.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <TextureButton
+                  asChild
+                  size="lg"
+                  className="h-12 sm:w-auto"
+                  data-testid="hero-create-session"
+                >
+                  <Link href="/tournament?new=1&mode=rotating">
+                    Create a Session
+                    <ArrowRight data-icon="inline-end" />
+                  </Link>
+                </TextureButton>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 text-base"
+                >
+                  <Link href="/tournament?join=1" data-testid="hero-join-code">
+                    Join with Code
+                  </Link>
                 </Button>
-              </Link>
-              <Link href="/tournament?new=1&mode=fixed" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="h-12 px-8 text-base font-semibold">
-                  Start set teams
-                </Button>
-              </Link>
+              </div>
+
+              <div className="mt-8 grid max-w-xl grid-cols-3 gap-2">
+                {heroStats.map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.45,
+                      ease: [0.22, 1, 0.36, 1],
+                      delay: 0.2 + index * 0.06,
+                    }}
+                    className="rounded-2xl border border-border/70 bg-card/70 p-3 backdrop-blur"
+                  >
+                    <p className="font-display text-3xl font-semibold">
+                      <NumberTicker value={stat.value} startValue={0} />
+                    </p>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                      {stat.label}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            <SessionBoard />
+          </div>
+        </section>
+
+        <section
+          id="features"
+          className="relative overflow-hidden border-b border-border/60 py-16 sm:py-24"
+        >
+          <div className="container mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="grid gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-start">
+              <Reveal className="lg:sticky lg:top-24">
+                <Badge variant="outline" className="mb-4">
+                  Why it feels faster
+                </Badge>
+                <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+                  Built for the moment between games.
+                </h2>
+                <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                  PlaySync replaces the whiteboard huddle with a live, shared
+                  session that still feels simple on a phone.
+                </p>
+              </Reveal>
+
+              <div className="grid gap-4">
+                {productSignals.map((item, index) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Reveal key={item.title} delay={index * 0.06}>
+                      <motion.div
+                        whileHover={{ y: -3 }}
+                        transition={{ duration: 0.2 }}
+                        className="group relative overflow-hidden rounded-[1.6rem] border border-border/70 bg-card/74 p-5 shadow-sm backdrop-blur"
+                      >
+                        <div className="absolute inset-y-0 left-0 w-1 bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
+                        <div className="flex gap-4">
+                          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background/72 text-live">
+                            <Icon className="size-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-display text-xl font-semibold">
+                              {item.title}
+                            </h3>
+                            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+                              {item.detail}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Reveal>
+                  );
+                })}
+              </div>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Built for iPhone and Android browsers at the courts.
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Formats Preview */}
-      <section className="border-y border-border/40 bg-muted/30">
-        <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-            {formats.map((format) => (
-              <div key={format.name} className="text-center">
-                <p className="text-lg font-semibold">{format.name}</p>
-                <p className="text-sm text-muted-foreground">{format.players} players</p>
-              </div>
-            ))}
-            <Link href="/tournament?new=1&mode=rotating" className="text-sm font-medium text-primary hover:underline">
-              View all formats &rarr;
-            </Link>
-          </div>
-        </div>
-      </section>
+        <section id="how-it-works" className="py-16 sm:py-24">
+          <div className="container mx-auto max-w-6xl px-4 sm:px-6">
+            <Reveal className="mx-auto max-w-3xl text-center">
+              <Badge variant="outline" className="mb-4">
+                Courtside flow
+              </Badge>
+              <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+                Four decisions. Then everyone plays.
+              </h2>
+            </Reveal>
 
-      {/* Features Section */}
-      <section id="features" className="py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <Badge variant="outline" className="mb-4">Features</Badge>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you need to run the perfect tournament
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Built by pickleball players, for pickleball players. We obsess over the details so you can focus on playing.
-            </p>
+            <div className="relative mt-12 grid gap-4 lg:grid-cols-4">
+              <div className="absolute left-0 right-0 top-8 hidden h-px bg-border lg:block" />
+              {flowSteps.map((step, index) => {
+                const Icon = step.icon;
+
+                return (
+                  <Reveal key={step.title} delay={index * 0.06}>
+                    <div className="relative flex h-full flex-col gap-4 rounded-[1.6rem] border border-border/70 bg-background p-5 shadow-sm">
+                      <div className="flex size-16 items-center justify-center rounded-2xl border border-primary/35 bg-primary text-primary-foreground shadow-[0_18px_38px_-28px_var(--primary)]">
+                        <Icon className="size-6" />
+                      </div>
+                      <div>
+                        <p className="font-data text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                          {step.eyebrow}
+                        </p>
+                        <h3 className="mt-2 font-display text-xl font-semibold">
+                          {step.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {step.detail}
+                        </p>
+                      </div>
+                    </div>
+                  </Reveal>
+                );
+              })}
+            </div>
           </div>
-          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-border/50 bg-card/50 transition-colors hover:bg-card">
-                <CardContent className="pt-6">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    {feature.icon}
+        </section>
+
+        <section className="overflow-hidden border-y border-border/60 bg-foreground py-16 text-background sm:py-24">
+          <div className="container mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <Reveal>
+              <p className="font-data text-sm uppercase tracking-[0.18em] text-background/60">
+                Example session
+              </p>
+              <h2 className="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+                9 players, 2 courts, zero guessing.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-background/72">
+                The app says who plays, who sits, what court is live, and when
+                the standings changed. It is product proof, not marketing filler.
+              </p>
+            </Reveal>
+
+            <Reveal delay={0.08}>
+              <div className="rounded-[2rem] border border-background/15 bg-background/8 p-3 backdrop-blur">
+                <div className="rounded-[1.45rem] bg-background p-4 text-foreground">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-display text-xl font-semibold">
+                        Session snapshot
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Popcorn / rotating partners
+                      </p>
+                    </div>
+                    <Badge>Live</Badge>
                   </div>
-                  <h3 className="text-lg font-semibold">{feature.title}</h3>
-                  <p className="mt-2 text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="border-t border-border/40 bg-muted/30 py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <Badge variant="outline" className="mb-4">How It Works</Badge>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              From zero to playing in 4 steps
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              No accounts. No downloads. Just open the app and start playing.
-            </p>
-          </div>
-          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step, index) => (
-              <div key={index} className="relative">
-                {index < steps.length - 1 && (
-                  <div className="absolute left-8 top-8 hidden h-0.5 w-full bg-border lg:block" />
-                )}
-                <div className="relative flex flex-col items-center text-center lg:items-start lg:text-left">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                    {step.number}
-                  </div>
-                  <h3 className="text-lg font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-muted-foreground">{step.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-16 text-center">
-            <Link href="/tournament?new=1&mode=rotating">
-              <Button size="lg" className="h-12 px-8 text-base font-semibold">
-                Try It Now
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Loved by players everywhere
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Join thousands of players who have upgraded their pickleball experience.
-            </p>
-          </div>
-          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              {
-                quote: "Finally, an app that just works. We use it every week for our club round robin.",
-                author: "Mike T.",
-                role: "Club Organizer, Phoenix AZ",
-              },
-              {
-                quote: "The rotating partners feature is genius. Everyone gets to play with everyone.",
-                author: "Sarah L.",
-                role: "Recreation Director",
-              },
-              {
-                quote: "Setup is instant. No more spreadsheets or writing on whiteboards.",
-                author: "James K.",
-                role: "Tournament Director",
-              },
-            ].map((testimonial, index) => (
-              <Card key={index} className="border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex gap-1 text-primary">
-                    {[...Array(5)].map((_, i) => (
-                      <svg key={i} className="h-5 w-5 fill-current" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {[
+                      { label: "checked in", value: 9 },
+                      { label: "games done", value: 6 },
+                      { label: "round", value: 2 },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-2xl border border-border/70 bg-card/80 p-4"
+                      >
+                        <p className="font-display text-3xl font-semibold">
+                          <NumberTicker value={item.value} startValue={0} />
+                        </p>
+                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                          {item.label}
+                        </p>
+                      </div>
                     ))}
                   </div>
-                  <p className="mt-4 text-foreground">&ldquo;{testimonial.quote}&rdquo;</p>
-                  <div className="mt-4">
-                    <p className="font-semibold">{testimonial.author}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                  <div className="mt-4 rounded-2xl border border-border/70 bg-primary/10 p-4">
+                    <div className="flex items-center gap-3">
+                      <Clock3 className="size-5 text-primary" />
+                      <p className="text-sm font-medium">
+                        Round 3 is ready after Court 1 submits score.
+                      </p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </div>
+            </Reveal>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="border-t border-border/40 bg-primary py-24 sm:py-32">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
-              Ready to level up your pickleball?
-            </h2>
-            <p className="mt-4 text-lg text-primary-foreground/80">
-              Start your first tournament in under a minute. Free forever.
-            </p>
-            <div className="mt-10">
-              <Link href="/tournament?new=1&mode=rotating">
-                <Button size="lg" variant="secondary" className="h-12 px-8 text-base font-semibold">
-                  Start round robin
-                  <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </Button>
-              </Link>
-            </div>
+        <section className="relative overflow-hidden py-16 sm:py-24">
+          <div className="landing-court-surface absolute inset-0" />
+          <div className="container relative mx-auto max-w-6xl px-4 sm:px-6">
+            <Reveal>
+              <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/84 shadow-sm backdrop-blur">
+                <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div className="flex flex-col justify-between gap-10 p-6 sm:p-10">
+                    <div>
+                      <Badge variant="outline" className="mb-4">
+                        Ready when the group is
+                      </Badge>
+                      <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+                        Create the session before the next paddle tap.
+                      </h2>
+                      <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                        No account wall, no app download, no spreadsheet. Just
+                        enough structure to keep pickup play moving.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <TextureButton
+                        asChild
+                        size="lg"
+                        className="h-12 sm:w-auto"
+                        data-testid="final-create-session"
+                      >
+                        <Link href="/tournament?new=1&mode=rotating">
+                          Create a Session
+                          <ArrowRight data-icon="inline-end" />
+                        </Link>
+                      </TextureButton>
+                      <Button
+                        asChild
+                        size="lg"
+                        variant="outline"
+                        className="h-12 text-base"
+                      >
+                        <Link href="/tournament?join=1" data-testid="final-join-code">
+                          Join with Code
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex min-h-80 items-center justify-center border-t border-border/70 bg-foreground p-6 text-background lg:border-l lg:border-t-0">
+                    <div className="w-full max-w-sm">
+                      <div className="mb-6 flex items-center justify-between">
+                        <div>
+                          <p className="font-data text-xs uppercase tracking-[0.18em] text-background/60">
+                            Launch check
+                          </p>
+                          <p className="mt-1 font-display text-2xl font-semibold">
+                            Court-ready on mobile
+                          </p>
+                        </div>
+                        <Sparkles className="size-6 text-primary" />
+                      </div>
+                      <div className="grid gap-3">
+                        {[
+                          "Create session",
+                          "Share QR or code",
+                          "Track scores live",
+                          "Advance the round",
+                        ].map((item) => (
+                          <div
+                            key={item}
+                            className="flex items-center gap-3 rounded-2xl border border-background/14 bg-background/8 p-3"
+                          >
+                            <CheckCircle2 className="size-5 text-primary" />
+                            <span className="font-medium">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </div>

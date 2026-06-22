@@ -37,23 +37,24 @@ export function Header() {
             href="#how-it-works"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            How It Works
+            Flow
           </Link>
           <Link
-            href="/tournament"
+            href="/tournament?join=1"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Formats
+            Join Code
           </Link>
         </nav>
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/tournament?new=1&mode=rotating">
-            <Button size="sm" className="font-medium">
-              Start
-            </Button>
-          </Link>
+          <Button asChild size="sm" variant="outline" className="hidden font-medium sm:inline-flex">
+            <Link href="/tournament?join=1">Join</Link>
+          </Button>
+          <Button asChild size="sm" className="font-medium">
+            <Link href="/tournament?new=1&mode=rotating">Create</Link>
+          </Button>
         </div>
       </div>
     </header>

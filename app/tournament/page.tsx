@@ -176,6 +176,7 @@ export default function TournamentPage() {
   const [previousStandings, setPreviousStandings] = useState<LocalStanding[]>([]);
   const [sessionCode, setSessionCode] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [showJoinPrompt, setShowJoinPrompt] = useState(false);
   const [origin, setOrigin] = useState("");
   const [syncStatus, setSyncStatus] = useState<LiveSyncStatus>("local");
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -246,6 +247,7 @@ export default function TournamentPage() {
       );
       const role = params.get("role");
       const requestedNewSession = params.get("new") === "1";
+      const requestedJoin = params.get("join") === "1";
       const requestedMode = params.get("mode");
       const requestedSettings =
         requestedMode === "fixed"
@@ -255,6 +257,7 @@ export default function TournamentPage() {
           : null;
 
       setOrigin(window.location.origin);
+      setShowJoinPrompt(requestedJoin);
 
       if (queryCode && role !== "organizer") {
         setIsSpectator(true);
@@ -277,6 +280,7 @@ export default function TournamentPage() {
         );
         setActiveTab("setup");
         setSessionCode(null);
+        setShowJoinPrompt(false);
         setSyncStatus("local");
         setSyncError(null);
         setLastSyncedAt(null);
@@ -585,6 +589,7 @@ export default function TournamentPage() {
       setSyncStatus("local");
       setSyncError(null);
       setLastSyncedAt(null);
+      setShowJoinPrompt(false);
       setActiveTab("setup");
       localStorage.removeItem(STORAGE_KEY);
       if (sessionCode) {
@@ -613,7 +618,11 @@ export default function TournamentPage() {
   const formatDefinition = FORMAT_DEFINITIONS[state.settings.format];
   const isLive = Boolean(sessionCode) && syncStatus === "live";
   const shouldShowSessionHero =
-    state.tournamentStarted || isSpectator || Boolean(sessionCode) || Boolean(syncError);
+    state.tournamentStarted ||
+    isSpectator ||
+    Boolean(sessionCode) ||
+    Boolean(syncError) ||
+    showJoinPrompt;
   const checkedInPlayer = state.players.find(
     (player) => player.id === checkedInPlayerId
   );
@@ -755,10 +764,16 @@ export default function TournamentPage() {
                     <Badge variant="outline">{formatDefinition.name}</Badge>
                   </div>
                   <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                    {state.tournamentStarted ? state.name : "Create round robin"}
+                    {state.tournamentStarted
+                      ? state.name
+                      : showJoinPrompt
+                      ? "Join with session code"
+                      : "Create round robin"}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    {state.tournamentStarted
+                    {showJoinPrompt && !state.tournamentStarted
+                      ? "Enter the organizer's 6-character code to open the live session."
+                      : state.tournamentStarted
                       ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
                       : "Add names, keep the defaults, and start the first round from your phone."}
                   </p>

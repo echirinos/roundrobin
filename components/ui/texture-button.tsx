@@ -90,18 +90,40 @@ const TextureButton = React.forwardRef<HTMLButtonElement, UnifiedButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
+    const innerContent = (content: React.ReactNode) => (
+      <div className={cn(innerDivVariants({ variant, size }))}>{content}</div>
+    )
+
+    if (asChild) {
+      const child = React.Children.only(children)
+
+      if (!React.isValidElement<{ children?: React.ReactNode }>(child)) {
+        return null
+      }
+
+      return (
+        <Slot
+          className={cn(buttonVariantsOuter({ variant, size }), className)}
+          ref={ref as React.Ref<HTMLElement>}
+          {...props}
+        >
+          {React.cloneElement(
+            child,
+            undefined,
+            innerContent(child.props.children)
+          )}
+        </Slot>
+      )
+    }
 
     return (
-      <Comp
+      <button
         className={cn(buttonVariantsOuter({ variant, size }), className)}
         ref={ref}
         {...props}
       >
-        <div className={cn(innerDivVariants({ variant, size }))}>
-          {children}
-        </div>
-      </Comp>
+        {innerContent(children)}
+      </button>
     )
   }
 )
