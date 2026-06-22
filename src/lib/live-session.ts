@@ -1,0 +1,118 @@
+import type { LocalPlayer, LocalRoundGame } from "@/src/types/database";
+import type { EventSettings } from "@/src/types/formats";
+
+export interface PlayerCheckIn {
+  playerId: string;
+  playerName: string;
+  checkedInAt: string;
+}
+
+export interface LiveTournamentSnapshot {
+  id: string;
+  name: string;
+  players: LocalPlayer[];
+  games: LocalRoundGame[];
+  settings: EventSettings;
+  currentRound: number;
+  tournamentStarted: boolean;
+  checkIns?: Record<string, PlayerCheckIn>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LiveSessionRecord {
+  code: string;
+  snapshot: LiveTournamentSnapshot;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionStats {
+  completedGames: number;
+  totalGames: number;
+  completionPercent: number;
+  currentRoundGames: number;
+  currentRoundCompleted: number;
+  checkedInPlayers: number;
+  totalPlayers: number;
+  statusLabel: string;
+}
+
+const CODE_LENGTH = 6;
+
+export function normalizeSessionCode(value: string | null | undefined): string {
+  return (value ?? "")
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, CODE_LENGTH)
+    .toUpperCase();
+}
+
+export function createSessionCode(seed: string): string {
+  const normalized = normalizeSessionCode(seed);
+
+  if (normalized.length === CODE_LENGTH) {
+    return normalized;
+  }
+
+  const suffix = Math.random().toString(36).slice(2, CODE_LENGTH + 2);
+  return normalizeSessionCode(`${normalized}${suffix}`).padEnd(CODE_LENGTH, "0");
+}
+
+export function isLiveTournamentSnapshot(
+  value: unknown
+): value is LiveTournamentSnapshot {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<LiveTournamentSnapshot>;
+
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    Array.isArray(candidate.players) &&
+    Array.isArray(candidate.games) &&
+    typeof candidate.settings === "object" &&
+    typeof candidate.currentRound === "number" &&
+    typeof candidate.tournamentStarted === "boolean" &&
+    typeof candidate.createdAt === "string"
+  );
+}
+
+export function getSessionStats(snapshot: LiveTournamentSnapshot): SessionStats {
+  const totalGames = snapshot.games.length;
+  const completedGames = snapshot.games.filter((game) => game.completed).length;
+  const currentRoundGames = snapshot.games.filter(
+    (game) => game.round === snapshot.currentRound
+  );
+  const currentRoundCompleted = currentRoundGames.filter(
+    (game) => game.completed
+  ).length;
+  const checkedInPlayers = Object.keys(snapshot.checkIns ?? {}).length;
+  const totalPlayers = snapshot.players.length;
+  const completionPercent =
+    totalGames > 0 ? Math.round((completedGames / totalGames) * 100) : 0;
+
+  let statusLabel = "Setup";
+
+  if (snapshot.tournamentStarted && totalGames === 0) {
+    statusLabel = "Waiting for round";
+  } else if (
+    snapshot.tournamentStarted &&
+    currentRoundGames.length > 0 &&
+    currentRoundCompleted === currentRoundGames.length
+  ) {
+    statusLabel = "Between rounds";
+  } else if (snapshot.tournamentStarted) {
+    statusLabel = `Round ${snapshot.currentRound} live`;
+  }
+
+  return {
+    completedGames,
+    totalGames,
+    completionPercent,
+    currentRoundGames: currentRoundGames.length,
+    currentRoundCompleted,
+    checkedInPlayers,
+    totalPlayers,
+    statusLabel,
+  };
+}

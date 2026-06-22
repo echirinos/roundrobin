@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -20,31 +20,44 @@ interface ScoreDialogProps {
 }
 
 export function ScoreDialog({ match, open, onClose, onSave }: ScoreDialogProps) {
-  const [score1, setScore1] = useState("");
-  const [score2, setScore2] = useState("");
-
-  useEffect(() => {
-    if (match) {
-      setScore1(match.score1?.toString() ?? "");
-      setScore2(match.score2?.toString() ?? "");
-    }
-  }, [match]);
-
-  const handleSave = () => {
-    const s1 = parseInt(score1);
-    const s2 = parseInt(score2);
-
-    if (!isNaN(s1) && !isNaN(s2) && s1 >= 0 && s2 >= 0 && match) {
-      onSave(match.id, s1, s2);
-      onClose();
-    }
-  };
-
   if (!match) return null;
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-[95vw] sm:max-w-md">
+        <ScoreDialogForm
+          key={match.id}
+          match={match}
+          onClose={onClose}
+          onSave={onSave}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface ScoreDialogFormProps {
+  match: Match;
+  onClose: () => void;
+  onSave: (matchId: string, score1: number, score2: number) => void;
+}
+
+function ScoreDialogForm({ match, onClose, onSave }: ScoreDialogFormProps) {
+  const [score1, setScore1] = useState(match.score1?.toString() ?? "");
+  const [score2, setScore2] = useState(match.score2?.toString() ?? "");
+
+  const handleSave = () => {
+    const s1 = parseInt(score1);
+    const s2 = parseInt(score2);
+
+    if (!isNaN(s1) && !isNaN(s2) && s1 >= 0 && s2 >= 0) {
+      onSave(match.id, s1, s2);
+      onClose();
+    }
+  };
+
+  return (
+    <>
         <DialogHeader>
           <DialogTitle className="text-center">Enter Score</DialogTitle>
         </DialogHeader>
@@ -96,7 +109,6 @@ export function ScoreDialog({ match, open, onClose, onSave }: ScoreDialogProps) 
             Save Score
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }
