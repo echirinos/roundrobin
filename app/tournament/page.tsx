@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   CheckCircle2,
@@ -17,11 +18,12 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { ShineBorder } from "@/components/ui/shine-border";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NumberTicker } from "@/components/ui/number-ticker";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import {
@@ -243,6 +245,14 @@ export default function TournamentPage() {
         params.get("code") ?? params.get("session")
       );
       const role = params.get("role");
+      const requestedNewSession = params.get("new") === "1";
+      const requestedMode = params.get("mode");
+      const requestedSettings =
+        requestedMode === "fixed"
+          ? createDefaultEventSettings("shuffle")
+          : requestedMode === "rotating"
+          ? createDefaultEventSettings("popcorn")
+          : null;
 
       setOrigin(window.location.origin);
 
@@ -250,6 +260,29 @@ export default function TournamentPage() {
         setIsSpectator(true);
         setSessionCode(queryCode);
         await fetchLiveSession(queryCode);
+
+        if (!isCancelled) {
+          setIsLoaded(true);
+        }
+
+        return;
+      }
+
+      if (requestedNewSession) {
+        const nextState = createInitialState();
+        setState(
+          requestedSettings
+            ? { ...nextState, settings: requestedSettings }
+            : nextState
+        );
+        setActiveTab("setup");
+        setSessionCode(null);
+        setSyncStatus("local");
+        setSyncError(null);
+        setLastSyncedAt(null);
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(SESSION_CODE_STORAGE_KEY);
+        window.history.replaceState(null, "", "/tournament");
 
         if (!isCancelled) {
           setIsLoaded(true);
@@ -274,6 +307,10 @@ export default function TournamentPage() {
         } catch (error) {
           console.error("Failed to load saved tournament:", error);
         }
+      } else if (requestedSettings) {
+        setState((prev) => ({ ...prev, settings: requestedSettings }));
+        setActiveTab("setup");
+        window.history.replaceState(null, "", "/tournament");
       }
 
       if (savedCode) {
@@ -575,9 +612,38 @@ export default function TournamentPage() {
 
   const formatDefinition = FORMAT_DEFINITIONS[state.settings.format];
   const isLive = Boolean(sessionCode) && syncStatus === "live";
+  const shouldShowSessionHero =
+    state.tournamentStarted || isSpectator || Boolean(sessionCode) || Boolean(syncError);
   const checkedInPlayer = state.players.find(
     (player) => player.id === checkedInPlayerId
   );
+  const statCards = [
+    {
+      label: "Players",
+      value: state.players.length,
+      icon: Users,
+      tone: "text-primary",
+    },
+    {
+      label: "Checked",
+      value: sessionStats.checkedInPlayers,
+      icon: UserCheck,
+      tone: "text-live",
+    },
+    {
+      label: "Round",
+      value: state.currentRound || 0,
+      icon: Trophy,
+      tone: "text-accent",
+    },
+    {
+      label: "Done",
+      value: sessionStats.completionPercent,
+      icon: Activity,
+      tone: "text-success",
+      suffix: "%",
+    },
+  ];
 
   if (!isLoaded) {
     return (
@@ -591,14 +657,16 @@ export default function TournamentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/90 backdrop-blur-lg">
-        <div className="mx-auto flex min-h-14 max-w-5xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
+    <div className="court-app-bg min-h-screen">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/78 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
           <Link href="/" className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <div className="court-line-surface flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/35 text-primary-foreground shadow-sm">
               <Activity className="size-4" />
             </div>
-            <span className="truncate text-lg font-bold">PlaySync</span>
+            <span className="font-display truncate text-lg font-semibold tracking-tight">
+              PlaySync
+            </span>
           </Link>
           <div className="flex min-w-0 items-center justify-end gap-2">
             {sessionCode && (
@@ -650,166 +718,185 @@ export default function TournamentPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6">
-        <Card className="overflow-hidden">
-          <CardContent className="flex flex-col gap-4 p-4 sm:p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={isLive ? "default" : "secondary"}>
-                    {isLive ? (
-                      <Wifi className="size-3" />
-                    ) : (
-                      <WifiOff className="size-3" />
-                    )}
-                    {isSpectator
-                      ? "Live spectator"
-                      : isLive
-                      ? "Live session"
-                      : "Local session"}
-                  </Badge>
-                  <Badge variant="outline">{formatDefinition.name}</Badge>
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  {state.tournamentStarted ? state.name : "Create round robin"}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {state.tournamentStarted
-                    ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
-                    : "Add players, choose a format, then share a live code when you are ready."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:w-96 sm:grid-cols-4">
-                <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                  <Users className="mx-auto mb-1 size-4 text-muted-foreground" />
-                  <div className="text-lg font-bold tabular-nums">
-                    {state.players.length}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Players</div>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                  <UserCheck className="mx-auto mb-1 size-4 text-muted-foreground" />
-                  <div className="text-lg font-bold tabular-nums">
-                    {sessionStats.checkedInPlayers}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Checked</div>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                  <Trophy className="mx-auto mb-1 size-4 text-muted-foreground" />
-                  <div className="text-lg font-bold tabular-nums">
-                    {state.currentRound || 0}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Round</div>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3 text-center">
-                  <Activity className="mx-auto mb-1 size-4 text-muted-foreground" />
-                  <div className="text-lg font-bold tabular-nums">
-                    {sessionStats.completionPercent}%
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">Done</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">{sessionStats.statusLabel}</span>
-                <span className="font-medium tabular-nums">
-                  {sessionStats.completedGames}/{sessionStats.totalGames || 0} games
-                </span>
-              </div>
-              <Progress value={sessionStats.completionPercent} />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span>
-                  {sessionCode
-                    ? `Code ${sessionCode}`
-                    : "Publish to create a spectator code"}
-                </span>
-                <span>Last sync: {formatSyncTime(lastSyncedAt)}</span>
-              </div>
-            </div>
-
-            {!isSpectator && !state.tournamentStarted && (
-              <form
-                onSubmit={handleJoinSession}
-                className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 sm:flex-row"
-              >
-                <Input
-                  value={joinCode}
-                  onChange={(event) =>
-                    setJoinCode(normalizeSessionCode(event.target.value))
-                  }
-                  placeholder="Join with code"
-                  maxLength={6}
-                  className="h-11 text-center font-semibold uppercase tracking-[0.25em] sm:text-left"
-                  aria-label="Join a live session by code"
-                />
-                <Button type="submit" className="h-11 sm:w-36">
-                  <LogIn data-icon="inline-start" />
-                  Join
-                </Button>
-              </form>
+      <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-4 sm:px-4 sm:py-6">
+        {shouldShowSessionHero && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="premium-panel court-line-surface relative overflow-hidden rounded-lg p-4 sm:p-5"
+          >
+            {isLive && (
+              <ShineBorder
+                borderWidth={1}
+                duration={12}
+                shineColor={["var(--live)", "var(--primary)", "var(--accent)"]}
+              />
             )}
-
-            {isSpectator && sessionCode && state.players.length > 0 && (
-              <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold">Check in</h2>
-                    <p className="text-xs text-muted-foreground">
-                      {checkedInPlayer
-                        ? `You are checked in as ${checkedInPlayer.name}.`
-                        : "Tap your name so the organizer knows who is here."}
-                    </p>
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant={isLive ? "default" : "secondary"}
+                      className={isLive ? "bg-live text-live-foreground" : undefined}
+                    >
+                      {isLive ? (
+                        <Wifi className="size-3" />
+                      ) : (
+                        <WifiOff className="size-3" />
+                      )}
+                      {isSpectator
+                        ? "Live spectator"
+                        : isLive
+                        ? "Live session"
+                        : "Local session"}
+                    </Badge>
+                    <Badge variant="outline">{formatDefinition.name}</Badge>
                   </div>
-                  <Badge variant="outline">
-                    {sessionStats.checkedInPlayers}/{sessionStats.totalPlayers}
-                  </Badge>
+                  <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                    {state.tournamentStarted ? state.name : "Create round robin"}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                    {state.tournamentStarted
+                      ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
+                      : "Add names, keep the defaults, and start the first round from your phone."}
+                  </p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {state.players.map((player) => {
-                    const isCheckedIn = Boolean(state.checkIns[player.id]);
-                    const isThisDevice = checkedInPlayerId === player.id;
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[30rem]">
+                  {statCards.map((item, index) => {
+                    const StatIcon = item.icon;
 
                     return (
-                      <Button
-                        key={player.id}
-                        type="button"
-                        variant={isThisDevice ? "default" : "outline"}
-                        className="h-auto justify-start py-3 text-left"
-                        onClick={() => void handleCheckIn(player.id)}
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          delay: 0.06 * index,
+                          duration: 0.3,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                        className="rounded-lg border border-border/70 bg-background/65 p-3 text-center shadow-sm backdrop-blur"
                       >
-                        {isCheckedIn && <CheckCircle2 data-icon="inline-start" />}
-                        <span className="min-w-0 truncate">{player.name}</span>
-                        {isCheckedIn && !isThisDevice && (
-                          <span className="ml-auto text-xs text-muted-foreground">
-                            Here
-                          </span>
-                        )}
-                      </Button>
+                        <StatIcon className={`mx-auto size-4 ${item.tone}`} />
+                        <div className="font-display mt-1 text-2xl font-semibold tracking-tight">
+                          <NumberTicker value={item.value} startValue={0} />
+                          {item.suffix}
+                        </div>
+                        <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          {item.label}
+                        </div>
+                      </motion.div>
                     );
                   })}
                 </div>
               </div>
-            )}
 
-            {syncError && (
-              <Alert variant="destructive">
-                <WifiOff />
-                <AlertTitle>Live session issue</AlertTitle>
-                <AlertDescription>{syncError}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+              <div className="rounded-lg border border-border/70 bg-background/55 p-3 shadow-inner backdrop-blur">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-muted-foreground">
+                    {sessionStats.statusLabel}
+                  </span>
+                  <span className="font-data font-semibold">
+                    {sessionStats.completedGames}/{sessionStats.totalGames || 0} games
+                  </span>
+                </div>
+                <Progress value={sessionStats.completionPercent} className="mt-2" />
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {sessionCode
+                      ? `Code ${sessionCode}`
+                      : "Publish to create a spectator code"}
+                  </span>
+                  <span>Last sync: {formatSyncTime(lastSyncedAt)}</span>
+                </div>
+              </div>
+
+              {!isSpectator && !state.tournamentStarted && (
+                <form
+                  onSubmit={handleJoinSession}
+                  className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur sm:flex-row"
+                >
+                  <Input
+                    value={joinCode}
+                    onChange={(event) =>
+                      setJoinCode(normalizeSessionCode(event.target.value))
+                    }
+                    placeholder="Join with code"
+                    maxLength={6}
+                    className="h-11 text-center font-semibold uppercase tracking-[0.25em] sm:text-left"
+                    aria-label="Join a live session by code"
+                  />
+                  <Button type="submit" className="h-11 sm:w-36">
+                    <LogIn data-icon="inline-start" />
+                    Join
+                  </Button>
+                </form>
+              )}
+
+              {isSpectator && sessionCode && state.players.length > 0 && (
+                <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-sm font-semibold">
+                        Check in
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {checkedInPlayer
+                          ? `You are checked in as ${checkedInPlayer.name}.`
+                          : "Tap your name so the organizer knows who is here."}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {sessionStats.checkedInPlayers}/{sessionStats.totalPlayers}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {state.players.map((player) => {
+                      const isCheckedIn = Boolean(state.checkIns[player.id]);
+                      const isThisDevice = checkedInPlayerId === player.id;
+
+                      return (
+                        <Button
+                          key={player.id}
+                          type="button"
+                          variant={isThisDevice ? "default" : "outline"}
+                          className="h-auto justify-start py-3 text-left"
+                          onClick={() => void handleCheckIn(player.id)}
+                        >
+                          {isCheckedIn && <CheckCircle2 data-icon="inline-start" />}
+                          <span className="min-w-0 truncate">{player.name}</span>
+                          {isCheckedIn && !isThisDevice && (
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              Here
+                            </span>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {syncError && (
+                <Alert variant="destructive">
+                  <WifiOff />
+                  <AlertTitle>Live session issue</AlertTitle>
+                  <AlertDescription>{syncError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </motion.section>
+        )}
 
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as TournamentTab)}
           className="flex flex-col gap-4"
         >
-          <TabsList className="sticky top-14 z-40 grid h-12 w-full grid-cols-3 shadow-sm">
+          <TabsList className="sticky top-14 z-40 grid h-12 w-full grid-cols-3 shadow-lg shadow-background/20">
             <TabsTrigger value="setup" className="text-sm">
               {state.tournamentStarted ? "Players" : "Setup"}
             </TabsTrigger>

@@ -116,34 +116,31 @@ export default function Home() {
         <div className="bg-grid absolute inset-0" />
         <div className="container relative mx-auto max-w-6xl px-4 py-24 sm:px-6 sm:py-32 lg:py-40">
           <div className="mx-auto max-w-3xl text-center">
-            <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium">
-              Free and Open Source
-            </Badge>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-              Run pickleball tournaments{" "}
-              <span className="text-gradient">in seconds</span>
+              Start pickleball play{" "}
+              <span className="text-gradient">from your phone</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-              The fastest way to organize round robin play with rotating partners.
-              Add players, generate matchups, track scores. No sign-up required.
+              Open it courtside, add names, and generate the first round.
+              No sign-up, no spreadsheet, no app download.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/tournament">
+              <Link href="/tournament?new=1&mode=rotating" className="w-full sm:w-auto">
                 <Button size="lg" className="h-12 px-8 text-base font-semibold">
-                  Start Tournament
+                  Start round robin
                   <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </Button>
               </Link>
-              <Link href="#how-it-works">
+              <Link href="/tournament?new=1&mode=fixed" className="w-full sm:w-auto">
                 <Button variant="outline" size="lg" className="h-12 px-8 text-base font-semibold">
-                  See How It Works
+                  Start set teams
                 </Button>
               </Link>
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
-              Trusted by 500+ pickleball clubs worldwide
+              Built for iPhone and Android browsers at the courts.
             </p>
           </div>
         </div>
@@ -159,7 +156,7 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground">{format.players} players</p>
               </div>
             ))}
-            <Link href="/tournament" className="text-sm font-medium text-primary hover:underline">
+            <Link href="/tournament?new=1&mode=rotating" className="text-sm font-medium text-primary hover:underline">
               View all formats &rarr;
             </Link>
           </div>
@@ -223,7 +220,7 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-16 text-center">
-            <Link href="/tournament">
+            <Link href="/tournament?new=1&mode=rotating">
               <Button size="lg" className="h-12 px-8 text-base font-semibold">
                 Try It Now
               </Button>
@@ -293,9 +290,9 @@ export default function Home() {
               Start your first tournament in under a minute. Free forever.
             </p>
             <div className="mt-10">
-              <Link href="/tournament">
+              <Link href="/tournament?new=1&mode=rotating">
                 <Button size="lg" variant="secondary" className="h-12 px-8 text-base font-semibold">
-                  Start Tournament
+                  Start round robin
                   <svg className="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>

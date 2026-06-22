@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { NumberTicker } from "@/components/ui/number-ticker";
+import { ShineBorder } from "@/components/ui/shine-border";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { TextureButton } from "@/components/ui/texture-button";
 import { cn } from "@/lib/utils";
 import type { LocalRoundGame, LocalPlayer } from "@/src/types/database";
 
@@ -75,101 +80,119 @@ function RoundGameScoreForm({
 
   return (
     <>
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-center flex-1">Enter Score</DialogTitle>
-            {courtWeight && courtWeight > 1 && (
-              <Badge variant="secondary" className="text-xs">
-                {courtWeight}x points
-              </Badge>
-            )}
-          </div>
-          {game.courtNumber && (
-            <p className="text-sm text-muted-foreground text-center">
-              Court {game.courtNumber} • Round {game.round}
-            </p>
+      <DialogHeader>
+        <div className="flex items-center justify-between gap-3 pr-8">
+          <DialogTitle className="font-display text-left text-2xl">
+            Enter score
+          </DialogTitle>
+          {courtWeight && courtWeight > 1 && (
+            <Badge variant="secondary" className="text-xs">
+              {courtWeight}x points
+            </Badge>
           )}
-        </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div className="space-y-4">
-            {/* Team 1 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium block text-center">
+        </div>
+        {game.courtNumber && (
+          <p className="text-sm text-muted-foreground">
+            Court {game.courtNumber} / Round {game.round}
+          </p>
+        )}
+      </DialogHeader>
+      <div className="flex flex-col gap-5 py-2">
+        <div className="grid gap-3">
+          <motion.div
+            layout
+            className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
+          >
+            <label className="block text-center text-sm font-semibold">
+              <span className="truncate">
                 {game.team1[0].name} & {game.team1[1].name}
-              </label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min="0"
-                value={score1}
-                onChange={(e) => setScore1(e.target.value)}
-                placeholder="0"
-                className="text-center text-3xl h-14 font-bold"
-                autoFocus
-              />
-            </div>
+              </span>
+            </label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="0"
+              value={score1}
+              onChange={(e) => setScore1(e.target.value)}
+              placeholder="0"
+              className="font-display mt-2 h-16 text-center text-5xl font-semibold tracking-tight"
+              autoFocus
+            />
+          </motion.div>
 
-            <div className="text-center text-muted-foreground font-medium">vs</div>
-
-            {/* Team 2 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium block text-center">
-                {game.team2[0].name} & {game.team2[1].name}
-              </label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min="0"
-                value={score2}
-                onChange={(e) => setScore2(e.target.value)}
-                placeholder="0"
-                className="text-center text-3xl h-14 font-bold"
-              />
-            </div>
+          <div className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            <span className="h-px w-12 bg-border" />
+            vs
+            <span className="h-px w-12 bg-border" />
           </div>
 
-          {/* Quick score buttons */}
-          <div className="border-t pt-4">
-            <p className="text-xs text-muted-foreground text-center mb-2">
-              Quick scores
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {[
-                [11, 0],
-                [11, 5],
-                [11, 7],
-                [11, 9],
-              ].map(([s1, s2]) => (
-                <Button
-                  key={`${s1}-${s2}`}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setScore1(s1.toString());
-                    setScore2(s2.toString());
-                  }}
-                  className="text-xs"
-                >
-                  {s1}-{s2}
-                </Button>
-              ))}
-            </div>
+          <motion.div
+            layout
+            className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
+          >
+            <label className="block text-center text-sm font-semibold">
+              <span className="truncate">
+                {game.team2[0].name} & {game.team2[1].name}
+              </span>
+            </label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="0"
+              value={score2}
+              onChange={(e) => setScore2(e.target.value)}
+              placeholder="0"
+              className="font-display mt-2 h-16 text-center text-5xl font-semibold tracking-tight"
+            />
+          </motion.div>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-border/70 pt-4">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Quick scores
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              [11, 0],
+              [11, 5],
+              [11, 7],
+              [11, 9],
+            ].map(([s1, s2]) => (
+              <TextureButton
+                key={`${s1}-${s2}`}
+                type="button"
+                variant="minimal"
+                size="sm"
+                onClick={() => {
+                  setScore1(s1.toString());
+                  setScore2(s2.toString());
+                }}
+                className="text-xs"
+              >
+                {s1}-{s2}
+              </TextureButton>
+            ))}
           </div>
         </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!score1 || !score2}
-            className="w-full sm:w-auto"
-          >
-            Save Score
-          </Button>
-        </DialogFooter>
+      </div>
+      <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+          Cancel
+        </Button>
+        <ShimmerButton
+          type="button"
+          onClick={handleSave}
+          disabled={!score1 || !score2}
+          borderRadius="0.5rem"
+          background="linear-gradient(135deg, var(--primary), var(--accent))"
+          shimmerColor="var(--live)"
+          className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          Save Score
+        </ShimmerButton>
+      </DialogFooter>
     </>
   );
 }
@@ -192,79 +215,93 @@ export function GameCard({
   const team2Won = game.completed && (game.team2Score ?? 0) > (game.team1Score ?? 0);
 
   return (
-    <button
+    <motion.button
+      layout
+      whileHover={readOnly ? undefined : { y: -2 }}
+      whileTap={readOnly ? undefined : { scale: 0.985 }}
       onClick={() => onScoreClick(game)}
       disabled={readOnly}
       className={cn(
-        "w-full rounded-lg border p-3 text-left transition-colors disabled:opacity-100",
+        "group relative isolate w-full overflow-hidden rounded-lg border p-3 text-left shadow-sm transition-colors disabled:opacity-100",
         readOnly && "cursor-default",
         game.completed
-          ? "border-transparent bg-muted/50"
-          : "border-dashed border-muted-foreground/25 bg-background hover:border-primary/50"
+          ? "border-border/65 bg-card/80"
+          : "border-primary/25 bg-background/75 hover:border-primary/70 hover:bg-card"
       )}
     >
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Team 1 */}
+      {!game.completed && !readOnly && (
+        <ShineBorder
+          borderWidth={1}
+          duration={10}
+          shineColor={["var(--primary)", "var(--live)", "var(--accent)"]}
+        />
+      )}
+
+      <div className="relative z-10 flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <span
-              className={`font-medium text-sm truncate ${
-                team1Won ? "text-green-600 dark:text-green-400" : ""
-              }`}
+              className={cn(
+                "truncate text-sm font-semibold",
+                team1Won && "text-success"
+              )}
             >
               {game.team1[0].name} & {game.team1[1].name}
             </span>
             {game.completed && (
               <span
-                className={`text-xl font-bold tabular-nums ${
-                  team1Won
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-muted-foreground"
-                }`}
+                className={cn(
+                  "font-display text-2xl font-semibold tabular-nums",
+                  team1Won ? "text-success" : "text-muted-foreground"
+                )}
               >
-                {game.team1Score}
+                <NumberTicker value={game.team1Score ?? 0} />
               </span>
             )}
           </div>
 
-          {/* Team 2 */}
           <div className="flex items-center justify-between gap-2">
             <span
-              className={`font-medium text-sm truncate ${
-                team2Won ? "text-green-600 dark:text-green-400" : ""
-              }`}
+              className={cn(
+                "truncate text-sm font-semibold",
+                team2Won && "text-success"
+              )}
             >
               {game.team2[0].name} & {game.team2[1].name}
             </span>
             {game.completed && (
               <span
-                className={`text-xl font-bold tabular-nums ${
-                  team2Won
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-muted-foreground"
-                }`}
+                className={cn(
+                  "font-display text-2xl font-semibold tabular-nums",
+                  team2Won ? "text-success" : "text-muted-foreground"
+                )}
               >
-                {game.team2Score}
+                <NumberTicker value={game.team2Score ?? 0} />
               </span>
             )}
           </div>
         </div>
 
-        {/* Status badge */}
-        {!game.completed && (
-          <Badge variant="outline" className="shrink-0">
-            {readOnly ? "Waiting" : "Score"}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Badge variant={game.completed ? "secondary" : "outline"}>
+            {game.completed ? "Final" : readOnly ? "Waiting" : "Score"}
           </Badge>
-        )}
+          {!game.completed && (
+            <span className="hidden text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground sm:block">
+              Tap to enter
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Court weight indicator */}
       {courtWeight && courtWeight > 1 && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          {courtWeight}x points for winner
+        <div className="relative z-10 mt-3 flex justify-end text-xs text-muted-foreground">
+          <span className="data-chip">
+            {courtWeight}x points for winner
+          </span>
         </div>
       )}
-    </button>
+    </motion.button>
   );
 }
 
@@ -303,11 +340,11 @@ export function RoundGamesList({
     .sort((a, b) => a - b);
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span>Round {roundNumber}</span>
+        <CardTitle className="flex items-center justify-between gap-3 text-base">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate">Round {roundNumber}</span>
             {roundComplete && (
               <Badge variant="secondary" className="text-xs">
                 Finished
@@ -324,38 +361,42 @@ export function RoundGamesList({
           </p>
         )}
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+      <CardContent className="flex flex-col gap-4 pt-0">
         {courts.map((courtNumber) => (
-          <div key={courtNumber} className="space-y-2">
-            {/* Court header (only if multiple courts) */}
+          <motion.div
+            key={courtNumber}
+            layout
+            className="flex flex-col gap-2 rounded-lg border border-border/55 bg-background/40 p-2"
+          >
             {courts.length > 1 && (
-              <div className="flex items-center gap-2">
-                <div className="text-xs font-medium text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="font-display text-sm font-semibold">
                   Court {courtNumber}
                 </div>
                 {courtWeights && courtWeights[courtNumber] && courtWeights[courtNumber] > 1 && (
-                  <Badge variant="outline" className="text-xs py-0">
+                  <Badge variant="outline" className="text-xs">
                     {courtWeights[courtNumber]}x
                   </Badge>
                 )}
               </div>
             )}
 
-            {/* Games on this court */}
-            {gamesByCourt[courtNumber].map((game) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                courtWeight={courtWeights?.[courtNumber]}
-                onScoreClick={onScoreClick}
-                readOnly={readOnly}
-              />
-            ))}
-          </div>
+            <AnimatePresence initial={false} mode="popLayout">
+              {gamesByCourt[courtNumber].map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  courtWeight={courtWeights?.[courtNumber]}
+                  onScoreClick={onScoreClick}
+                  readOnly={readOnly}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
         ))}
 
         {roundGames.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="py-4 text-center text-sm text-muted-foreground">
             No games in this round
           </p>
         )}
@@ -434,59 +475,69 @@ function MultiGameScoreForm({
 
   return (
     <>
-        <DialogHeader>
-          <DialogTitle className="text-center">
-            Enter Scores ({games.length} games)
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            {firstGame.team1[0].name} & {firstGame.team1[1].name} vs{" "}
-            {firstGame.team2[0].name} & {firstGame.team2[1].name}
-          </p>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          {games.map((game, idx) => (
-            <div key={game.id} className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground w-16">
-                Game {idx + 1}
-              </div>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                value={scores[idx]?.team1 ?? ""}
-                onChange={(e) => {
-                  const newScores = [...scores];
-                  newScores[idx] = { ...newScores[idx], team1: e.target.value };
-                  setScores(newScores);
-                }}
-                placeholder="0"
-                className="text-center text-xl font-bold w-20"
-              />
-              <span className="text-muted-foreground">-</span>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min="0"
-                value={scores[idx]?.team2 ?? ""}
-                onChange={(e) => {
-                  const newScores = [...scores];
-                  newScores[idx] = { ...newScores[idx], team2: e.target.value };
-                  setScores(newScores);
-                }}
-                placeholder="0"
-                className="text-center text-xl font-bold w-20"
-              />
+      <DialogHeader>
+        <DialogTitle className="font-display text-left">
+          Enter scores ({games.length} games)
+        </DialogTitle>
+        <p className="text-sm text-muted-foreground">
+          {firstGame.team1[0].name} & {firstGame.team1[1].name} vs{" "}
+          {firstGame.team2[0].name} & {firstGame.team2[1].name}
+        </p>
+      </DialogHeader>
+      <div className="flex flex-col gap-3 py-2">
+        {games.map((game, idx) => (
+          <div
+            key={game.id}
+            className="grid grid-cols-[4.5rem_1fr_auto_1fr] items-center gap-3 rounded-lg border border-border/70 bg-background/60 p-3"
+          >
+            <div className="text-sm font-semibold text-muted-foreground">
+              Game {idx + 1}
             </div>
-          ))}
-        </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} className="w-full sm:w-auto">
-            Save All Scores
-          </Button>
-        </DialogFooter>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={scores[idx]?.team1 ?? ""}
+              onChange={(e) => {
+                const newScores = [...scores];
+                newScores[idx] = { ...newScores[idx], team1: e.target.value };
+                setScores(newScores);
+              }}
+              placeholder="0"
+              className="font-display h-12 text-center text-2xl font-semibold"
+            />
+            <span className="text-muted-foreground">-</span>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={scores[idx]?.team2 ?? ""}
+              onChange={(e) => {
+                const newScores = [...scores];
+                newScores[idx] = { ...newScores[idx], team2: e.target.value };
+                setScores(newScores);
+              }}
+              placeholder="0"
+              className="font-display h-12 text-center text-2xl font-semibold"
+            />
+          </div>
+        ))}
+      </div>
+      <DialogFooter className="flex-col gap-2 sm:flex-row">
+        <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+          Cancel
+        </Button>
+        <ShimmerButton
+          type="button"
+          onClick={handleSave}
+          borderRadius="0.5rem"
+          background="linear-gradient(135deg, var(--primary), var(--accent))"
+          shimmerColor="var(--live)"
+          className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground sm:w-auto"
+        >
+          Save All Scores
+        </ShimmerButton>
+      </DialogFooter>
     </>
   );
 }
