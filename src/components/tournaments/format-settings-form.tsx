@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,118 @@ interface FormatSettingsFormProps {
   onSettingsChange: (settings: EventSettings) => void;
   playerCount: number;
   disabled?: boolean;
+}
+
+interface NumericSettingInputProps {
+  value: number;
+  onValueChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  fallback: number;
+  ariaLabel: string;
+  disabled?: boolean;
+  className?: string;
+  mode?: "integer" | "decimal";
+}
+
+function clampNumber(value: number, min?: number, max?: number): number {
+  let nextValue = value;
+
+  if (typeof min === "number") {
+    nextValue = Math.max(min, nextValue);
+  }
+
+  if (typeof max === "number") {
+    nextValue = Math.min(max, nextValue);
+  }
+
+  return nextValue;
+}
+
+function normalizeNumericInput(value: string, mode: "integer" | "decimal") {
+  if (mode === "integer") {
+    return value.replace(/\D/g, "");
+  }
+
+  const cleaned = value.replace(/[^\d.]/g, "");
+  const [whole, ...rest] = cleaned.split(".");
+
+  return rest.length > 0 ? `${whole}.${rest.join("")}` : whole;
+}
+
+function NumericSettingInput({
+  value,
+  onValueChange,
+  min,
+  max,
+  step,
+  fallback,
+  ariaLabel,
+  disabled,
+  className,
+  mode = "integer",
+}: NumericSettingInputProps) {
+  const [draftValue, setDraftValue] = useState<string | null>(null);
+  const visibleValue = draftValue ?? value.toString();
+
+  const parseValue = (nextValue: string) => {
+    const parsed =
+      mode === "decimal"
+        ? Number.parseFloat(nextValue)
+        : Number.parseInt(nextValue, 10);
+
+    if (Number.isNaN(parsed)) return null;
+
+    return clampNumber(parsed, min, max);
+  };
+
+  const handleChange = (nextValue: string) => {
+    const normalizedValue = normalizeNumericInput(nextValue, mode);
+
+    setDraftValue(normalizedValue);
+
+    if (!normalizedValue || normalizedValue === ".") return;
+
+    const parsedValue = parseValue(normalizedValue);
+
+    if (parsedValue !== null) {
+      onValueChange(parsedValue);
+    }
+  };
+
+  const handleBlur = () => {
+    const parsedValue = draftValue ? parseValue(draftValue) : null;
+
+    setDraftValue(null);
+
+    if (parsedValue !== null) {
+      onValueChange(parsedValue);
+      return;
+    }
+
+    if (draftValue === "") {
+      onValueChange(clampNumber(fallback, min, max));
+    }
+  };
+
+  return (
+    <Input
+      type="text"
+      inputMode={mode === "decimal" ? "decimal" : "numeric"}
+      pattern={mode === "decimal" ? "[0-9.]*" : "[0-9]*"}
+      min={min}
+      max={max}
+      step={step}
+      aria-label={ariaLabel}
+      value={visibleValue}
+      onChange={(event) => handleChange(event.target.value)}
+      onFocus={() => setDraftValue(value.toString())}
+      onBlur={handleBlur}
+      disabled={disabled}
+      className={className}
+    />
+  );
 }
 
 export function FormatSettingsForm({
@@ -68,14 +181,13 @@ export function FormatSettingsForm({
                 (max {maxCourts} for {playerCount} players)
               </span>
             </label>
-            <Input
-              type="number"
+            <NumericSettingInput
+              ariaLabel="Courts in play"
               min={1}
               max={maxCourts}
+              fallback={1}
               value={settings.numberOfCourts}
-              onChange={(e) =>
-                updateSetting("numberOfCourts", Math.max(1, Math.min(maxCourts, parseInt(e.target.value) || 1)))
-              }
+              onValueChange={(value) => updateSetting("numberOfCourts", value)}
               disabled={disabled}
               className="w-24"
             />
@@ -95,14 +207,13 @@ export function FormatSettingsForm({
                   ({minGames}-{maxGames})
                 </span>
               </label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="Games per round"
                 min={minGames}
                 max={maxGames}
+                fallback={minGames}
                 value={settings.gamesPerRound}
-                onChange={(e) =>
-                  updateSetting("gamesPerRound", Math.max(minGames, Math.min(maxGames, parseInt(e.target.value) || minGames)))
-                }
+                onValueChange={(value) => updateSetting("gamesPerRound", value)}
                 disabled={disabled}
                 className="w-24"
               />
@@ -113,24 +224,26 @@ export function FormatSettingsForm({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Points to Win</label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="Points to Win"
                 min={1}
                 max={21}
+                fallback={11}
                 value={settings.pointsToWin}
-                onChange={(e) => updateSetting("pointsToWin", parseInt(e.target.value) || 11)}
+                onValueChange={(value) => updateSetting("pointsToWin", value)}
                 disabled={disabled}
                 className="w-24"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Win By</label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="Win By"
                 min={1}
                 max={5}
+                fallback={2}
                 value={settings.winBy}
-                onChange={(e) => updateSetting("winBy", parseInt(e.target.value) || 2)}
+                onValueChange={(value) => updateSetting("winBy", value)}
                 disabled={disabled}
                 className="w-24"
               />
@@ -251,24 +364,28 @@ function renderFormatSpecificSettings(
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Number of Pools</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Number of Pools"
                   min={2}
                   max={8}
+                  fallback={2}
                   value={settings.formatOptions.poolCount ?? 2}
-                  onChange={(e) => updateFormatOption("poolCount", parseInt(e.target.value) || 2)}
+                  onValueChange={(value) => updateFormatOption("poolCount", value)}
                   disabled={disabled}
                   className="w-24"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Advance from Pool</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Advance from Pool"
                   min={1}
                   max={4}
+                  fallback={2}
                   value={settings.formatOptions.advanceFromPool ?? 2}
-                  onChange={(e) => updateFormatOption("advanceFromPool", parseInt(e.target.value) || 2)}
+                  onValueChange={(value) =>
+                    updateFormatOption("advanceFromPool", value)
+                  }
                   disabled={disabled}
                   className="w-24"
                 />
@@ -388,12 +505,15 @@ function renderFormatSpecificSettings(
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sorting Rounds</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Sorting Rounds"
                   min={1}
                   max={5}
+                  fallback={3}
                   value={settings.formatOptions.sortingRounds ?? 3}
-                  onChange={(e) => updateFormatOption("sortingRounds", parseInt(e.target.value) || 3)}
+                  onValueChange={(value) =>
+                    updateFormatOption("sortingRounds", value)
+                  }
                   disabled={disabled}
                   className="w-24"
                 />
@@ -403,12 +523,15 @@ function renderFormatSpecificSettings(
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Competition Rounds</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Competition Rounds"
                   min={1}
                   max={10}
+                  fallback={5}
                   value={settings.formatOptions.competitionRounds ?? 5}
-                  onChange={(e) => updateFormatOption("competitionRounds", parseInt(e.target.value) || 5)}
+                  onValueChange={(value) =>
+                    updateFormatOption("competitionRounds", value)
+                  }
                   disabled={disabled}
                   className="w-24"
                 />
@@ -430,12 +553,15 @@ function renderFormatSpecificSettings(
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Games Per Partnership</label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="Games Per Partnership"
                 min={2}
                 max={4}
+                fallback={2}
                 value={settings.formatOptions.gamesPerPartnership ?? 2}
-                onChange={(e) => updateFormatOption("gamesPerPartnership", parseInt(e.target.value) || 2)}
+                onValueChange={(value) =>
+                  updateFormatOption("gamesPerPartnership", value)
+                }
                 disabled={disabled}
                 className="w-24"
               />
@@ -459,13 +585,17 @@ function renderFormatSpecificSettings(
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">King Court Bonus</label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="King Court Bonus"
                 min={1}
                 max={3}
                 step={0.1}
+                fallback={1.5}
+                mode="decimal"
                 value={settings.formatOptions.kingCourtBonus ?? 1.5}
-                onChange={(e) => updateFormatOption("kingCourtBonus", parseFloat(e.target.value) || 1.5)}
+                onValueChange={(value) =>
+                  updateFormatOption("kingCourtBonus", value)
+                }
                 disabled={disabled}
                 className="w-24"
               />
@@ -487,24 +617,30 @@ function renderFormatSpecificSettings(
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Players Moving Up</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Players Moving Up"
                   min={1}
                   max={2}
+                  fallback={2}
                   value={settings.formatOptions.playersMovingUp ?? 2}
-                  onChange={(e) => updateFormatOption("playersMovingUp", parseInt(e.target.value) || 2)}
+                  onValueChange={(value) =>
+                    updateFormatOption("playersMovingUp", value)
+                  }
                   disabled={disabled}
                   className="w-24"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Players Moving Down</label>
-                <Input
-                  type="number"
+                <NumericSettingInput
+                  ariaLabel="Players Moving Down"
                   min={1}
                   max={2}
+                  fallback={2}
                   value={settings.formatOptions.playersMovingDown ?? 2}
-                  onChange={(e) => updateFormatOption("playersMovingDown", parseInt(e.target.value) || 2)}
+                  onValueChange={(value) =>
+                    updateFormatOption("playersMovingDown", value)
+                  }
                   disabled={disabled}
                   className="w-24"
                 />
@@ -523,12 +659,15 @@ function renderFormatSpecificSettings(
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Matches Per Opponent</label>
-              <Input
-                type="number"
+              <NumericSettingInput
+                ariaLabel="Matches Per Opponent"
                 min={1}
                 max={3}
+                fallback={1}
                 value={settings.formatOptions.matchesPerOpponent ?? 1}
-                onChange={(e) => updateFormatOption("matchesPerOpponent", parseInt(e.target.value) || 1)}
+                onValueChange={(value) =>
+                  updateFormatOption("matchesPerOpponent", value)
+                }
                 disabled={disabled}
                 className="w-24"
               />

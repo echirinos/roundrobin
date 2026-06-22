@@ -194,6 +194,10 @@ function parseCourtCount(value: string, fallback: number): number {
   return Math.min(MAX_SETUP_COURTS, parsePositiveInteger(value, fallback));
 }
 
+function normalizeCountInput(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
@@ -318,10 +322,19 @@ export function EnhancedPlayerSetup({
   const [expectedPlayerCount, setExpectedPlayerCount] = useState(() =>
     Math.max(4, players.length)
   );
+  const [expectedPlayerCountInput, setExpectedPlayerCountInput] = useState<
+    string | null
+  >(null);
   const [availableCourtCount, setAvailableCourtCount] = useState(() =>
     Math.min(MAX_SETUP_COURTS, Math.max(1, settings.numberOfCourts))
   );
+  const [availableCourtCountInput, setAvailableCourtCountInput] = useState<
+    string | null
+  >(null);
   const [hasEditedCourtCount, setHasEditedCourtCount] = useState(false);
+  const [focusedCountField, setFocusedCountField] = useState<
+    "players" | "courts" | null
+  >(null);
 
   const formatDefinition = FORMAT_DEFINITIONS[settings.format];
   const isFixedPartners = settings.partnerMode === "fixed";
@@ -392,6 +405,14 @@ export function EnhancedPlayerSetup({
         targetPlayerCount,
         "player"
       )}.${unusedCourtText}`;
+  const expectedPlayerCountValue =
+    focusedCountField === "players"
+      ? expectedPlayerCountInput ?? targetPlayerCount.toString()
+      : targetPlayerCount.toString();
+  const availableCourtCountValue =
+    focusedCountField === "courts"
+      ? availableCourtCountInput ?? availableCourtCount.toString()
+      : availableCourtCount.toString();
 
   useEffect(() => {
     if (tournamentStarted || readOnly) return;
@@ -438,12 +459,19 @@ export function EnhancedPlayerSetup({
   };
 
   const handleExpectedPlayerCountChange = (value: string) => {
-    const nextTarget = Math.max(
-      minimumPlayers,
-      parsePositiveInteger(value, minimumPlayers)
-    );
+    const nextValue = normalizeCountInput(value);
 
-    setExpectedPlayerCount(nextTarget);
+    setExpectedPlayerCountInput(nextValue);
+
+    if (!nextValue) return;
+
+    const nextExpectedCount = Math.max(
+      minimumPlayers,
+      parsePositiveInteger(nextValue, minimumPlayers)
+    );
+    const nextTarget = Math.max(nextExpectedCount, players.length);
+
+    setExpectedPlayerCount(nextExpectedCount);
 
     if (!hasEditedCourtCount) {
       const nextCourtCount = getMaxUsableCourts(nextTarget);
@@ -456,12 +484,40 @@ export function EnhancedPlayerSetup({
     updateCourtCount(availableCourtCount, nextTarget);
   };
 
+  const commitExpectedPlayerCount = () => {
+    const inputValue = expectedPlayerCountInput;
+
+    setFocusedCountField(null);
+    setExpectedPlayerCountInput(null);
+
+    if (!inputValue) return;
+
+    handleExpectedPlayerCountChange(inputValue);
+  };
+
   const handleCourtCountChange = (value: string) => {
-    const nextCourtCount = parseCourtCount(value, availableCourtCount);
+    const nextValue = normalizeCountInput(value);
+
+    setAvailableCourtCountInput(nextValue);
+
+    if (!nextValue) return;
+
+    const nextCourtCount = parseCourtCount(nextValue, availableCourtCount);
 
     setHasEditedCourtCount(true);
     setAvailableCourtCount(nextCourtCount);
     updateCourtCount(nextCourtCount);
+  };
+
+  const commitCourtCount = () => {
+    const inputValue = availableCourtCountInput;
+
+    setFocusedCountField(null);
+    setAvailableCourtCountInput(null);
+
+    if (!inputValue) return;
+
+    handleCourtCountChange(inputValue);
   };
 
   const handleModeChange = (value: string) => {
@@ -737,14 +793,18 @@ export function EnhancedPlayerSetup({
               </label>
               <Input
                 id="expected-players"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={minimumPlayers}
-                step={1}
-                value={targetPlayerCount}
+                pattern="[0-9]*"
+                value={expectedPlayerCountValue}
                 onChange={(event) =>
                   handleExpectedPlayerCountChange(event.target.value)
                 }
+                onFocus={() => {
+                  setFocusedCountField("players");
+                  setExpectedPlayerCountInput(targetPlayerCount.toString());
+                }}
+                onBlur={commitExpectedPlayerCount}
                 className="h-12 text-base font-semibold"
               />
               <p className="text-xs text-muted-foreground">
@@ -757,13 +817,16 @@ export function EnhancedPlayerSetup({
               </label>
               <Input
                 id="available-courts"
-                type="number"
+                type="text"
                 inputMode="numeric"
-                min={1}
-                max={MAX_SETUP_COURTS}
-                step={1}
-                value={availableCourtCount}
+                pattern="[0-9]*"
+                value={availableCourtCountValue}
                 onChange={(event) => handleCourtCountChange(event.target.value)}
+                onFocus={() => {
+                  setFocusedCountField("courts");
+                  setAvailableCourtCountInput(availableCourtCount.toString());
+                }}
+                onBlur={commitCourtCount}
                 className="h-12 text-base font-semibold"
               />
               <p className="text-xs text-muted-foreground">
