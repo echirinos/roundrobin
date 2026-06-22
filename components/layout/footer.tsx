@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 
 export function Footer() {
   return (
@@ -6,22 +7,11 @@ export function Footer() {
       <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5 text-primary-foreground"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold tracking-tight">PlaySync</span>
+            <Link
+              href="/"
+              className="w-fit rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <PlaySyncLogo />
             </Link>
             <p className="text-sm text-muted-foreground">
               Phone-first pickleball round robin setup for real courtside use.

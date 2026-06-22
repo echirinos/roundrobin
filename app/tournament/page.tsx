@@ -16,6 +16,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -669,13 +670,14 @@ export default function TournamentPage() {
     <div className="court-app-bg min-h-screen">
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/78 backdrop-blur-xl">
         <div className="mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
-          <Link href="/" className="flex min-w-0 items-center gap-2">
-            <div className="court-line-surface flex size-9 shrink-0 items-center justify-center rounded-lg border border-primary/35 text-primary-foreground shadow-sm">
-              <Activity className="size-4" />
-            </div>
-            <span className="font-display truncate text-lg font-semibold tracking-tight">
-              PlaySync
-            </span>
+          <Link
+            href="/"
+            className="min-w-0 rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <PlaySyncLogo
+              size="sm"
+              wordmarkClassName="truncate text-base sm:text-lg"
+            />
           </Link>
           <div className="flex min-w-0 items-center justify-end gap-2">
             {sessionCode && (
