@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -41,7 +41,6 @@ import {
 } from "@/src/types/formats";
 import type { PlayerCheckIn } from "@/src/lib/live-session";
 import { generateId } from "@/src/lib/formats/rotating-generators";
-import { FormatSelector, FormatInfo } from "./format-selector";
 import { FormatSettingsForm } from "./format-settings-form";
 import { DuprLogin, DuprPlayerCard } from "@/src/components/dupr/dupr-login";
 import { DuprIdInput } from "@/src/components/dupr/dupr-search";
@@ -62,6 +61,50 @@ interface EnhancedPlayerSetupProps {
 }
 
 type SessionMode = "rotating" | "fixed";
+
+const MAX_SETUP_COURTS = 24;
+const ROTATING_PRIMARY_FORMATS: EventFormat[] = [
+  "popcorn",
+  "gauntlet",
+  "king_of_court",
+  "up_down_river",
+  "round_robin",
+];
+const ROTATING_MORE_FORMATS: EventFormat[] = [
+  "scramble",
+  "mixed_madness",
+  "double_header",
+  "cream_crop",
+  "claim_throne",
+];
+const FIXED_FORMATS: EventFormat[] = ["shuffle", "bracket", "milp"];
+const RECOMMENDED_FORMAT: EventFormat = "popcorn";
+
+const PLAY_MODE_HELP_TEXT: Partial<Record<EventFormat, string>> = {
+  popcorn: "Best default for casual groups. Shuffle and play.",
+  gauntlet: "More competitive. Winners get harder games.",
+  king_of_court: "Winners move up. Losers move down.",
+  up_down_river: "Top 2 move up, bottom 2 move down.",
+  round_robin: "Classic rotating partners.",
+  scramble: "Small court groups with less movement.",
+  mixed_madness: "Mixed doubles with balanced teams.",
+  double_header: "Two games with the same partner.",
+  cream_crop: "Sort by skill, then compete.",
+  claim_throne: "Defend the top court.",
+  shuffle: "Keep partners. Rotate opponents.",
+  bracket: "Win-and-advance tournament bracket.",
+  milp: "League-style team rotation.",
+};
+
+function getScoringLabel(format: EventFormat): string {
+  const scoringType = FORMAT_DEFINITIONS[format].scoringType;
+
+  if (scoringType === "court_weighted") return "Court ladder";
+  if (scoringType === "games_won") return "Games won";
+  if (scoringType === "points") return "Points";
+
+  return "Win %";
+}
 
 function preserveCommonSettings(
   nextSettings: EventSettings,
@@ -134,6 +177,124 @@ function buildLocalPlayer(name: string): LocalPlayer {
   return { id: generateId(), name };
 }
 
+function getMaxUsableCourts(playerCount: number): number {
+  return Math.max(1, Math.floor(playerCount / 4));
+}
+
+function getCourtCountForPlayers(playerCount: number, requestedCourts: number): number {
+  return Math.max(1, Math.min(requestedCourts, getMaxUsableCourts(playerCount)));
+}
+
+function parsePositiveInteger(value: string, fallback: number): number {
+  const parsed = Number.parseInt(value, 10);
+  return Math.max(1, Number.isNaN(parsed) ? fallback : parsed);
+}
+
+function parseCourtCount(value: string, fallback: number): number {
+  return Math.min(MAX_SETUP_COURTS, parsePositiveInteger(value, fallback));
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function SetupSection({
+  step,
+  title,
+  description,
+  children,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="gap-2 pb-3">
+        <div className="flex items-start gap-3">
+          <Badge variant="secondary" className="mt-0.5 shrink-0">
+            {step}
+          </Badge>
+          <div className="min-w-0">
+            <CardTitle className="text-lg">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">{children}</CardContent>
+    </Card>
+  );
+}
+
+function PlayModeChoiceGroup({
+  formats,
+  selectedFormat,
+  onFormatChange,
+  disabled,
+  label,
+}: {
+  formats: EventFormat[];
+  selectedFormat: EventFormat;
+  onFormatChange: (format: EventFormat) => void;
+  disabled: boolean;
+  label: string;
+}) {
+  return (
+    <ToggleGroup
+      type="single"
+      value={formats.includes(selectedFormat) ? selectedFormat : ""}
+      onValueChange={(value) => {
+        if (value) onFormatChange(value as EventFormat);
+      }}
+      variant="outline"
+      aria-label={label}
+      className="grid gap-2 sm:grid-cols-2"
+      disabled={disabled}
+    >
+      {formats.map((formatId) => {
+        const definition = FORMAT_DEFINITIONS[formatId];
+        const isRecommended = formatId === RECOMMENDED_FORMAT;
+        const isSelected = selectedFormat === formatId;
+
+        return (
+          <ToggleGroupItem
+            key={formatId}
+            value={formatId}
+            aria-label={`Use ${definition.name}${isRecommended ? ", recommended" : ""}`}
+            className={cn(
+              "h-auto min-h-[7.5rem] w-full flex-col items-start justify-start gap-2 whitespace-normal rounded-lg border border-border/70 bg-background/60 px-3 py-3 text-left transition-all hover:border-primary/45 hover:bg-background/85 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:shadow-sm",
+              isRecommended &&
+                "border-primary/60 bg-primary/5 shadow-[0_14px_35px_-28px_var(--primary)]",
+              isSelected && "ring-1 ring-primary/20"
+            )}
+          >
+            <span className="flex w-full items-start justify-between gap-2">
+              <span className="font-semibold leading-tight">
+                {definition.name}
+              </span>
+              {isRecommended && (
+                <Badge className="shrink-0 text-[0.65rem]">Recommended</Badge>
+              )}
+            </span>
+            <span className="block text-xs leading-snug text-muted-foreground">
+              {PLAY_MODE_HELP_TEXT[formatId] ?? definition.description}
+            </span>
+            <span className="flex flex-wrap gap-1.5 pt-0.5">
+              <Badge variant="outline" className="text-[0.65rem]">
+                {definition.minPlayers}+ players
+              </Badge>
+              <Badge variant="outline" className="text-[0.65rem]">
+                {getScoringLabel(formatId)}
+              </Badge>
+            </span>
+          </ToggleGroupItem>
+        );
+      })}
+    </ToggleGroup>
+  );
+}
+
 export function EnhancedPlayerSetup({
   sessionName,
   onSessionNameChange,
@@ -151,8 +312,16 @@ export function EnhancedPlayerSetup({
   const [bulkNames, setBulkNames] = useState("");
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showMorePlayModes, setShowMorePlayModes] = useState(false);
   const [showDuprLogin, setShowDuprLogin] = useState(false);
   const [addMode, setAddMode] = useState<"manual" | "dupr">("manual");
+  const [expectedPlayerCount, setExpectedPlayerCount] = useState(() =>
+    Math.max(4, players.length)
+  );
+  const [availableCourtCount, setAvailableCourtCount] = useState(() =>
+    Math.min(MAX_SETUP_COURTS, Math.max(1, settings.numberOfCourts))
+  );
+  const [hasEditedCourtCount, setHasEditedCourtCount] = useState(false);
 
   const formatDefinition = FORMAT_DEFINITIONS[settings.format];
   const isFixedPartners = settings.partnerMode === "fixed";
@@ -161,43 +330,192 @@ export function EnhancedPlayerSetup({
   const playerControlsDisabled = tournamentStarted || readOnly;
   const formatControlsDisabled = tournamentStarted || readOnly;
   const fixedTeams = useMemo(() => getFixedTeams(players), [players]);
-  const completeTeamCount = fixedTeams.filter((team) => team.player2).length;
   const teamCount = Math.floor(players.length / 2);
   const minimumPlayers = isFixedPartners ? 4 : formatDefinition?.minPlayers ?? 4;
-  const minimumTeams = Math.ceil(minimumPlayers / 2);
-  const hasEnoughPlayers = players.length >= minimumPlayers;
+  const visiblePlayModes = isFixedPartners
+    ? FIXED_FORMATS
+    : ROTATING_PRIMARY_FORMATS;
+  const extraPlayModes = isFixedPartners ? [] : ROTATING_MORE_FORMATS;
+  const showExtraPlayModes =
+    showMorePlayModes || extraPlayModes.includes(settings.format);
+  const selectedModeText = `${formatDefinition.name} / ${
+    isFixedPartners ? "set teams" : "rotating partners"
+  }`;
+  const targetPlayerCount = Math.max(
+    minimumPlayers,
+    expectedPlayerCount,
+    players.length
+  );
+  const maxUsableCourts = getMaxUsableCourts(targetPlayerCount);
+  const selectedCourtCount = getCourtCountForPlayers(
+    targetPlayerCount,
+    availableCourtCount
+  );
+  const hasEnoughPlayers = players.length >= targetPlayerCount;
   const hasCompleteTeams = !isFixedPartners || players.length % 2 === 0;
   const canStart = hasEnoughPlayers && hasCompleteTeams;
   const gamesPerRound = isFixedPartners
-    ? Math.min(settings.numberOfCourts, Math.floor(teamCount / 2))
-    : Math.min(settings.numberOfCourts, Math.floor(players.length / 4));
-  const progressCurrent = isFixedPartners ? completeTeamCount : players.length;
-  const progressRequired = isFixedPartners ? minimumTeams : minimumPlayers;
+    ? Math.min(selectedCourtCount, Math.floor(teamCount / 2))
+    : Math.min(selectedCourtCount, Math.floor(players.length / 4));
+  const playingThisRound = isFixedPartners
+    ? gamesPerRound * 2
+    : gamesPerRound * 4;
+  const sittingOutThisRound = canStart
+    ? Math.max(0, (isFixedPartners ? teamCount : players.length) - playingThisRound)
+    : 0;
+  const progressCurrent = players.length;
+  const progressRequired = targetPlayerCount;
   const setupProgress = Math.min(100, (progressCurrent / progressRequired) * 100);
   const missingCount = Math.max(0, progressRequired - progressCurrent);
   const setupStatus = canStart
-    ? `${isFixedPartners ? teamCount : players.length} ${
-        isFixedPartners ? "teams" : "players"
-      } ready / ${gamesPerRound || 1} game${gamesPerRound === 1 ? "" : "s"} per round`
+    ? `${pluralize(
+        isFixedPartners ? teamCount : players.length,
+        isFixedPartners ? "team" : "player"
+      )} ready / ${pluralize(gamesPerRound || 1, "court")}`
     : isFixedPartners
     ? hasCompleteTeams
-      ? `Add ${missingCount} more team${missingCount === 1 ? "" : "s"}`
+      ? `Add ${pluralize(missingCount, "more player", "more players")}`
       : "Finish the last team"
-    : `Add ${missingCount} more player${missingCount === 1 ? "" : "s"}`;
+    : `Add ${pluralize(missingCount, "more player", "more players")}`;
+  const unusedCourtCount = Math.max(0, availableCourtCount - selectedCourtCount);
+  const unusedCourtText =
+    unusedCourtCount > 0
+      ? ` ${pluralize(unusedCourtCount, "court")} stays open.`
+      : "";
+  const courtPlanText = canStart
+    ? `${playingThisRound} ${isFixedPartners ? "teams" : "players"} play each round${
+        sittingOutThisRound > 0
+          ? `, ${pluralize(sittingOutThisRound, isFixedPartners ? "team" : "player")} ${sittingOutThisRound === 1 ? "sits" : "sit"}`
+          : ""
+      }.${unusedCourtText}`
+    : `${pluralize(selectedCourtCount, "court")} ready for ${pluralize(
+        targetPlayerCount,
+        "player"
+      )}.${unusedCourtText}`;
+
+  useEffect(() => {
+    if (tournamentStarted || readOnly) return;
+    if (settings.numberOfCourts === selectedCourtCount) return;
+
+    onSettingsChange({
+      ...settings,
+      numberOfCourts: selectedCourtCount,
+    });
+  }, [
+    onSettingsChange,
+    readOnly,
+    selectedCourtCount,
+    settings,
+    tournamentStarted,
+  ]);
+
+  const updateCourtCount = (
+    requestedCourts: number,
+    nextTarget = targetPlayerCount
+  ) => {
+    onSettingsChange({
+      ...settings,
+      numberOfCourts: getCourtCountForPlayers(
+        nextTarget,
+        Math.min(MAX_SETUP_COURTS, requestedCourts)
+      ),
+    });
+  };
+
+  const updatePlayers = (nextPlayers: LocalPlayer[]) => {
+    onPlayersChange(nextPlayers);
+
+    if (!hasEditedCourtCount) {
+      const nextTarget = Math.max(minimumPlayers, expectedPlayerCount, nextPlayers.length);
+      const nextCourtCount = getMaxUsableCourts(nextTarget);
+
+      setAvailableCourtCount(nextCourtCount);
+      updateCourtCount(nextCourtCount, nextTarget);
+    } else {
+      const nextTarget = Math.max(minimumPlayers, expectedPlayerCount, nextPlayers.length);
+      updateCourtCount(availableCourtCount, nextTarget);
+    }
+  };
+
+  const handleExpectedPlayerCountChange = (value: string) => {
+    const nextTarget = Math.max(
+      minimumPlayers,
+      parsePositiveInteger(value, minimumPlayers)
+    );
+
+    setExpectedPlayerCount(nextTarget);
+
+    if (!hasEditedCourtCount) {
+      const nextCourtCount = getMaxUsableCourts(nextTarget);
+
+      setAvailableCourtCount(nextCourtCount);
+      updateCourtCount(nextCourtCount, nextTarget);
+      return;
+    }
+
+    updateCourtCount(availableCourtCount, nextTarget);
+  };
+
+  const handleCourtCountChange = (value: string) => {
+    const nextCourtCount = parseCourtCount(value, availableCourtCount);
+
+    setHasEditedCourtCount(true);
+    setAvailableCourtCount(nextCourtCount);
+    updateCourtCount(nextCourtCount);
+  };
 
   const handleModeChange = (value: string) => {
     if (!value || formatControlsDisabled) return;
 
     const nextFormat = value === "fixed" ? "shuffle" : "popcorn";
-    const nextSettings = preserveCommonSettings(
-      createDefaultEventSettings(nextFormat),
-      settings
-    );
+    const nextSettings = {
+      ...preserveCommonSettings(
+        createDefaultEventSettings(nextFormat),
+        settings
+      ),
+      numberOfCourts: selectedCourtCount,
+    };
 
     onSettingsChange(nextSettings);
     setAddMode("manual");
+    setShowMorePlayModes(false);
     setShowBulkEntry(false);
     setBulkNames("");
+  };
+
+  const handleFormatChange = (format: EventFormat) => {
+    const nextSettings = preserveCommonSettings(
+      createDefaultEventSettings(format),
+      settings
+    );
+
+    onSettingsChange({
+      ...nextSettings,
+      numberOfCourts: getCourtCountForPlayers(targetPlayerCount, nextSettings.numberOfCourts),
+    });
+    setAddMode("manual");
+    setShowBulkEntry(false);
+    setBulkNames("");
+  };
+
+  const handleAdvancedSettingsChange = (nextSettings: EventSettings) => {
+    if (nextSettings.numberOfCourts !== settings.numberOfCourts) {
+      const nextCourtCount = Math.min(
+        MAX_SETUP_COURTS,
+        nextSettings.numberOfCourts
+      );
+
+      setHasEditedCourtCount(true);
+      setAvailableCourtCount(nextCourtCount);
+    }
+
+    onSettingsChange({
+      ...nextSettings,
+      numberOfCourts: getCourtCountForPlayers(
+        targetPlayerCount,
+        Math.min(MAX_SETUP_COURTS, nextSettings.numberOfCourts)
+      ),
+    });
   };
 
   const addPlayer = () => {
@@ -205,7 +523,7 @@ export function EnhancedPlayerSetup({
 
     if (playerControlsDisabled || !playerName) return;
 
-    onPlayersChange([...players, buildLocalPlayer(playerName)]);
+    updatePlayers([...players, buildLocalPlayer(playerName)]);
     setNewPlayerName("");
   };
 
@@ -215,7 +533,7 @@ export function EnhancedPlayerSetup({
 
     if (playerControlsDisabled || !playerName || !partnerName) return;
 
-    onPlayersChange([
+    updatePlayers([
       ...players,
       buildLocalPlayer(playerName),
       buildLocalPlayer(partnerName),
@@ -231,7 +549,7 @@ export function EnhancedPlayerSetup({
       const teams = parseTeamRows(bulkNames);
       if (teams.length === 0) return;
 
-      onPlayersChange([
+      updatePlayers([
         ...players,
         ...teams.flatMap(([playerName, partnerName]) => [
           buildLocalPlayer(playerName),
@@ -242,7 +560,7 @@ export function EnhancedPlayerSetup({
       const names = splitPlayerNames(bulkNames);
       if (names.length === 0) return;
 
-      onPlayersChange([...players, ...names.map(buildLocalPlayer)]);
+      updatePlayers([...players, ...names.map(buildLocalPlayer)]);
     }
 
     setBulkNames("");
@@ -261,7 +579,7 @@ export function EnhancedPlayerSetup({
       alert("This player is already in the tournament.");
       return;
     }
-    onPlayersChange([...players, player as LocalPlayer]);
+    updatePlayers([...players, player as LocalPlayer]);
   };
 
   const addPlayerByDuprId = (duprId: string, rating?: number) => {
@@ -281,20 +599,20 @@ export function EnhancedPlayerSetup({
       rating,
       duprVerified: false,
     };
-    onPlayersChange([...players, player as LocalPlayer]);
+    updatePlayers([...players, player as LocalPlayer]);
   };
 
   const removePlayer = (id: string) => {
     if (playerControlsDisabled) return;
 
-    onPlayersChange(players.filter((player) => player.id !== id));
+    updatePlayers(players.filter((player) => player.id !== id));
   };
 
   const removeTeam = (teamIndex: number) => {
     if (playerControlsDisabled) return;
 
     const firstPlayerIndex = teamIndex * 2;
-    onPlayersChange(
+    updatePlayers(
       players.filter(
         (_player, index) =>
           index !== firstPlayerIndex && index !== firstPlayerIndex + 1
@@ -302,62 +620,160 @@ export function EnhancedPlayerSetup({
     );
   };
 
-  const handleFormatChange = (format: EventFormat) => {
-    onSettingsChange(
-      preserveCommonSettings(createDefaultEventSettings(format), settings)
-    );
-  };
-
   return (
-    <div className="flex flex-col gap-4 pb-24 sm:pb-0">
-      <Card className="overflow-hidden">
-        <CardHeader className="gap-3 pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle>Get playing</CardTitle>
-              <CardDescription>
-                Add names, keep the defaults, generate the first round.
-              </CardDescription>
-            </div>
-            <Badge variant={canStart ? "default" : "secondary"}>
-              {canStart ? "Ready" : `${Math.round(setupProgress)}%`}
-            </Badge>
-          </div>
-          {!tournamentStarted && !readOnly && (
-            <ToggleGroup
-              type="single"
-              value={sessionMode}
-              onValueChange={handleModeChange}
-              variant="outline"
-              size="lg"
-              className="grid w-full grid-cols-2 rounded-lg bg-muted/45 p-1"
+    <div className="flex flex-col gap-3 pb-24 sm:gap-4 sm:pb-0">
+      {!tournamentStarted && !readOnly && (
+        <SetupSection
+          step="1"
+          title="Choose game mode"
+          description="Use Popcorn unless you already know you want something competitive."
+        >
+          <ToggleGroup
+            type="single"
+            value={sessionMode}
+            onValueChange={handleModeChange}
+            variant="outline"
+            size="lg"
+            className="grid w-full grid-cols-2 rounded-lg bg-muted/45 p-1"
+          >
+            <ToggleGroupItem
+              value="rotating"
+              aria-label="Use rotating partners"
+              className="h-auto min-h-20 flex-col items-start justify-center gap-1 whitespace-normal rounded-md border-0 px-3 py-3 text-left data-[state=on]:bg-background data-[state=on]:shadow-sm"
             >
-              <ToggleGroupItem
-                value="rotating"
-                aria-label="Use rotating partners"
-                className="h-auto min-h-20 flex-col items-start justify-center gap-1 whitespace-normal rounded-md border-0 px-3 py-3 text-left data-[state=on]:bg-background data-[state=on]:shadow-sm"
-              >
-                <UsersRound />
-                <span className="font-semibold">Round robin</span>
-                <span className="text-xs text-muted-foreground">
-                  Rotate partners
-                </span>
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="fixed"
-                aria-label="Use set partners"
-                className="h-auto min-h-20 flex-col items-start justify-center gap-1 whitespace-normal rounded-md border-0 px-3 py-3 text-left data-[state=on]:bg-background data-[state=on]:shadow-sm"
-              >
-                <Users />
-                <span className="font-semibold">Set teams</span>
-                <span className="text-xs text-muted-foreground">
-                  Keep partners
-                </span>
-              </ToggleGroupItem>
-            </ToggleGroup>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+              <UsersRound />
+              <span className="font-semibold">Round robin</span>
+              <span className="text-xs text-muted-foreground">
+                Rotate partners
+              </span>
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="fixed"
+              aria-label="Use set teams"
+              className="h-auto min-h-20 flex-col items-start justify-center gap-1 whitespace-normal rounded-md border-0 px-3 py-3 text-left data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            >
+              <Users />
+              <span className="font-semibold">Set teams</span>
+              <span className="text-xs text-muted-foreground">
+                Keep partners
+              </span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/55 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-display text-sm font-semibold">
+                  Play mode
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {selectedModeText}
+                </p>
+              </div>
+              <Badge variant="outline">{formatDefinition.shortName}</Badge>
+            </div>
+
+            <PlayModeChoiceGroup
+              formats={visiblePlayModes}
+              selectedFormat={settings.format}
+              onFormatChange={handleFormatChange}
+              disabled={formatControlsDisabled}
+              label="Choose play mode"
+            />
+
+            {extraPlayModes.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 justify-between px-2"
+                  onClick={() => setShowMorePlayModes((value) => !value)}
+                >
+                  <span>
+                    {showExtraPlayModes ? "Hide extra modes" : "More play modes"}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "transition-transform",
+                      showExtraPlayModes && "rotate-180"
+                    )}
+                  />
+                </Button>
+                <AnimatePresence initial={false}>
+                  {showExtraPlayModes && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <PlayModeChoiceGroup
+                        formats={extraPlayModes}
+                        selectedFormat={settings.format}
+                        onFormatChange={handleFormatChange}
+                        disabled={formatControlsDisabled}
+                        label="Choose extra play mode"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </SetupSection>
+      )}
+
+      {!tournamentStarted && !readOnly && (
+        <SetupSection
+          step="2"
+          title="Tell us what you have"
+          description="Set the group size and courts before adding names."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium" htmlFor="expected-players">
+                Players here
+              </label>
+              <Input
+                id="expected-players"
+                type="number"
+                inputMode="numeric"
+                min={minimumPlayers}
+                step={1}
+                value={targetPlayerCount}
+                onChange={(event) =>
+                  handleExpectedPlayerCountChange(event.target.value)
+                }
+                className="h-12 text-base font-semibold"
+              />
+              <p className="text-xs text-muted-foreground">
+                Start unlocks after {pluralize(targetPlayerCount, "name")}.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium" htmlFor="available-courts">
+                Courts available
+              </label>
+              <Input
+                id="available-courts"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_SETUP_COURTS}
+                step={1}
+                value={availableCourtCount}
+                onChange={(event) => handleCourtCountChange(event.target.value)}
+                className="h-12 text-base font-semibold"
+              />
+              <p className="text-xs text-muted-foreground">
+                {availableCourtCount > maxUsableCourts
+                  ? `${pluralize(maxUsableCourts, "court")} can be used with this group.`
+                  : `${pluralize(selectedCourtCount, "court")} will be in play.`}
+              </p>
+            </div>
+          </div>
+
           <div className="rounded-lg border border-border/70 bg-background/55 p-3">
             <div className="mb-2 flex items-center justify-between gap-3 text-sm">
               <span className="font-medium text-muted-foreground">
@@ -368,301 +784,323 @@ export function EnhancedPlayerSetup({
               </span>
             </div>
             <Progress value={setupProgress} />
+            <p className="mt-2 text-xs text-muted-foreground">{courtPlanText}</p>
           </div>
+        </SetupSection>
+      )}
 
-          {hasDuprConfig && !playerControlsDisabled && !isFixedPartners && (
-            <div className="grid grid-cols-2 rounded-lg bg-muted/45 p-1">
-              <Button
-                type="button"
-                variant={addMode === "manual" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setAddMode("manual")}
-              >
-                Manual
-              </Button>
-              <Button
-                type="button"
-                variant={addMode === "dupr" ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setAddMode("dupr")}
-              >
-                DUPR
-              </Button>
-            </div>
-          )}
-
-          {addMode === "manual" && !isFixedPartners && (
-            <form
-              className="flex gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                addPlayer();
-              }}
+      <SetupSection
+        step="3"
+        title={isFixedPartners ? "Add teams" : "Add players"}
+        description={
+          isFixedPartners
+            ? "Paste pairs or add one team at a time."
+            : "Paste the full group or add one player at a time."
+        }
+      >
+        {hasDuprConfig && !playerControlsDisabled && !isFixedPartners && (
+          <div className="grid grid-cols-2 rounded-lg bg-muted/45 p-1">
+            <Button
+              type="button"
+              variant={addMode === "manual" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setAddMode("manual")}
             >
+              Manual
+            </Button>
+            <Button
+              type="button"
+              variant={addMode === "dupr" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setAddMode("dupr")}
+            >
+              DUPR
+            </Button>
+          </div>
+        )}
+
+        {addMode === "manual" && !isFixedPartners && (
+          <form
+            className="flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              addPlayer();
+            }}
+          >
+            <Input
+              placeholder="Player name"
+              value={newPlayerName}
+              onChange={(event) => setNewPlayerName(event.target.value)}
+              disabled={playerControlsDisabled}
+              autoComplete="off"
+              className="h-12 text-base"
+            />
+            <Button
+              type="submit"
+              disabled={playerControlsDisabled || !newPlayerName.trim()}
+              className="h-12 px-4"
+            >
+              <Plus data-icon="inline-start" />
+              Add
+            </Button>
+          </form>
+        )}
+
+        {addMode === "manual" && isFixedPartners && (
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              addFixedTeam();
+            }}
+          >
+            <div className="grid gap-2 sm:grid-cols-2">
               <Input
-                placeholder="Player name"
+                placeholder="Player 1"
                 value={newPlayerName}
                 onChange={(event) => setNewPlayerName(event.target.value)}
                 disabled={playerControlsDisabled}
                 autoComplete="off"
                 className="h-12 text-base"
               />
-              <Button
-                type="submit"
-                disabled={playerControlsDisabled || !newPlayerName.trim()}
-                className="h-12 px-4"
-              >
-                <Plus data-icon="inline-start" />
-                Add
-              </Button>
-            </form>
-          )}
-
-          {addMode === "manual" && isFixedPartners && (
-            <form
-              className="flex flex-col gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                addFixedTeam();
-              }}
-            >
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Input
-                  placeholder="Player 1"
-                  value={newPlayerName}
-                  onChange={(event) => setNewPlayerName(event.target.value)}
-                  disabled={playerControlsDisabled}
-                  autoComplete="off"
-                  className="h-12 text-base"
-                />
-                <Input
-                  placeholder="Player 2"
-                  value={newPartnerName}
-                  onChange={(event) => setNewPartnerName(event.target.value)}
-                  disabled={playerControlsDisabled}
-                  autoComplete="off"
-                  className="h-12 text-base"
-                />
-              </div>
-              <Button
-                type="submit"
-                disabled={
-                  playerControlsDisabled ||
-                  !newPlayerName.trim() ||
-                  !newPartnerName.trim()
-                }
-                className="h-12"
-              >
-                <Plus data-icon="inline-start" />
-                Add team
-              </Button>
-            </form>
-          )}
-
-          {addMode === "manual" && !playerControlsDisabled && (
-            <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 justify-between"
-                onClick={() => setShowBulkEntry((value) => !value)}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <ClipboardList data-icon="inline-start" />
-                  Paste many
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "transition-transform",
-                    showBulkEntry && "rotate-180"
-                  )}
-                />
-              </Button>
-              <AnimatePresence initial={false}>
-                {showBulkEntry && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/30 p-2">
-                      <Textarea
-                        value={bulkNames}
-                        onChange={(event) => setBulkNames(event.target.value)}
-                        placeholder={
-                          isFixedPartners
-                            ? "Ana & Ben\nCara & Diego"
-                            : "Ana\nBen\nCara\nDiego"
-                        }
-                        aria-label={
-                          isFixedPartners
-                            ? "Paste teams"
-                            : "Paste player names"
-                        }
-                        className="min-h-28 text-base"
-                      />
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                          type="button"
-                          onClick={addBulkEntries}
-                          disabled={!bulkNames.trim()}
-                          className="h-11 flex-1"
-                        >
-                          <UserPlus data-icon="inline-start" />
-                          Add pasted names
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => {
-                            setBulkNames("");
-                            setShowBulkEntry(false);
-                          }}
-                          className="h-11 sm:w-28"
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {addMode === "dupr" && !playerControlsDisabled && !isFixedPartners && (
-            <div className="flex flex-col gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowDuprLogin(true)}
-              >
-                <LogIn data-icon="inline-start" />
-                Login with DUPR
-              </Button>
-              <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground">
-                <span className="h-px flex-1 bg-border" />
-                <span>Or add by DUPR ID</span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
-              <DuprIdInput
-                onSubmit={addPlayerByDuprId}
+              <Input
+                placeholder="Player 2"
+                value={newPartnerName}
+                onChange={(event) => setNewPartnerName(event.target.value)}
                 disabled={playerControlsDisabled}
+                autoComplete="off"
+                className="h-12 text-base"
               />
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {players.length > 0 && isFixedPartners && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Teams ({fixedTeams.length})</CardTitle>
-            <CardDescription>
-              Each row becomes one team for the first round.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {fixedTeams.map((team) => (
-              <div
-                key={team.player1.id}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-lg border bg-background/60 p-3",
-                  !team.player2 && "border-destructive/50 bg-destructive/10"
-                )}
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary">Team {team.index + 1}</Badge>
-                    {team.player2 ? (
-                      team.player1.id in checkIns &&
-                      team.player2.id in checkIns && (
-                        <Badge variant="outline">
-                          <CheckCircle2 className="size-3" />
-                          Checked in
-                        </Badge>
-                      )
-                    ) : (
-                      <Badge variant="destructive">Needs partner</Badge>
-                    )}
-                  </div>
-                  <p className="mt-2 truncate text-sm font-medium">
-                    {team.player1.name}
-                    {team.player2 ? ` & ${team.player2.name}` : ""}
-                  </p>
-                </div>
-                {!playerControlsDisabled && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeTeam(team.index)}
-                    aria-label={`Remove team ${team.index + 1}`}
-                  >
-                    <Trash2 />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {players.length > 0 && !isFixedPartners && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Players ({players.length})</CardTitle>
-            <CardDescription>
-              Four players is enough to generate the first court.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {players.map((player) => {
-              const duprPlayer = player as DuprPlayer;
-              const hasDupr = !!duprPlayer.duprId || !!duprPlayer.duprRating;
-
-              if (hasDupr) {
-                return (
-                  <DuprPlayerCard
-                    key={player.id}
-                    player={duprPlayer}
-                    onRemove={
-                      !playerControlsDisabled
-                        ? () => removePlayer(player.id)
-                        : undefined
-                    }
-                    compact
-                  />
-                );
+            <Button
+              type="submit"
+              disabled={
+                playerControlsDisabled ||
+                !newPlayerName.trim() ||
+                !newPartnerName.trim()
               }
+              className="h-12"
+            >
+              <Plus data-icon="inline-start" />
+              Add team
+            </Button>
+          </form>
+        )}
 
-              return (
-                <Badge
-                  key={player.id}
-                  variant={checkIns[player.id] ? "default" : "secondary"}
-                  className="gap-2 px-3 py-2 text-sm"
+        {addMode === "manual" && !playerControlsDisabled && (
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 justify-between"
+              onClick={() => setShowBulkEntry((value) => !value)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <ClipboardList data-icon="inline-start" />
+                Paste many
+              </span>
+              <ChevronDown
+                className={cn(
+                  "transition-transform",
+                  showBulkEntry && "rotate-180"
+                )}
+              />
+            </Button>
+            <AnimatePresence initial={false}>
+              {showBulkEntry && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
                 >
-                  {checkIns[player.id] && <CheckCircle2 className="size-3" />}
-                  {player.name}
-                  {!playerControlsDisabled && (
-                    <button
-                      type="button"
-                      onClick={() => removePlayer(player.id)}
-                      className="leading-none hover:text-destructive"
-                      aria-label={`Remove ${player.name}`}
-                    >
-                      x
-                    </button>
+                  <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/30 p-2">
+                    <Textarea
+                      value={bulkNames}
+                      onChange={(event) => setBulkNames(event.target.value)}
+                      placeholder={
+                        isFixedPartners
+                          ? "Ana & Ben\nCara & Diego"
+                          : "Ana\nBen\nCara\nDiego"
+                      }
+                      aria-label={
+                        isFixedPartners
+                          ? "Paste teams"
+                          : "Paste player names"
+                      }
+                      className="min-h-28 text-base"
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        type="button"
+                        onClick={addBulkEntries}
+                        disabled={!bulkNames.trim()}
+                        className="h-11 flex-1"
+                      >
+                        <UserPlus data-icon="inline-start" />
+                        Add pasted names
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          setBulkNames("");
+                          setShowBulkEntry(false);
+                        }}
+                        className="h-11 sm:w-28"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {addMode === "dupr" && !playerControlsDisabled && !isFixedPartners && (
+          <div className="flex flex-col gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowDuprLogin(true)}
+            >
+              <LogIn data-icon="inline-start" />
+              Login with DUPR
+            </Button>
+            <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              <span>Or add by DUPR ID</span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <DuprIdInput
+              onSubmit={addPlayerByDuprId}
+              disabled={playerControlsDisabled}
+            />
+          </div>
+        )}
+
+        {players.length === 0 && (
+          <div className="rounded-lg border border-border/70 bg-muted/25 p-3 text-sm text-muted-foreground">
+            No names yet. Paste everyone at once for the fastest start.
+          </div>
+        )}
+
+        {players.length > 0 && isFixedPartners && (
+          <div className="flex flex-col gap-2">
+            <div>
+              <h3 className="font-display text-sm font-semibold">
+                Teams added ({fixedTeams.length})
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Each row becomes one team for the first round.
+              </p>
+            </div>
+            <div className="grid gap-2">
+              {fixedTeams.map((team) => (
+                <div
+                  key={team.player1.id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-lg border bg-background/60 p-3",
+                    !team.player2 && "border-destructive/50 bg-destructive/10"
                   )}
-                </Badge>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary">Team {team.index + 1}</Badge>
+                      {team.player2 ? (
+                        team.player1.id in checkIns &&
+                        team.player2.id in checkIns && (
+                          <Badge variant="outline">
+                            <CheckCircle2 className="size-3" />
+                            Checked in
+                          </Badge>
+                        )
+                      ) : (
+                        <Badge variant="destructive">Needs partner</Badge>
+                      )}
+                    </div>
+                    <p className="mt-2 truncate text-sm font-medium">
+                      {team.player1.name}
+                      {team.player2 ? ` & ${team.player2.name}` : ""}
+                    </p>
+                  </div>
+                  {!playerControlsDisabled && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeTeam(team.index)}
+                      aria-label={`Remove team ${team.index + 1}`}
+                    >
+                      <Trash2 />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {players.length > 0 && !isFixedPartners && (
+          <div className="flex flex-col gap-2">
+            <div>
+              <h3 className="font-display text-sm font-semibold">
+                Players added ({players.length})
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Target: {pluralize(targetPlayerCount, "player")}. Courts update
+                automatically when you paste the full group.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {players.map((player) => {
+                const duprPlayer = player as DuprPlayer;
+                const hasDupr = !!duprPlayer.duprId || !!duprPlayer.duprRating;
+
+                if (hasDupr) {
+                  return (
+                    <DuprPlayerCard
+                      key={player.id}
+                      player={duprPlayer}
+                      onRemove={
+                        !playerControlsDisabled
+                          ? () => removePlayer(player.id)
+                          : undefined
+                      }
+                      compact
+                    />
+                  );
+                }
+
+                return (
+                  <Badge
+                    key={player.id}
+                    variant={checkIns[player.id] ? "default" : "secondary"}
+                    className="gap-2 px-3 py-2 text-sm"
+                  >
+                    {checkIns[player.id] && <CheckCircle2 className="size-3" />}
+                    {player.name}
+                    {!playerControlsDisabled && (
+                      <button
+                        type="button"
+                        onClick={() => removePlayer(player.id)}
+                        className="leading-none hover:text-destructive"
+                        aria-label={`Remove ${player.name}`}
+                      >
+                        x
+                      </button>
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </SetupSection>
 
       {isFixedPartners && !hasCompleteTeams && (
         <Alert variant="destructive">
@@ -737,24 +1175,34 @@ export function EnhancedPlayerSetup({
                       </div>
                       <Badge variant="outline">{formatDefinition.shortName}</Badge>
                     </div>
-                    <FormatSelector
-                      selectedFormat={settings.format}
-                      onFormatChange={handleFormatChange}
-                      disabled={tournamentStarted}
-                    />
                   </div>
                   <FormatSettingsForm
                     format={settings.format}
-                    settings={settings}
-                    onSettingsChange={onSettingsChange}
-                    playerCount={players.length}
+                    settings={{
+                      ...settings,
+                      numberOfCourts: selectedCourtCount,
+                    }}
+                    onSettingsChange={handleAdvancedSettingsChange}
+                    playerCount={targetPlayerCount}
                     disabled={tournamentStarted}
                   />
                 </CardContent>
               </motion.div>
             ) : (
               <CardContent>
-                <FormatInfo format={settings.format} showRules={false} />
+                <div className="rounded-lg border border-border/70 bg-background/55 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-sm font-semibold">
+                        {formatDefinition.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDefinition.description}
+                      </p>
+                    </div>
+                    <Badge variant="outline">{formatDefinition.shortName}</Badge>
+                  </div>
+                </div>
               </CardContent>
             )}
           </AnimatePresence>
@@ -791,19 +1239,18 @@ export function EnhancedPlayerSetup({
           <CardContent className="flex flex-col gap-3 p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">
+                  4. Review and start
+                </p>
                 <p className="truncate text-sm font-semibold">
-                  {canStart ? "Ready for round 1" : setupStatus}
+                  {canStart ? selectedModeText : setupStatus}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {isFixedPartners
-                    ? "Set teams / opponents rotate"
-                    : "Round robin / partners rotate"}
+                  {canStart ? courtPlanText : selectedModeText}
                 </p>
               </div>
               <Badge variant={canStart ? "default" : "secondary"}>
-                {isFixedPartners
-                  ? `${completeTeamCount}/${minimumTeams} teams`
-                  : `${players.length}/${minimumPlayers} players`}
+                {players.length}/{targetPlayerCount} players
               </Badge>
             </div>
             <Button

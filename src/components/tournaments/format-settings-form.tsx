@@ -63,7 +63,7 @@ export function FormatSettingsForm({
           {/* Number of Courts */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Number of Courts
+              Courts in play
               <span className="text-muted-foreground font-normal ml-1">
                 (max {maxCourts} for {playerCount} players)
               </span>
