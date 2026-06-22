@@ -89,15 +89,20 @@ export function EnhancedSchedule({
   const totalGames = games.length;
 
   return (
-    <div className="space-y-4">
-      {/* Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="flex flex-col gap-4">
+      <div className="premium-panel flex flex-col justify-between gap-3 rounded-lg p-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-semibold">Matches</h2>
+          <h2 className="font-display text-xl font-semibold tracking-tight">
+            Matches
+          </h2>
           <p className="text-sm text-muted-foreground">
             {completedGames} of {totalGames} games completed
             {settings.numberOfCourts > 1 && ` • ${settings.numberOfCourts} courts`}
           </p>
+        </div>
+        <div className="flex gap-2">
+          <span className="data-chip">{completedGames}/{totalGames} scored</span>
+          <span className="data-chip">{settings.numberOfCourts} courts</span>
         </div>
       </div>
 
@@ -141,7 +146,7 @@ export function EnhancedSchedule({
       {rounds.length === 0 && (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               No games yet. Use the Round Manager above to generate your first round.
             </p>
           </CardContent>

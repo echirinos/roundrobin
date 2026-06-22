@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ShineBorder } from "@/components/ui/shine-border";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { TextureButton } from "@/components/ui/texture-button";
+import { cn } from "@/lib/utils";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import {
@@ -39,7 +44,6 @@ export function RoundManager({
   settings,
   currentRound,
   onGenerateRound,
-  onShuffleRound,
   disabled = false,
 }: RoundManagerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -146,20 +150,18 @@ export function RoundManager({
     (currentRound === 0 || currentRoundComplete || canAddBeforeComplete);
 
   return (
-    <div className="space-y-4">
-      {/* Round Status */}
-      <Card>
+    <div className="flex flex-col gap-4">
+      <Card className="overflow-hidden">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Round Management</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Round control</CardTitle>
             <Badge variant={currentRoundComplete ? "default" : "secondary"}>
               Round {currentRound || "Not Started"}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Status Info */}
-          <div className="text-sm text-muted-foreground">
+        <CardContent className="flex flex-col gap-4">
+          <div className="rounded-lg border border-border/70 bg-background/55 p-3 text-sm text-muted-foreground">
             {currentRound === 0 ? (
               <p>Ready to generate first round with {players.length} players.</p>
             ) : currentRoundComplete ? (
@@ -172,34 +174,37 @@ export function RoundManager({
             )}
           </div>
 
-          {/* Generate Button */}
           {!previewGames && (
-            <Button
+            <ShimmerButton
+              type="button"
               onClick={handleGenerateRound}
               disabled={disabled || !canGenerateNextRound || isGenerating}
-              className="w-full"
+              borderRadius="0.5rem"
+              background="linear-gradient(135deg, var(--primary), var(--accent))"
+              shimmerColor="var(--live)"
+              className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGenerating
                 ? "Generating..."
                 : currentRound === 0
                 ? `Generate Round 1 (${formatDefinition.name})`
                 : `Generate Round ${currentRound + 1}`}
-            </Button>
+            </ShimmerButton>
           )}
 
-          {/* Not enough players warning */}
           {players.length < 4 && (
-            <p className="text-sm text-amber-600">Need at least 4 players to start.</p>
+            <p className="text-sm font-medium text-warning">
+              Need at least 4 players to start.
+            </p>
           )}
           {isFixedPartners && players.length % 2 !== 0 && (
-            <p className="text-sm text-amber-600">
+            <p className="text-sm font-medium text-warning">
               Set partners needs complete two-player teams.
             </p>
           )}
 
-          {/* Current round not complete warning */}
           {hasGamesInProgress && (
-            <p className="text-sm text-amber-600">
+            <p className="text-sm font-medium text-warning">
               {canAddBeforeComplete
                 ? `Round ${currentRound} still has pending scores. You can still add another casual round.`
                 : `Complete all games in Round ${currentRound} before generating the next round.`}
@@ -208,48 +213,66 @@ export function RoundManager({
         </CardContent>
       </Card>
 
-      {/* Preview Card */}
       {previewGames && previewGames.length > 0 && (
-        <Card className="border-primary">
+        <Card className="relative overflow-hidden border-primary/55">
+          <ShineBorder
+            borderWidth={1}
+            duration={12}
+            shineColor={["var(--primary)", "var(--live)", "var(--accent)"]}
+          />
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Round {currentRound + 1} Preview</CardTitle>
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <CardTitle className="text-base">
+                Round {currentRound + 1} preview
+              </CardTitle>
               <div className="flex gap-2">
                 {(settings.format === "popcorn" ||
                   settings.format === "round_robin" ||
                   settings.format === "shuffle") && (
-                  <Button variant="outline" size="sm" onClick={handleShufflePreview}>
+                  <TextureButton
+                    type="button"
+                    variant="minimal"
+                    size="sm"
+                    onClick={handleShufflePreview}
+                  >
                     Shuffle
-                  </Button>
+                  </TextureButton>
                 )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Preview Games */}
-            <div className="space-y-3">
-              {previewGames.map((game, idx) => (
-                <div
-                  key={game.id}
-                  className="p-3 bg-muted/50 rounded-lg border"
-                >
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Court {game.courtNumber}
-                  </div>
-                  <div className="space-y-1">
-                    <div className="font-medium text-sm">
-                      {game.team1[0].name} & {game.team1[1].name}
+          <CardContent className="relative z-10 flex flex-col gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AnimatePresence initial={false} mode="popLayout">
+                {previewGames.map((game, idx) => (
+                  <motion.div
+                    key={game.id}
+                    layout
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ delay: idx * 0.03, duration: 0.25 }}
+                    className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-sm"
+                  >
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Court {game.courtNumber}
                     </div>
-                    <div className="text-center text-xs text-muted-foreground">vs</div>
-                    <div className="font-medium text-sm">
-                      {game.team2[0].name} & {game.team2[1].name}
+                    <div className="flex flex-col gap-1">
+                      <div className="truncate text-sm font-semibold">
+                        {game.team1[0].name} & {game.team1[1].name}
+                      </div>
+                      <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        vs
+                      </div>
+                      <div className="truncate text-sm font-semibold">
+                        {game.team2[0].name} & {game.team2[1].name}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
 
-            {/* Bye Players */}
             {previewByePlayers.length > 0 && (
               <div className="text-sm">
                 <span className="text-muted-foreground">Sitting out: </span>
@@ -259,11 +282,17 @@ export function RoundManager({
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex gap-2">
-              <Button onClick={handleConfirmRound} className="flex-1">
+              <ShimmerButton
+                type="button"
+                onClick={handleConfirmRound}
+                borderRadius="0.5rem"
+                background="linear-gradient(135deg, var(--primary), var(--accent))"
+                shimmerColor="var(--live)"
+                className="h-11 flex-1 px-5 text-sm font-semibold text-primary-foreground"
+              >
                 Confirm Round
-              </Button>
+              </ShimmerButton>
               <Button variant="outline" onClick={handleCancelPreview}>
                 Cancel
               </Button>
@@ -272,17 +301,18 @@ export function RoundManager({
         </Card>
       )}
 
-      {/* Format Info */}
-      <Card className="bg-muted/30">
+      <Card className="bg-card/70">
         <CardContent className="pt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-sm font-medium">{formatDefinition.name}</h4>
+          <div className="mb-2 flex items-center gap-2">
+            <h4 className="font-display text-sm font-semibold">
+              {formatDefinition.name}
+            </h4>
             <Badge variant="outline" className="text-xs">
               {isRotating ? "Rotating Partners" : "Fixed Teams"}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">{formatDefinition.description}</p>
-          <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
             <span>Scoring: {settings.scoringType.replace("_", " ")}</span>
             <span>Courts: {settings.numberOfCourts}</span>
           </div>
@@ -315,20 +345,23 @@ export function RoundSummary({ games, roundNumber }: RoundSummaryProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {roundGames.map((game) => (
             <div
               key={game.id}
-              className={`p-2 rounded border ${
-                game.completed ? "bg-muted/50 border-transparent" : "border-dashed"
-              }`}
+              className={cn(
+                "rounded-lg border p-2",
+                game.completed
+                  ? "border-border/60 bg-background/55"
+                  : "border-dashed border-border/80"
+              )}
             >
               <div className="flex items-center justify-between text-sm">
                 <div className="flex-1">
                   <span
                     className={
                       game.completed && (game.team1Score ?? 0) > (game.team2Score ?? 0)
-                        ? "text-green-600 dark:text-green-400 font-medium"
+                        ? "font-medium text-success"
                         : ""
                     }
                   >
@@ -336,11 +369,11 @@ export function RoundSummary({ games, roundNumber }: RoundSummaryProps) {
                   </span>
                 </div>
                 {game.completed ? (
-                  <div className="flex items-center gap-2 font-mono">
+                  <div className="font-data flex items-center gap-2">
                     <span
                       className={
                         (game.team1Score ?? 0) > (game.team2Score ?? 0)
-                          ? "text-green-600 dark:text-green-400 font-bold"
+                          ? "font-bold text-success"
                           : "text-muted-foreground"
                       }
                     >
@@ -350,7 +383,7 @@ export function RoundSummary({ games, roundNumber }: RoundSummaryProps) {
                     <span
                       className={
                         (game.team2Score ?? 0) > (game.team1Score ?? 0)
-                          ? "text-green-600 dark:text-green-400 font-bold"
+                          ? "font-bold text-success"
                           : "text-muted-foreground"
                       }
                     >
@@ -366,7 +399,7 @@ export function RoundSummary({ games, roundNumber }: RoundSummaryProps) {
                   <span
                     className={
                       game.completed && (game.team2Score ?? 0) > (game.team1Score ?? 0)
-                        ? "text-green-600 dark:text-green-400 font-medium"
+                        ? "font-medium text-success"
                         : ""
                     }
                   >

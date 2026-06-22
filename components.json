@@ -19,5 +19,8 @@
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "registries": {}
+  "registries": {
+    "@magicui": "https://magicui.design/r/{name}",
+    "@cult-ui": "https://cult-ui.com/r/{name}.json"
+  }
 }

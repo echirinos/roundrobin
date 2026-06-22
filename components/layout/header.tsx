@@ -49,9 +49,9 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/tournament">
+          <Link href="/tournament?new=1&mode=rotating">
             <Button size="sm" className="font-medium">
-              Start Tournament
+              Start
             </Button>
           </Link>
         </div>
