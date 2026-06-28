@@ -168,7 +168,7 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
     id: 'round_robin',
     name: 'Round Robin',
     shortName: 'Round Robin',
-    description: 'Everyone plays everyone. Partners rotate each round.',
+    description: 'Rotating doubles that prioritizes a different partner each round.',
     category: 'traditional',
     partnerMode: 'rotating',
     scoringType: 'win_percentage',
@@ -177,8 +177,8 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
     minPlayers: 4,
     requiresMultipleOf4: false,
     supportsByes: true,
-    keyFeatures: ['Fair matchups', 'Play with everyone', 'Rotating partners'],
-    rules: ['Partners change each round', 'Everyone plays equal games', 'Ranked by win percentage'],
+    keyFeatures: ['Unique partners', 'Fresh opponents', '7-round friendly'],
+    rules: ['Prioritizes unused partnerships first', 'Then avoids repeated opponents where possible', 'Ranked by win percentage'],
   },
 
   swiss: {
@@ -473,7 +473,7 @@ export function createDefaultEventSettings(format: EventFormat): EventSettings {
     numberOfCourts: 1,
     winBy: 2,
     pointsToWin: 11,
-    maxRounds: undefined,
+    maxRounds: format === 'round_robin' ? 7 : undefined,
     formatOptions: createDefaultFormatOptions(format),
     courtOptimizer: {
       enabled: false,

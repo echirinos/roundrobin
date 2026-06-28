@@ -30,6 +30,7 @@ export {
 // Re-export rotating partner generators
 export {
   generatePopcornRound,
+  generateRoundRobinRound,
   generateGauntletRound,
   generateUpDownRiverRound,
   generateKingOfCourtRound,

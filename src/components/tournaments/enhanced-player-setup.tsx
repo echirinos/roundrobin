@@ -85,7 +85,7 @@ const PLAY_MODE_HELP_TEXT: Partial<Record<EventFormat, string>> = {
   gauntlet: "More competitive. Winners get harder games.",
   king_of_court: "Winners move up. Losers move down.",
   up_down_river: "Top 2 move up, bottom 2 move down.",
-  round_robin: "Classic rotating partners.",
+  round_robin: "Unique partners first. Great for 7 rounds.",
   scramble: "Small court groups with less movement.",
   mixed_madness: "Mixed doubles with balanced teams.",
   double_header: "Two games with the same partner.",
@@ -115,7 +115,10 @@ function preserveCommonSettings(
     numberOfCourts: currentSettings.numberOfCourts,
     pointsToWin: currentSettings.pointsToWin,
     winBy: currentSettings.winBy,
-    maxRounds: currentSettings.maxRounds,
+    maxRounds:
+      nextSettings.format === currentSettings.format
+        ? currentSettings.maxRounds
+        : nextSettings.maxRounds,
     courtOptimizer: currentSettings.courtOptimizer,
   };
 }

@@ -13,7 +13,6 @@ import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/dat
 import type { EventSettings } from "@/src/types/formats";
 import {
   generateRound,
-  generatePopcornRound,
   type GeneratorContext,
 } from "@/src/lib/formats/rotating-generators";
 import {
@@ -72,7 +71,7 @@ export function RoundManager({
   const currentRoundComplete = currentRoundGames.length > 0 && currentRoundGames.every((g) => g.completed);
   const hasGamesInProgress = currentRoundGames.some((g) => !g.completed);
 
-  const generatePreviewRound = (forceShuffle = false) => {
+  const generatePreviewRound = () => {
     if (isFixedPartners) {
       const result = generateFixedRound({
         teams: createTeamsFromPlayers(players),
@@ -94,11 +93,7 @@ export function RoundManager({
       usedPartnerships: new Set(usedPartnerships),
     };
 
-    const result =
-      forceShuffle &&
-      (settings.format === "popcorn" || settings.format === "round_robin")
-        ? generatePopcornRound(context)
-        : generateRound(context);
+    const result = generateRound(context);
 
     setPreviewGames(result.games);
     setPreviewByePlayers(result.byePlayers);
@@ -133,7 +128,7 @@ export function RoundManager({
     if (!previewGames) return;
 
     try {
-      generatePreviewRound(true);
+      generatePreviewRound();
     } catch (error) {
       console.error("Failed to shuffle round preview:", error);
     }
@@ -142,11 +137,16 @@ export function RoundManager({
   const canAddBeforeComplete = ["popcorn", "round_robin", "shuffle"].includes(
     settings.format
   );
+  const hasReachedRoundLimit =
+    typeof settings.maxRounds === "number" &&
+    settings.maxRounds > 0 &&
+    currentRound >= settings.maxRounds;
   const hasValidPlayerCount = isFixedPartners
     ? players.length >= 4 && players.length % 2 === 0
     : players.length >= 4;
   const canGenerateNextRound =
     hasValidPlayerCount &&
+    !hasReachedRoundLimit &&
     (currentRound === 0 || currentRoundComplete || canAddBeforeComplete);
 
   return (
@@ -186,6 +186,8 @@ export function RoundManager({
             >
               {isGenerating
                 ? "Generating..."
+                : hasReachedRoundLimit
+                ? `All ${settings.maxRounds} rounds generated`
                 : currentRound === 0
                 ? `Generate Round 1 (${formatDefinition.name})`
                 : `Generate Round ${currentRound + 1}`}
@@ -210,6 +212,11 @@ export function RoundManager({
                 : `Complete all games in Round ${currentRound} before generating the next round.`}
             </p>
           )}
+          {hasReachedRoundLimit && (
+            <p className="text-sm font-medium text-muted-foreground">
+              Planned {settings.maxRounds} rounds are already generated.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -227,7 +234,6 @@ export function RoundManager({
               </CardTitle>
               <div className="flex gap-2">
                 {(settings.format === "popcorn" ||
-                  settings.format === "round_robin" ||
                   settings.format === "shuffle") && (
                   <TextureButton
                     type="button"

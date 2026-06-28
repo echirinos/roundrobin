@@ -164,6 +164,9 @@ export function FormatSettingsForm({
   // Calculate recommended number of courts
   const recommendedCourts = Math.floor(playerCount / 4);
   const maxCourts = Math.max(1, Math.floor(playerCount / 4));
+  const uniquePartnerRoundLimit = Math.max(1, playerCount - 1);
+  const roundRobinTargetRounds =
+    settings.maxRounds ?? Math.min(7, uniquePartnerRoundLimit);
 
   return (
     <div className="space-y-4">
@@ -217,6 +220,31 @@ export function FormatSettingsForm({
                 disabled={disabled}
                 className="w-24"
               />
+            </div>
+          )}
+
+          {format === "round_robin" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Rounds to schedule
+                <span className="text-muted-foreground font-normal ml-1">
+                  (unique partners first)
+                </span>
+              </label>
+              <NumericSettingInput
+                ariaLabel="Rounds to schedule"
+                min={1}
+                max={30}
+                fallback={Math.min(7, uniquePartnerRoundLimit)}
+                value={roundRobinTargetRounds}
+                onValueChange={(value) => updateSetting("maxRounds", value)}
+                disabled={disabled}
+                className="w-24"
+              />
+              <p className="text-xs text-muted-foreground">
+                With everyone playing each round, up to {uniquePartnerRoundLimit}{" "}
+                rounds can use a new partner before repeats.
+              </p>
             </div>
           )}
 

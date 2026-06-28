@@ -4,7 +4,7 @@
  */
 
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from '@/src/types/database';
-import type { EventSettings, FormatOptions, PlayerGender } from '@/src/types/formats';
+import type { EventSettings } from '@/src/types/formats';
 
 // ============================================
 // TYPES
@@ -24,6 +24,20 @@ export interface GeneratedRound {
   games: LocalRoundGame[];
   byePlayers: LocalPlayer[];
 }
+
+type TeamSplit = {
+  team1: [LocalPlayer, LocalPlayer];
+  team2: [LocalPlayer, LocalPlayer];
+};
+
+type PartnerPair = [LocalPlayer, LocalPlayer];
+
+type BeamState = {
+  opponentCounts: Map<string, number>;
+  courtGroupCounts: Map<string, number>;
+  score: number;
+  currentRoundSplits?: TeamSplit[];
+};
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -84,13 +98,13 @@ function selectPlayersForRound(
     return { playing: players, byes: [] };
   }
 
-  // Fair bye system: prioritize players with fewer byes
+  // Fair bye system: players who have already sat more should play first.
   const byeCounts = getByeCounts(players, games);
 
   const sorted = [...players].sort((a, b) => {
     const aCount = byeCounts.get(a.id) || 0;
     const bCount = byeCounts.get(b.id) || 0;
-    if (aCount !== bCount) return aCount - bCount; // Fewer byes = play first
+    if (aCount !== bCount) return bCount - aCount;
     return Math.random() - 0.5; // Randomize ties
   });
 
@@ -148,6 +162,68 @@ export function generatePopcornRound(ctx: GeneratorContext): GeneratedRound {
   }
 
   return { games, byePlayers: byes };
+}
+
+// ============================================
+// ROUND ROBIN GENERATOR
+// Prioritizes unique partners first, then fresh opponents.
+// ============================================
+
+export function generateRoundRobinRound(ctx: GeneratorContext): GeneratedRound {
+  const { players, existingGames, currentRound, settings, usedPartnerships } = ctx;
+  const numberOfCourts = settings.numberOfCourts;
+  const { playing, byes } = selectPlayersForRound(players, existingGames, numberOfCourts);
+
+  if (playing.length < 4) {
+    return { games: [], byePlayers: byes };
+  }
+
+  const partnershipCounts = getPartnershipCounts(existingGames, usedPartnerships);
+  const opponentCounts = getOpponentCounts(existingGames);
+  const allPlayersArePlaying = byes.length === 0;
+  const canUseFullPartnerRotation =
+    allPlayersArePlaying &&
+    playing.length % 4 === 0 &&
+    currentRound <= Math.max(1, playing.length - 1);
+
+  if (canUseFullPartnerRotation) {
+    const plannedRoundLimit = Math.min(
+      settings.maxRounds ?? playing.length - 1,
+      playing.length - 1
+    );
+    const games =
+      playing.length <= 8
+        ? buildSmallGroupSocialRoundRobinGames(
+            playing,
+            currentRound,
+            numberOfCourts,
+            existingGames,
+            usedPartnerships,
+            plannedRoundLimit
+          )
+        : buildBalancedRoundRobinGames(
+            playing,
+            currentRound,
+            numberOfCourts,
+            existingGames,
+            usedPartnerships,
+            plannedRoundLimit
+          );
+
+    return { games, byePlayers: byes };
+  }
+
+  return {
+    games: buildOptimizedRoundRobinGames(
+      playing,
+      currentRound,
+      numberOfCourts,
+      partnershipCounts,
+      opponentCounts,
+      usedPartnerships
+    ),
+    byePlayers: byes,
+  };
 }
 
 // ============================================
@@ -583,7 +659,7 @@ export function generateScrambleRound(ctx: GeneratorContext): GeneratedRound {
 function findBestTeamSplit(
   fourPlayers: LocalPlayer[],
   usedPartnerships: Set<string>
-): { team1: [LocalPlayer, LocalPlayer]; team2: [LocalPlayer, LocalPlayer] } {
+): TeamSplit {
   // All possible ways to split 4 players into 2 teams
   const splits = [
     { team1: [fourPlayers[0], fourPlayers[1]] as [LocalPlayer, LocalPlayer], team2: [fourPlayers[2], fourPlayers[3]] as [LocalPlayer, LocalPlayer] },
@@ -610,6 +686,509 @@ function findBestTeamSplit(
   }
 
   return bestSplit;
+}
+
+function getPartnershipCounts(
+  games: LocalRoundGame[],
+  usedPartnerships: Set<string>
+): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const game of games) {
+    for (const team of [game.team1, game.team2]) {
+      const key = getPartnershipKey(team[0].id, team[1].id);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+
+  for (const key of usedPartnerships) {
+    if (!counts.has(key)) {
+      counts.set(key, 1);
+    }
+  }
+
+  return counts;
+}
+
+function getOpponentCounts(games: LocalRoundGame[]): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const game of games) {
+    for (const player of game.team1) {
+      for (const opponent of game.team2) {
+        const key = getPartnershipKey(player.id, opponent.id);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+  }
+
+  return counts;
+}
+
+function getCourtGroupCounts(games: LocalRoundGame[]): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  for (const game of games) {
+    const key = getCourtGroupKey(game.team1, game.team2);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+function getTeamSplits(fourPlayers: LocalPlayer[]): TeamSplit[] {
+  return [
+    { team1: [fourPlayers[0], fourPlayers[1]], team2: [fourPlayers[2], fourPlayers[3]] },
+    { team1: [fourPlayers[0], fourPlayers[2]], team2: [fourPlayers[1], fourPlayers[3]] },
+    { team1: [fourPlayers[0], fourPlayers[3]], team2: [fourPlayers[1], fourPlayers[2]] },
+  ];
+}
+
+function getCircleMethodPartnerPairs(
+  players: LocalPlayer[],
+  roundNumber: number
+): PartnerPair[] {
+  const fixedPlayer = players[0];
+  const rotatingPlayers = players.slice(1);
+  const rotationCount = players.length - 1;
+  const rotations = (roundNumber - 1) % rotationCount;
+  const rotated = [...rotatingPlayers];
+
+  for (let rotation = 0; rotation < rotations; rotation++) {
+    const lastPlayer = rotated.pop();
+    if (lastPlayer) {
+      rotated.unshift(lastPlayer);
+    }
+  }
+
+  const orderedPlayers = [fixedPlayer, ...rotated];
+  const pairs: PartnerPair[] = [];
+
+  for (let index = 0; index < orderedPlayers.length / 2; index++) {
+    pairs.push([
+      orderedPlayers[index],
+      orderedPlayers[orderedPlayers.length - 1 - index],
+    ]);
+  }
+
+  return pairs;
+}
+
+function getCourtGroupKey(team1: PartnerPair, team2: PartnerPair): string {
+  return [...team1, ...team2].map((player) => player.id).sort().join('-');
+}
+
+function getOpponentPairKeys(team1: PartnerPair, team2: PartnerPair): string[] {
+  const keys: string[] = [];
+
+  for (const player of team1) {
+    for (const opponent of team2) {
+      keys.push(getPartnershipKey(player.id, opponent.id));
+    }
+  }
+
+  return keys;
+}
+
+function scorePartnership(
+  pair: PartnerPair,
+  partnershipCounts: Map<string, number>
+): number {
+  const count = partnershipCounts.get(getPartnershipKey(pair[0].id, pair[1].id)) ?? 0;
+
+  if (count === 0) return 120;
+  return -45 * count;
+}
+
+function scoreOpponents(
+  team1: PartnerPair,
+  team2: PartnerPair,
+  opponentCounts: Map<string, number>
+): number {
+  let score = 0;
+
+  for (const player of team1) {
+    for (const opponent of team2) {
+      const count = opponentCounts.get(getPartnershipKey(player.id, opponent.id)) ?? 0;
+      score += count === 0 ? 12 : -4 * count;
+    }
+  }
+
+  return score;
+}
+
+function scoreOpponentBalance(
+  team1: PartnerPair,
+  team2: PartnerPair,
+  opponentCounts: Map<string, number>,
+  courtGroupCounts: Map<string, number>
+): number {
+  let score = 0;
+
+  for (const key of getOpponentPairKeys(team1, team2)) {
+    const count = opponentCounts.get(key) ?? 0;
+    score -= 20 * (2 * count + 1);
+  }
+
+  const groupCount = courtGroupCounts.get(getCourtGroupKey(team1, team2)) ?? 0;
+  score -= 80 * (2 * groupCount + 1);
+
+  return score;
+}
+
+function scoreTeamSplit(
+  split: TeamSplit,
+  partnershipCounts: Map<string, number>,
+  opponentCounts: Map<string, number>
+): number {
+  return (
+    scorePartnership(split.team1, partnershipCounts) +
+    scorePartnership(split.team2, partnershipCounts) +
+    scoreOpponents(split.team1, split.team2, opponentCounts)
+  );
+}
+
+function addGeneratedGameToCounts(
+  split: TeamSplit,
+  partnershipCounts: Map<string, number>,
+  opponentCounts: Map<string, number>,
+  usedPartnerships: Set<string>
+) {
+  for (const team of [split.team1, split.team2]) {
+    const key = getPartnershipKey(team[0].id, team[1].id);
+    partnershipCounts.set(key, (partnershipCounts.get(key) ?? 0) + 1);
+    usedPartnerships.add(key);
+  }
+
+  for (const player of split.team1) {
+    for (const opponent of split.team2) {
+      const key = getPartnershipKey(player.id, opponent.id);
+      opponentCounts.set(key, (opponentCounts.get(key) ?? 0) + 1);
+    }
+  }
+}
+
+function addGeneratedGameToOpponentCounts(
+  split: TeamSplit,
+  opponentCounts: Map<string, number>,
+  courtGroupCounts: Map<string, number>
+) {
+  for (const key of getOpponentPairKeys(split.team1, split.team2)) {
+    opponentCounts.set(key, (opponentCounts.get(key) ?? 0) + 1);
+  }
+
+  const groupKey = getCourtGroupKey(split.team1, split.team2);
+  courtGroupCounts.set(groupKey, (courtGroupCounts.get(groupKey) ?? 0) + 1);
+}
+
+function getPartnerPairingOptions(partnerPairs: PartnerPair[]): TeamSplit[][] {
+  if (partnerPairs.length === 0) return [[]];
+
+  const [firstPair, ...remainingPairs] = partnerPairs;
+  const options: TeamSplit[][] = [];
+
+  for (let index = 0; index < remainingPairs.length; index++) {
+    const pairedWithFirst = remainingPairs[index];
+    const nextRemaining = [
+      ...remainingPairs.slice(0, index),
+      ...remainingPairs.slice(index + 1),
+    ];
+
+    for (const rest of getPartnerPairingOptions(nextRemaining)) {
+      options.push([
+        { team1: firstPair, team2: pairedWithFirst },
+        ...rest,
+      ]);
+    }
+  }
+
+  return options;
+}
+
+function getExactSocialScheduleSplits(
+  players: LocalPlayer[],
+  roundNumber: number
+): TeamSplit[] | null {
+  const patterns: Record<number, number[][][]> = {
+    4: [
+      [[0, 1, 2, 3]],
+      [[0, 2, 1, 3]],
+      [[0, 3, 1, 2]],
+    ],
+    8: [
+      [[0, 1, 2, 3], [4, 5, 6, 7]],
+      [[0, 4, 1, 5], [2, 6, 3, 7]],
+      [[0, 2, 4, 6], [1, 3, 5, 7]],
+      [[0, 6, 1, 7], [2, 4, 3, 5]],
+      [[0, 5, 2, 7], [1, 4, 3, 6]],
+      [[0, 7, 3, 4], [1, 6, 2, 5]],
+      [[0, 3, 5, 6], [1, 2, 4, 7]],
+    ],
+  };
+  const schedulePattern = patterns[players.length];
+  const roundPattern = schedulePattern?.[roundNumber - 1];
+
+  if (!roundPattern) return null;
+
+  return roundPattern.map(([player1, player2, player3, player4]) => ({
+    team1: [players[player1], players[player2]],
+    team2: [players[player3], players[player4]],
+  }));
+}
+
+function buildSmallGroupSocialRoundRobinGames(
+  players: LocalPlayer[],
+  currentRound: number,
+  numberOfCourts: number,
+  existingGames: LocalRoundGame[],
+  usedPartnerships: Set<string>,
+  plannedRoundLimit: number
+): LocalRoundGame[] {
+  const bestSplits =
+    currentRound <= plannedRoundLimit
+      ? getExactSocialScheduleSplits(players, currentRound)
+      : null;
+
+  if (!bestSplits) {
+    return buildBalancedRoundRobinGames(
+      players,
+      currentRound,
+      numberOfCourts,
+      existingGames,
+      usedPartnerships,
+      plannedRoundLimit
+    );
+  }
+
+  const partnershipCounts = getPartnershipCounts(existingGames, usedPartnerships);
+  const opponentCounts = getOpponentCounts(existingGames);
+
+  return bestSplits.slice(0, numberOfCourts).map((split, index) => {
+    addGeneratedGameToCounts(
+      split,
+      partnershipCounts,
+      opponentCounts,
+      usedPartnerships
+    );
+
+    return createGame(
+      currentRound,
+      index + 1,
+      index + 1,
+      split.team1,
+      split.team2
+    );
+  });
+}
+
+function buildBalancedRoundRobinGames(
+  players: LocalPlayer[],
+  currentRound: number,
+  numberOfCourts: number,
+  existingGames: LocalRoundGame[],
+  usedPartnerships: Set<string>,
+  plannedRoundLimit?: number
+): LocalRoundGame[] {
+  const maxUniquePartnerRounds = players.length - 1;
+  const matchingRoundLimit = Math.min(
+    maxUniquePartnerRounds,
+    plannedRoundLimit ?? maxUniquePartnerRounds
+  );
+  const firstRoundPartnerPairs = getCircleMethodPartnerPairs(players, currentRound);
+
+  // Exhaustive pairing options grow quickly. Large groups still get unique partners
+  // and use the per-round opponent optimizer below.
+  if (firstRoundPartnerPairs.length > 8) {
+    return buildGamesFromPartnerPairs(
+      firstRoundPartnerPairs,
+      currentRound,
+      numberOfCourts,
+      getPartnershipCounts(existingGames, usedPartnerships),
+      getOpponentCounts(existingGames),
+      usedPartnerships
+    );
+  }
+
+  let states: BeamState[] = [
+    {
+      opponentCounts: getOpponentCounts(existingGames),
+      courtGroupCounts: getCourtGroupCounts(existingGames),
+      score: 0,
+    },
+  ];
+  const beamWidth = 160;
+
+  for (let round = currentRound; round <= matchingRoundLimit; round++) {
+    const partnerPairs = getCircleMethodPartnerPairs(players, round);
+    const options = getPartnerPairingOptions(partnerPairs);
+    const nextStates: BeamState[] = [];
+
+    for (const state of states) {
+      for (const splits of options) {
+        const opponentCounts = new Map(state.opponentCounts);
+        const courtGroupCounts = new Map(state.courtGroupCounts);
+        let score = state.score;
+
+        for (const split of splits) {
+          score += scoreOpponentBalance(
+            split.team1,
+            split.team2,
+            opponentCounts,
+            courtGroupCounts
+          );
+          addGeneratedGameToOpponentCounts(split, opponentCounts, courtGroupCounts);
+        }
+
+        nextStates.push({
+          opponentCounts,
+          courtGroupCounts,
+          score,
+          currentRoundSplits:
+            round === currentRound ? splits : state.currentRoundSplits,
+        });
+      }
+    }
+
+    states = nextStates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, beamWidth);
+  }
+
+  const bestSplits = states[0]?.currentRoundSplits;
+
+  if (!bestSplits) {
+    return buildGamesFromPartnerPairs(
+      firstRoundPartnerPairs,
+      currentRound,
+      numberOfCourts,
+      getPartnershipCounts(existingGames, usedPartnerships),
+      getOpponentCounts(existingGames),
+      usedPartnerships
+    );
+  }
+
+  const partnershipCounts = getPartnershipCounts(existingGames, usedPartnerships);
+  const opponentCounts = getOpponentCounts(existingGames);
+
+  return bestSplits.slice(0, numberOfCourts).map((split, index) => {
+    addGeneratedGameToCounts(
+      split,
+      partnershipCounts,
+      opponentCounts,
+      usedPartnerships
+    );
+
+    return createGame(
+      currentRound,
+      index + 1,
+      index + 1,
+      split.team1,
+      split.team2
+    );
+  });
+}
+
+function buildGamesFromPartnerPairs(
+  partnerPairs: PartnerPair[],
+  roundNumber: number,
+  numberOfCourts: number,
+  partnershipCounts: Map<string, number>,
+  opponentCounts: Map<string, number>,
+  usedPartnerships: Set<string>
+): LocalRoundGame[] {
+  const availablePairs = [...partnerPairs];
+  const games: LocalRoundGame[] = [];
+  let gameNumber = 1;
+
+  while (availablePairs.length >= 2 && games.length < numberOfCourts) {
+    let bestPairIndexes: [number, number] | null = null;
+    let bestScore = -Infinity;
+
+    for (let firstIndex = 0; firstIndex < availablePairs.length; firstIndex++) {
+      for (let secondIndex = firstIndex + 1; secondIndex < availablePairs.length; secondIndex++) {
+        const score = scoreOpponents(
+          availablePairs[firstIndex],
+          availablePairs[secondIndex],
+          opponentCounts
+        );
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestPairIndexes = [firstIndex, secondIndex];
+        }
+      }
+    }
+
+    if (!bestPairIndexes) break;
+
+    const [firstIndex, secondIndex] = bestPairIndexes;
+    const split: TeamSplit = {
+      team1: availablePairs[firstIndex],
+      team2: availablePairs[secondIndex],
+    };
+
+    games.push(createGame(roundNumber, gameNumber++, games.length + 1, split.team1, split.team2));
+    addGeneratedGameToCounts(split, partnershipCounts, opponentCounts, usedPartnerships);
+    availablePairs.splice(secondIndex, 1);
+    availablePairs.splice(firstIndex, 1);
+  }
+
+  return games;
+}
+
+function buildOptimizedRoundRobinGames(
+  players: LocalPlayer[],
+  roundNumber: number,
+  numberOfCourts: number,
+  partnershipCounts: Map<string, number>,
+  opponentCounts: Map<string, number>,
+  usedPartnerships: Set<string>
+): LocalRoundGame[] {
+  const games: LocalRoundGame[] = [];
+  const usedThisRound = new Set<string>();
+  let gameNumber = 1;
+
+  while (games.length < numberOfCourts) {
+    const availablePlayers = players.filter((player) => !usedThisRound.has(player.id));
+    if (availablePlayers.length < 4) break;
+
+    let bestSplit: TeamSplit | null = null;
+    let bestScore = -Infinity;
+
+    for (let firstIndex = 0; firstIndex < availablePlayers.length; firstIndex++) {
+      for (let secondIndex = firstIndex + 1; secondIndex < availablePlayers.length; secondIndex++) {
+        for (let thirdIndex = secondIndex + 1; thirdIndex < availablePlayers.length; thirdIndex++) {
+          for (let fourthIndex = thirdIndex + 1; fourthIndex < availablePlayers.length; fourthIndex++) {
+            const fourPlayers = [
+              availablePlayers[firstIndex],
+              availablePlayers[secondIndex],
+              availablePlayers[thirdIndex],
+              availablePlayers[fourthIndex],
+            ];
+
+            for (const split of getTeamSplits(fourPlayers)) {
+              const score = scoreTeamSplit(split, partnershipCounts, opponentCounts);
+
+              if (score > bestScore) {
+                bestScore = score;
+                bestSplit = split;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (!bestSplit) break;
+
+    games.push(createGame(roundNumber, gameNumber++, games.length + 1, bestSplit.team1, bestSplit.team2));
+    addGeneratedGameToCounts(bestSplit, partnershipCounts, opponentCounts, usedPartnerships);
+    [...bestSplit.team1, ...bestSplit.team2].forEach((player) => {
+      usedThisRound.add(player.id);
+    });
+  }
+
+  return games;
 }
 
 function generateSeededFirstRound(ctx: GeneratorContext): GeneratedRound {
@@ -748,6 +1327,7 @@ export function generateRound(ctx: GeneratorContext): GeneratedRound {
     case 'scramble':
       return generateScrambleRound(ctx);
     case 'round_robin':
+      return generateRoundRobinRound(ctx);
     default:
       return generatePopcornRound(ctx);
   }
