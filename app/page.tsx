@@ -562,41 +562,12 @@ function SessionComposer() {
   );
 }
 
-function HeroActionGroup() {
+function HeroAssurance() {
   return (
-    <div className="hero-action-group mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-      <Button asChild size="lg" className="hero-primary-cta h-12 rounded-full px-5 text-base">
-        <Link
-          href="/tournament?new=1&mode=rotating"
-          data-testid="hero-top-create-session"
-          data-analytics-event="create_session_clicked"
-          data-analytics-location="hero_primary"
-          data-analytics-mode="rotating"
-        >
-          Create a session
-          <ArrowRight className="size-4" />
-        </Link>
-      </Button>
-      <Button
-        asChild
-        size="lg"
-        variant="outline"
-        className="hero-secondary-cta h-12 rounded-full bg-background/70 px-5 text-base"
-      >
-        <Link
-          href="/tournament?join=1"
-          data-testid="hero-top-join-code"
-          data-analytics-event="join_code_clicked"
-          data-analytics-location="hero_primary"
-        >
-          Join with code
-        </Link>
-      </Button>
-      <span className="hero-action-note inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Smartphone className="size-3.5 text-live" />
-        Works from a phone browser
-      </span>
-    </div>
+    <p className="hero-action-note mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+      <Smartphone className="size-3.5 text-live" />
+      Works from any phone browser, no install
+    </p>
   );
 }
 
@@ -745,7 +716,7 @@ export default function Home() {
                   Create a live pickleball session, share the QR, post the next
                   game, and collect scores from one mobile-friendly link.
                 </p>
-                <HeroActionGroup />
+                <HeroAssurance />
               </motion.div>
 
               <div className="mt-6 sm:mt-8">
