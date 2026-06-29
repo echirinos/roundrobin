@@ -698,30 +698,32 @@ export default function Home() {
 
       <main className="yc-landing">
         <section className="yc-hero overflow-hidden border-b border-border/80">
-          <div className="container mx-auto grid max-w-[88rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
-            <div className="hero-copy-stack">
-              <motion.div
-                initial={reduceMotion ? false : { y: 16 }}
-                animate={reduceMotion ? undefined : { y: 0 }}
-                transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-3xl"
-              >
-                <p className="hero-eyebrow">
-                  Open play, in one shared link
-                </p>
-                <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
-                  Run open play. Skip group texts.
-                </h1>
-                <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
-                  Create a live pickleball session, share the QR, post the next
-                  game, and collect scores from one mobile-friendly link.
-                </p>
-                <HeroAssurance />
-              </motion.div>
+          <div className="container mx-auto flex max-w-[88rem] flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
+            <motion.div
+              initial={reduceMotion ? false : { y: 16 }}
+              animate={reduceMotion ? undefined : { y: 0 }}
+              transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+              className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
+            >
+              <p className="hero-eyebrow">
+                Open play, in one shared link
+              </p>
+              <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
+                Run open play. Skip group texts.
+              </h1>
+              <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
+                Create a live pickleball session, share the QR, post the next
+                game, and collect scores from one mobile-friendly link.
+              </p>
+              <HeroAssurance />
+            </motion.div>
 
-              <div className="mt-6 sm:mt-8">
-                <SessionComposer />
-              </div>
+            <div className="order-2 relative mx-auto w-full max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
+              <CourtLanes />
+            </div>
+
+            <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
+              <SessionComposer />
 
               <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 {proofPoints.map((point) => (
@@ -731,10 +733,6 @@ export default function Home() {
                   </span>
                 ))}
               </div>
-            </div>
-
-            <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-              <CourtLanes />
             </div>
           </div>
         </section>
