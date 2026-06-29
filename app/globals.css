@@ -845,7 +845,7 @@
   .phone-next-head h3 {
     margin-top: 0.35rem;
     font-size: 2.3rem;
-    font-weight: 850;
+    font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 0.9;
   }
@@ -978,7 +978,7 @@
 
   .phone-feed-row p {
     font-size: 0.84rem;
-    font-weight: 650;
+    font-weight: 600;
   }
 
   .product-feed-panel {
@@ -990,10 +990,10 @@
     margin-top: 0.8rem;
     max-width: 34rem;
     color: var(--foreground);
-    font-size: clamp(1.8rem, 4vw, 3.55rem);
-    font-weight: 750;
+    font-size: clamp(1.5rem, 2.6vw, 2.15rem);
+    font-weight: 700;
     letter-spacing: -0.02em;
-    line-height: 0.98;
+    line-height: 1.05;
   }
 
   .surface-proof-grid {
