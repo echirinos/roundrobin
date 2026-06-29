@@ -419,7 +419,7 @@
 
   .site-nav-link {
     display: inline-flex;
-    min-height: 2rem;
+    min-height: 2.75rem;
     align-items: center;
     border-radius: 999px;
     padding-inline: 0.9rem;

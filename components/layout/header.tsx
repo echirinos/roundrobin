@@ -53,7 +53,7 @@ export function Header() {
             asChild
             size="sm"
             variant="outline"
-            className="site-header-secondary hidden h-10 rounded-full px-4 font-medium sm:inline-flex"
+            className="site-header-secondary hidden h-11 rounded-full px-4 font-medium sm:inline-flex"
           >
             <Link
               href="/tournament?join=1"
@@ -66,7 +66,7 @@ export function Header() {
           <Button
             asChild
             size="sm"
-            className="site-header-primary h-10 rounded-full px-4 font-semibold"
+            className="site-header-primary h-11 rounded-full px-4 font-semibold"
           >
             <Link
               href="/tournament?new=1&mode=rotating"
