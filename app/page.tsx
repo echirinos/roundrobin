@@ -132,8 +132,8 @@ function Reveal({
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { y: 18 }}
+      whileInView={reduceMotion ? undefined : { y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
@@ -148,8 +148,8 @@ function CourtLanes() {
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, x: 18 }}
-      animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+      initial={reduceMotion ? false : { x: 18 }}
+      animate={reduceMotion ? undefined : { x: 0 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
       className="court-lanes"
       aria-label="Animated pickleball court with a live score"
@@ -477,8 +477,8 @@ function SessionComposer() {
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { y: 16 }}
+      animate={reduceMotion ? undefined : { y: 0 }}
       transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
       className="session-composer relative mx-auto w-full max-w-3xl overflow-hidden"
     >
@@ -701,8 +701,8 @@ export default function Home() {
           <div className="container mx-auto grid max-w-[88rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
             <div className="hero-copy-stack">
               <motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                initial={reduceMotion ? false : { y: 16 }}
+                animate={reduceMotion ? undefined : { y: 0 }}
                 transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
                 className="max-w-3xl"
               >
