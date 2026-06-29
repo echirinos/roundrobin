@@ -846,7 +846,12 @@ export default function TournamentPage() {
                     className="h-11 text-center font-semibold uppercase tracking-[0.25em] sm:text-left"
                     aria-label="Join a live session by code"
                   />
-                  <Button type="submit" className="h-11 sm:w-36">
+                  <Button
+                    type="submit"
+                    className="h-11 sm:w-36"
+                    data-analytics-event="session_code_submit_clicked"
+                    data-analytics-location="tournament_join_form"
+                  >
                     <LogIn data-icon="inline-start" />
                     Join
                   </Button>

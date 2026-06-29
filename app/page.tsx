@@ -1,102 +1,122 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   CheckCircle2,
-  Clock3,
-  QrCode,
-  RadioTower,
+  ClipboardList,
+  MessageCircleOff,
+  RotateCcw,
   ScanLine,
-  Share2,
-  Shuffle,
   Smartphone,
-  Sparkles,
+  Share2,
   Trophy,
   UsersRound,
+  Zap,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { NumberTicker } from "@/components/ui/number-ticker";
-import { ShineBorder } from "@/components/ui/shine-border";
-import { TextureButton } from "@/components/ui/texture-button";
-import { Header } from "@/components/layout/header";
+
 import { Footer } from "@/components/layout/footer";
+import { Header } from "@/components/layout/header";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const heroStats = [
-  { label: "players", value: 9 },
-  { label: "courts", value: 2 },
-  { label: "sitting", value: 1 },
+const composerChips = ["QR ready", "9 checked in", "Next game posted"];
+
+const sessionRows = [
+  {
+    label: "Court 1",
+    primary: "Ana / Ben",
+    secondary: "Cara / Diego",
+    status: "Playing",
+    score: "8-6",
+  },
+  {
+    label: "Court 2",
+    primary: "Eli / Fran",
+    secondary: "Gia / Hugo",
+    status: "Next",
+    score: "0-0",
+  },
+  {
+    label: "Sitting",
+    primary: "Ivy",
+    secondary: "Back in round 3",
+    status: "Bye",
+    score: "-",
+  },
 ];
 
-const productSignals = [
-  {
-    icon: QrCode,
-    title: "QR join and share",
-    detail: "Publish a session code, show the QR sheet, and let players open the live view.",
-  },
-  {
-    icon: Smartphone,
-    title: "Courtside score entry",
-    detail: "Large tap targets, score pops, and round status that works from a phone browser.",
-  },
-  {
-    icon: RadioTower,
-    title: "Live standings",
-    detail: "The board updates for spectators and players without passing one phone around.",
-  },
-];
-
-const flowSteps = [
+const workflow = [
   {
     icon: UsersRound,
-    eyebrow: "setup",
-    title: "Tell it players and courts",
-    detail: "Start with what the organizer actually knows: how many people showed up and how many courts are open.",
-  },
-  {
-    icon: Shuffle,
-    eyebrow: "mode",
-    title: "Pick Popcorn or go competitive",
-    detail: "Popcorn is the social default. Gauntlet, King of the Court, brackets, and set teams stay close.",
+    title: "Check in the crew",
+    text: "Open one link, add the people already at the fence, and let late arrivals check themselves in.",
   },
   {
     icon: Share2,
-    eyebrow: "live",
-    title: "Share the session code",
-    detail: "Players can join from their browser, check in, and follow the round without installing anything.",
+    title: "Post the next game",
+    text: "Everyone sees the same court call, bye, and partner rotation without passing your phone around.",
   },
   {
     icon: Trophy,
-    eyebrow: "score",
-    title: "Advance when scores are in",
-    detail: "PlaySync handles byes, court use, standings, and the next round queue.",
+    title: "Let scores move it along",
+    text: "One score tap updates the board, refreshes standings, and posts the next match before people wander off.",
   },
 ];
 
-const exampleMatches = [
+const proofPoints = [
+  "No sign-up required to start",
+  "QR check-in for late arrivals",
+  "Scores update the next game",
+  "Rotating or set-team sessions",
+];
+
+const laneEvents = [
+  "QR shared",
+  "9 checked in",
+  "Score posted",
+  "Next game ready",
+];
+
+const productProof = [
   {
-    court: "Court 1",
-    left: "Ana / Ben",
-    right: "Cara / Diego",
-    score: "8-6",
-    status: "In progress",
+    label: "Setup",
+    title: "Start in 30 seconds",
+    text: "Choose courts, add players, and share one live link before warmups end.",
+    metric: "00:30",
   },
   {
-    court: "Court 2",
-    left: "Eli / Fran",
-    right: "Gia / Hugo",
-    score: "0-0",
-    status: "Next up",
+    label: "Join",
+    title: "Players scan and check in",
+    text: "Late arrivals join from the QR code without asking the organizer to stop playing.",
+    metric: "QR",
+  },
+  {
+    label: "Score",
+    title: "The next game posts itself",
+    text: "A score tap updates standings, clears the court, and tells the group who is up.",
+    metric: "9-6",
   },
 ];
 
-const standings = [
-  { name: "Ana", value: 3, meta: "3-0" },
-  { name: "Diego", value: 2, meta: "2-1" },
-  { name: "Fran", value: 2, meta: "2-1" },
+const surfaceProof = [
+  {
+    icon: ScanLine,
+    label: "QR check-in",
+    value: "Players join themselves",
+  },
+  {
+    icon: MessageCircleOff,
+    label: "Fewer texts",
+    value: "One feed for the group",
+  },
+  {
+    icon: Smartphone,
+    label: "Phone browser",
+    value: "Big taps, no install",
+  },
 ];
 
 function Reveal({
@@ -104,16 +124,18 @@ function Reveal({
   className,
   delay = 0,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   delay?: number;
 }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 22 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-96px" }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
     >
       {children}
@@ -121,319 +143,694 @@ function Reveal({
   );
 }
 
-function SessionBoard({ className }: { className?: string }) {
+function CourtLanes() {
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, rotateX: 8 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
-      className={cn("relative mx-auto w-full max-w-[35rem]", className)}
+      initial={reduceMotion ? false : { opacity: 0, x: 18 }}
+      animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
+      className="court-lanes"
+      aria-label="Animated pickleball court with a live score"
     >
-      <div className="absolute -inset-8 rounded-full bg-primary/20 blur-3xl" />
-      <div className="landing-board-shell relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/86 p-3 shadow-[0_32px_110px_-56px_rgb(14_38_19_/_0.72)] backdrop-blur-2xl">
-        <ShineBorder
-          borderWidth={1}
-          duration={16}
-          shineColor={["var(--primary)", "var(--live)", "var(--accent)"]}
+      <svg viewBox="0 0 560 520" fill="none" className="court-lanes-svg">
+        <g className="pickleball-court">
+          <rect
+            x="52"
+            y="88"
+            width="456"
+            height="344"
+            rx="18"
+            className="court-surface"
+          />
+          <rect
+            x="76"
+            y="116"
+            width="408"
+            height="288"
+            rx="10"
+            className="court-boundary"
+          />
+          <path d="M280 116V404" className="court-net" />
+          <path d="M216 116V404M344 116V404" className="court-kitchen" />
+          <path d="M76 260H216M344 260H484" className="court-service-line" />
+          <path d="M76 116H484M76 404H484M76 116V404M484 116V404" className="court-edge-line" />
+          <path d="M280 116V404" className="court-net-dashes" />
+        </g>
+
+        <g className="court-score-bug">
+          <rect
+            x="50"
+            y="34"
+            width="384"
+            height="118"
+            rx="18"
+            className="score-bug-shell"
+          />
+          <rect
+            x="62"
+            y="48"
+            width="70"
+            height="90"
+            rx="12"
+            className="score-bug-live-panel"
+          />
+          <text x="78" y="68" className="score-bug-kicker">
+            Live
+          </text>
+          <text x="78" y="98" className="score-bug-clock">
+            C2
+          </text>
+          <motion.text
+            x="78"
+            y="123"
+            className="score-bug-subclock"
+            animate={reduceMotion ? undefined : { opacity: [1, 1, 0, 0, 1] }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          >
+            Rally
+          </motion.text>
+          <motion.text
+            x="78"
+            y="123"
+            className="score-bug-subclock score-bug-subclock-final"
+            initial={reduceMotion ? { opacity: 0 } : undefined}
+            animate={reduceMotion ? undefined : { opacity: [0, 0, 1, 1, 0] }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          >
+            Score
+          </motion.text>
+
+          <rect
+            x="144"
+            y="49"
+            width="204"
+            height="40"
+            rx="9"
+            className="score-row score-row-leading"
+          />
+          <rect
+            x="144"
+            y="95"
+            width="204"
+            height="40"
+            rx="9"
+            className="score-row"
+          />
+          <rect
+            x="356"
+            y="49"
+            width="60"
+            height="40"
+            rx="9"
+            className="score-cell score-cell-leading"
+          />
+          <rect
+            x="356"
+            y="95"
+            width="60"
+            height="40"
+            rx="9"
+            className="score-cell"
+          />
+
+          <text x="158" y="75" className="score-team-label">
+            Ana / Ben
+          </text>
+          <text x="158" y="121" className="score-team-label score-team-muted">
+            Cara / Diego
+          </text>
+          <motion.text
+            x="386"
+            y="81"
+            className="score-number score-number-leading"
+            animate={
+              reduceMotion
+                ? undefined
+                : { scale: [1, 1, 0.92, 0.92, 1], opacity: [1, 1, 0, 0, 1] }
+            }
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          >
+            8
+          </motion.text>
+          <motion.text
+            x="386"
+            y="81"
+            className="score-number score-number-leading score-number-final"
+            initial={reduceMotion ? { opacity: 0 } : undefined}
+            animate={
+              reduceMotion
+                ? undefined
+                : { scale: [0.92, 0.92, 1.14, 1, 0.92], opacity: [0, 0, 1, 1, 0] }
+            }
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          >
+            9
+          </motion.text>
+          <text x="386" y="127" className="score-number">
+            6
+          </text>
+          <motion.rect
+            x="144"
+            y="143"
+            width="104"
+            height="3"
+            rx="1.5"
+            className="score-sync-bar"
+            animate={reduceMotion ? undefined : { opacity: [0.25, 0.9, 0.25], width: [104, 178, 104] }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          />
+          <motion.g
+            className="score-next-up"
+            initial={reduceMotion ? { opacity: 0 } : undefined}
+            animate={reduceMotion ? undefined : { opacity: [0, 0, 1, 1, 0] }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
+            }
+          >
+            <rect x="268" y="137" width="82" height="18" rx="9" />
+            <text x="282" y="150">Next up</text>
+          </motion.g>
+        </g>
+
+        <motion.circle
+          cx="134"
+          cy="312"
+          r="10"
+          className="court-impact-ring"
+          animate={reduceMotion ? undefined : { r: [8, 34, 8], opacity: [0, 0.42, 0] }}
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 1.9, ease: "easeOut", repeat: Infinity, repeatDelay: 1.9 }
+          }
         />
-        <div className="relative overflow-hidden rounded-[1.45rem] border border-border/70 bg-background/90">
-          <div className="landing-court-surface absolute inset-0 opacity-80" />
-          <div className="relative flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 sm:px-5">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-live shadow-[0_0_18px_var(--live)]" />
-                <p className="font-data text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  Live session
-                </p>
-              </div>
-              <p className="mt-1 truncate font-display text-xl font-semibold tracking-tight">
-                Monday Popcorn
-              </p>
+        <motion.circle
+          cx="462"
+          cy="206"
+          r="10"
+          className="court-impact-ring court-impact-ring-alt"
+          animate={reduceMotion ? undefined : { r: [8, 34, 8], opacity: [0, 0.36, 0] }}
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 1.9, ease: "easeOut", repeat: Infinity, repeatDelay: 1.9, delay: 0.95 }
+          }
+        />
+
+        <motion.path
+          d="M104 312C158 196 230 180 280 255C331 331 408 324 462 206"
+          className="court-rally-arc"
+          pathLength={1}
+          initial={reduceMotion ? false : { pathLength: 0.35, opacity: 0.45 }}
+          animate={
+            reduceMotion
+              ? undefined
+              : { pathLength: [0.35, 1, 0.35], opacity: [0.36, 0.78, 0.36] }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
+          }
+        />
+        <motion.path
+          d="M98 320C159 204 230 182 280 256C329 330 408 322 466 198"
+          className="court-rally-trail"
+          pathLength={1}
+          initial={reduceMotion ? false : { pathLength: 0.2, opacity: 0 }}
+          animate={
+            reduceMotion
+              ? undefined
+              : { pathLength: [0.18, 0.72, 0.18], opacity: [0, 0.32, 0] }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
+          }
+        />
+        <motion.circle
+          r="14"
+          className="court-ball-glow"
+          initial={{ cx: 104, cy: 312 }}
+          animate={
+            reduceMotion
+              ? undefined
+              : {
+                  cx: [104, 166, 230, 280, 342, 408, 462, 408, 342, 280, 230, 166, 104],
+                  cy: [312, 218, 198, 255, 326, 314, 206, 314, 326, 255, 198, 218, 312],
+                  opacity: [0.12, 0.28, 0.12],
+                }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
+          }
+        />
+        <motion.circle
+          r="9"
+          className="court-rally-ball"
+          initial={{ cx: 104, cy: 312 }}
+          animate={
+            reduceMotion
+              ? undefined
+              : {
+                  cx: [104, 166, 230, 280, 342, 408, 462, 408, 342, 280, 230, 166, 104],
+                  cy: [312, 218, 198, 255, 326, 314, 206, 314, 326, 255, 198, 218, 312],
+                }
+          }
+          transition={
+            reduceMotion
+              ? undefined
+              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
+          }
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+function MotionRail() {
+  return (
+    <div className="motion-rail" aria-label="Live session progress">
+      {laneEvents.map((event, index) => (
+        <div key={event} className="motion-rail-step">
+          <span className="motion-rail-index">0{index + 1}</span>
+          <span>{event}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProductProofGrid() {
+  return (
+    <div className="product-proof-grid">
+      {productProof.map((item, index) => (
+        <Reveal key={item.title} delay={index * 0.05}>
+          <div className="product-proof-card">
+            <div className="product-proof-topline">
+              <span>{item.label}</span>
+              <span className="product-proof-metric">{item.metric}</span>
             </div>
-            <div className="rounded-xl border border-primary/45 bg-primary/12 px-3 py-2 text-right">
-              <p className="font-data text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
-                Code
-              </p>
-              <p className="font-display text-lg font-semibold">P7K4Q9</p>
-            </div>
-          </div>
-
-          <div className="relative grid gap-3 p-4 sm:grid-cols-[1.15fr_0.85fr] sm:p-5">
-            <div className="flex flex-col gap-3">
-              <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-display text-lg font-semibold">
-                      Popcorn round 1
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      8 players play. 1 sits.
-                    </p>
-                  </div>
-                  <Badge variant="outline">2 courts</Badge>
-                </div>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-background/80">
-                  <motion.div
-                    initial={{ width: "18%" }}
-                    animate={{ width: "72%" }}
-                    transition={{
-                      duration: 1.8,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                      ease: "easeInOut",
-                    }}
-                    className="h-full rounded-full bg-primary"
-                  />
-                </div>
-              </div>
-
-              {exampleMatches.map((match, index) => (
-                <motion.div
-                  key={match.court}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.45,
-                    ease: [0.22, 1, 0.36, 1],
-                    delay: 0.25 + index * 0.09,
-                  }}
-                  className="rounded-2xl border border-border/70 bg-card/82 p-3"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <Badge variant={index === 0 ? "default" : "outline"}>
-                      {match.court}
-                    </Badge>
-                    <span className="font-data text-xs text-muted-foreground">
-                      {match.status}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    <p className="truncate text-sm font-semibold">{match.left}</p>
-                    <p className="font-data rounded-lg bg-secondary px-2 py-1 text-sm font-semibold">
-                      {match.score}
-                    </p>
-                    <p className="truncate text-right text-sm font-semibold">
-                      {match.right}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="grid gap-3">
-              <div className="rounded-2xl border border-border/70 bg-card/82 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-display text-base font-semibold">
-                    Standings
-                  </p>
-                  <Badge variant="secondary">Live</Badge>
-                </div>
-                <div className="mt-4 flex flex-col gap-2">
-                  {standings.map((player, index) => (
-                    <div
-                      key={player.name}
-                      className="flex items-center justify-between gap-3 rounded-xl bg-background/68 px-3 py-2"
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="font-data text-xs text-muted-foreground">
-                          {index + 1}
-                        </span>
-                        <span className="truncate text-sm font-semibold">
-                          {player.name}
-                        </span>
-                      </div>
-                      <span className="font-data text-xs text-muted-foreground">
-                        {player.meta}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border/70 bg-foreground p-4 text-background">
-                <div className="flex items-center gap-2">
-                  <ScanLine className="size-4" />
-                  <p className="font-data text-xs uppercase tracking-[0.16em] text-background/70">
-                    QR ready
-                  </p>
-                </div>
-                <p className="mt-3 font-display text-2xl font-semibold">
-                  Share once. Everyone follows.
-                </p>
-              </div>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+            <div className="product-proof-visual" aria-hidden="true">
+              <span />
+              <span />
+              <span />
             </div>
           </div>
+        </Reveal>
+      ))}
+    </div>
+  );
+}
+
+function SessionComposer() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+      className="session-composer relative mx-auto w-full max-w-3xl overflow-hidden"
+    >
+      <div className="composer-sync-line" aria-hidden="true" />
+      <div className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
+        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
+          <ClipboardList className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-lg leading-7 text-foreground sm:text-xl">
+              Create tonight&apos;s live session in 30 seconds.
+            </p>
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
+              <Zap className="size-3 text-live" />
+              Courtside live
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {composerChips.map((chip) => (
+              <span key={chip} className="composer-chip">
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-3 sm:grid-cols-[1fr_auto] sm:p-4">
+        <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border bg-background">
+          {[
+            ["Players", "9"],
+            ["Courts", "2"],
+            ["Mode", "Open play"],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="border-r border-border px-3 py-3 last:border-r-0"
+            >
+              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                {label}
+              </p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2 sm:min-w-44">
+          <Button asChild size="lg" className="h-12 rounded-md text-base">
+            <Link
+              href="/tournament?new=1&mode=rotating"
+              data-testid="hero-create-session"
+              data-analytics-event="create_session_clicked"
+              data-analytics-location="hero_composer"
+              data-analytics-mode="rotating"
+            >
+              Create live session
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-12 rounded-md bg-background text-base"
+          >
+            <Link
+              href="/tournament?join=1"
+              data-testid="hero-join-code"
+              data-analytics-event="join_code_clicked"
+              data-analytics-location="hero_composer"
+            >
+              Join with code
+            </Link>
+          </Button>
         </div>
       </div>
     </motion.div>
   );
 }
 
-export default function Home() {
+function HeroActionGroup() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="hero-action-group mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <Button asChild size="lg" className="hero-primary-cta h-12 rounded-full px-5 text-base">
+        <Link
+          href="/tournament?new=1&mode=rotating"
+          data-testid="hero-top-create-session"
+          data-analytics-event="create_session_clicked"
+          data-analytics-location="hero_primary"
+          data-analytics-mode="rotating"
+        >
+          Create a session
+          <ArrowRight className="size-4" />
+        </Link>
+      </Button>
+      <Button
+        asChild
+        size="lg"
+        variant="outline"
+        className="hero-secondary-cta h-12 rounded-full bg-background/70 px-5 text-base"
+      >
+        <Link
+          href="/tournament?join=1"
+          data-testid="hero-top-join-code"
+          data-analytics-event="join_code_clicked"
+          data-analytics-location="hero_primary"
+        >
+          Join with code
+        </Link>
+      </Button>
+      <span className="hero-action-note inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Smartphone className="size-3.5 text-live" />
+        Works from a phone browser
+      </span>
+    </div>
+  );
+}
+
+function LiveBoardPreview({ className }: { className?: string }) {
+  return (
+    <div className={cn("product-showcase", className)}>
+      <div className="phone-device" aria-label="Mobile live session preview">
+        <div className="phone-screen">
+          <div className="phone-status-row">
+            <span>7:12</span>
+            <span className="phone-status-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+
+          <div className="phone-app-top">
+            <div>
+              <p>Riverside Open Play</p>
+              <span>9 checked in · 2 courts</span>
+            </div>
+            <span className="phone-live-pill">Live</span>
+          </div>
+
+          <div className="phone-next-card">
+            <div className="phone-next-head">
+              <div>
+                <p>Now scoring</p>
+                <h3>Court 2</h3>
+              </div>
+              <div className="phone-score-stack" aria-label="Score 9 to 6">
+                <span>9</span>
+                <span>6</span>
+              </div>
+            </div>
+            <div className="phone-matchup">
+              <span>Ana / Ben</span>
+              <span>Cara / Diego</span>
+            </div>
+            <div className="phone-score-button">
+              Post score and call next
+              <ArrowRight className="size-3.5" />
+            </div>
+          </div>
+
+          <div className="phone-qr-card">
+            <div className="phone-qr" aria-hidden="true">
+              {Array.from({ length: 16 }).map((_, index) => (
+                <span key={index} />
+              ))}
+            </div>
+            <div>
+              <p>Join code</p>
+              <strong>P7K4Q9</strong>
+              <span>Scan at the fence</span>
+            </div>
+          </div>
+
+          <div className="phone-feed-list">
+            {["Gia checked in", "Court 1 needs a score", "Eli / Fran up next"].map(
+              (item) => (
+                <div key={item} className="phone-feed-row">
+                  <span />
+                  <p>{item}</p>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="product-feed-panel">
+        <div className="product-feed-header">
+          <p className="section-kicker">Live product proof</p>
+          <h3>One link becomes the scoreboard, lineup, and group feed.</h3>
+        </div>
+
+        <div className="surface-proof-grid">
+          {surfaceProof.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div key={item.label} className="surface-proof-card">
+                <Icon className="size-4" />
+                <div>
+                  <p>{item.label}</p>
+                  <span>{item.value}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="live-board compact-live-board">
+          <div className="divide-y divide-border">
+            {sessionRows.map((row) => (
+              <div
+                key={row.label}
+                className="live-board-row grid grid-cols-[0.72fr_1fr_auto] gap-3 px-4 py-3 sm:px-5"
+              >
+                <div>
+                  <p className="text-sm font-medium text-foreground">{row.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{row.status}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-foreground">{row.primary}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{row.secondary}</p>
+                </div>
+                <p className="h-fit rounded-md border border-border px-2.5 py-1 text-sm font-semibold text-foreground">
+                  {row.score}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
       <Header />
 
-      <main>
-        <section className="landing-hero relative isolate overflow-hidden border-b border-border/60">
-          <div className="landing-court-surface absolute inset-0" />
-          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-background to-transparent" />
-          <div className="container relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[0.92fr_1.08fr] lg:py-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-2xl"
-            >
-              <Badge variant="outline" className="mb-5">
-                Browser-native pickleball control room
-              </Badge>
-              <h1 className="font-display text-5xl font-bold leading-[0.92] tracking-tight sm:text-7xl lg:text-[5.8rem]">
-                PlaySync keeps every court moving.
-              </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-                Create a live session, share the QR, enter scores courtside,
-                and generate the next round before the group cools down.
-              </p>
+      <main className="yc-landing">
+        <section className="yc-hero overflow-hidden border-b border-border/80">
+          <div className="container mx-auto grid max-w-[88rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
+            <div className="hero-copy-stack">
+              <motion.div
+                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+                className="max-w-3xl"
+              >
+                <p className="hero-eyebrow">
+                  Open play, in one shared link
+                </p>
+                <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
+                  Run open play. Skip group texts.
+                </h1>
+                <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
+                  Create a live pickleball session, share the QR, post the next
+                  game, and collect scores from one mobile-friendly link.
+                </p>
+                <HeroActionGroup />
+              </motion.div>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <TextureButton
-                  asChild
-                  size="lg"
-                  className="h-12 sm:w-auto"
-                  data-testid="hero-create-session"
-                >
-                  <Link href="/tournament?new=1&mode=rotating">
-                    Create a Session
-                    <ArrowRight data-icon="inline-end" />
-                  </Link>
-                </TextureButton>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="h-12 text-base"
-                >
-                  <Link href="/tournament?join=1" data-testid="hero-join-code">
-                    Join with Code
-                  </Link>
-                </Button>
+              <div className="mt-6 sm:mt-8">
+                <SessionComposer />
               </div>
 
-              <div className="mt-8 grid max-w-xl grid-cols-3 gap-2">
-                {heroStats.map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.45,
-                      ease: [0.22, 1, 0.36, 1],
-                      delay: 0.2 + index * 0.06,
-                    }}
-                    className="rounded-2xl border border-border/70 bg-card/70 p-3 backdrop-blur"
-                  >
-                    <p className="font-display text-3xl font-semibold">
-                      <NumberTicker value={stat.value} startValue={0} />
-                    </p>
-                    <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                      {stat.label}
-                    </p>
-                  </motion.div>
+              <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                {proofPoints.map((point) => (
+                  <span key={point} className="inline-flex items-center gap-2">
+                    <CheckCircle2 className="size-3.5 text-live" />
+                    {point}
+                  </span>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
-            <SessionBoard />
-          </div>
-        </section>
-
-        <section
-          id="features"
-          className="relative overflow-hidden border-b border-border/60 py-16 sm:py-24"
-        >
-          <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="grid gap-10 lg:grid-cols-[0.86fr_1.14fr] lg:items-start">
-              <Reveal className="lg:sticky lg:top-24">
-                <Badge variant="outline" className="mb-4">
-                  Why it feels faster
-                </Badge>
-                <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                  Built for the moment between games.
-                </h2>
-                <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                  PlaySync replaces the whiteboard huddle with a live, shared
-                  session that still feels simple on a phone.
-                </p>
-              </Reveal>
-
-              <div className="grid gap-4">
-                {productSignals.map((item, index) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <Reveal key={item.title} delay={index * 0.06}>
-                      <motion.div
-                        whileHover={{ y: -3 }}
-                        transition={{ duration: 0.2 }}
-                        className="group relative overflow-hidden rounded-[1.6rem] border border-border/70 bg-card/74 p-5 shadow-sm backdrop-blur"
-                      >
-                        <div className="absolute inset-y-0 left-0 w-1 bg-primary opacity-0 transition-opacity group-hover:opacity-100" />
-                        <div className="flex gap-4">
-                          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border/70 bg-background/72 text-live">
-                            <Icon className="size-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-display text-xl font-semibold">
-                              {item.title}
-                            </h3>
-                            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                              {item.detail}
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
-                    </Reveal>
-                  );
-                })}
-              </div>
+            <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
+              <CourtLanes />
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="py-16 sm:py-24">
-          <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal className="mx-auto max-w-3xl text-center">
-              <Badge variant="outline" className="mb-4">
-                Courtside flow
-              </Badge>
-              <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                Four decisions. Then everyone plays.
+        <section className="section-soft border-b border-border">
+          <div className="container mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+            <Reveal>
+              <MotionRail />
+            </Reveal>
+            <div className="mt-8 grid gap-8 lg:grid-cols-[0.34fr_0.66fr] lg:items-start">
+              <Reveal>
+                <p className="section-kicker">Why it feels ready</p>
+                <h2 className="mt-3 max-w-md font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-5xl">
+                  It behaves like the session is already live.
+                </h2>
+                <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground">
+                  The page now proves the core loop: create the session, let
+                  players join, enter a score, and move the courts forward.
+                </p>
+              </Reveal>
+              <ProductProofGrid />
+            </div>
+          </div>
+        </section>
+
+        <section className="section-clean border-b border-border">
+          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
+            <Reveal>
+              <p className="section-kicker">The shared feed</p>
+              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
+                The product feels real before anyone downloads anything.
+              </h2>
+              <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
+                Players see a live mobile feed, organizers keep court calls in
+                one place, and every score moves the night forward.
+              </p>
+            </Reveal>
+
+            <Reveal delay={0.06}>
+              <LiveBoardPreview />
+            </Reveal>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="section-clean border-b border-border">
+          <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+            <Reveal className="max-w-3xl">
+              <p className="section-kicker">Courtside flow</p>
+              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
+                Built for the first five minutes at the fence.
               </h2>
             </Reveal>
 
-            <div className="relative mt-12 grid gap-4 lg:grid-cols-4">
-              <div className="absolute left-0 right-0 top-8 hidden h-px bg-border lg:block" />
-              {flowSteps.map((step, index) => {
-                const Icon = step.icon;
+            <div className="workflow-grid mt-10 grid gap-0 divide-y divide-border border-y border-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+              {workflow.map((item, index) => {
+                const Icon = item.icon;
 
                 return (
-                  <Reveal key={step.title} delay={index * 0.06}>
-                    <div className="relative flex h-full flex-col gap-4 rounded-[1.6rem] border border-border/70 bg-background p-5 shadow-sm">
-                      <div className="flex size-16 items-center justify-center rounded-2xl border border-primary/35 bg-primary text-primary-foreground shadow-[0_18px_38px_-28px_var(--primary)]">
-                        <Icon className="size-6" />
-                      </div>
-                      <div>
-                        <p className="font-data text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                          {step.eyebrow}
-                        </p>
-                        <h3 className="mt-2 font-display text-xl font-semibold">
-                          {step.title}
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                          {step.detail}
-                        </p>
-                      </div>
+                  <Reveal key={item.title} delay={index * 0.05}>
+                    <div className="workflow-card h-full px-0 py-7 lg:px-6">
+                      <Icon className="size-5 text-live" />
+                      <h3 className="mt-6 text-xl font-semibold tracking-normal">
+                        {item.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                        {item.text}
+                      </p>
                     </div>
                   </Reveal>
                 );
@@ -442,143 +839,88 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="overflow-hidden border-y border-border/60 bg-foreground py-16 text-background sm:py-24">
-          <div className="container mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-center">
+        <section id="features" className="section-tint border-b border-border">
+          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.58fr_0.42fr] lg:items-center">
             <Reveal>
-              <p className="font-data text-sm uppercase tracking-[0.18em] text-background/60">
-                Example session
-              </p>
-              <h2 className="mt-3 font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                9 players, 2 courts, zero guessing.
-              </h2>
-              <p className="mt-5 max-w-xl text-base leading-7 text-background/72">
-                The app says who plays, who sits, what court is live, and when
-                the standings changed. It is product proof, not marketing filler.
-              </p>
-            </Reveal>
-
-            <Reveal delay={0.08}>
-              <div className="rounded-[2rem] border border-background/15 bg-background/8 p-3 backdrop-blur">
-                <div className="rounded-[1.45rem] bg-background p-4 text-foreground">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-display text-xl font-semibold">
-                        Session snapshot
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Popcorn / rotating partners
-                      </p>
-                    </div>
-                    <Badge>Live</Badge>
+              <div className="editorial-panel">
+                <div className="flex items-center justify-between gap-4 border-b border-border p-4 sm:p-5">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Setup</p>
+                    <p className="mt-1 text-xl font-semibold tracking-normal">
+                      Tonight open play
+                    </p>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      { label: "checked in", value: 9 },
-                      { label: "games done", value: 6 },
-                      { label: "round", value: 2 },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-2xl border border-border/70 bg-card/80 p-4"
-                      >
-                        <p className="font-display text-3xl font-semibold">
-                          <NumberTicker value={item.value} startValue={0} />
-                        </p>
-                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                          {item.label}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-2xl border border-border/70 bg-primary/10 p-4">
-                    <div className="flex items-center gap-3">
-                      <Clock3 className="size-5 text-primary" />
-                      <p className="text-sm font-medium">
-                        Round 3 is ready after Court 1 submits score.
+                  <RotateCcw className="size-5 text-muted-foreground" />
+                </div>
+                <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                  {[
+                    ["People", "9"],
+                    ["Courts", "2"],
+                    ["Mode", "Rotate"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="p-4 sm:p-5">
+                      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
+                        {label}
+                      </p>
+                      <p className="mt-3 text-3xl font-semibold tracking-normal">
+                        {value}
                       </p>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
+            </Reveal>
+
+            <Reveal delay={0.06}>
+              <p className="section-kicker">Why it feels fast</p>
+              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
+                The organizer gets to play instead of becoming the scoreboard.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-muted-foreground">
+                Players check the feed themselves. The organizer only answers
+                the next real question: score in, next game, or who sits.
+              </p>
             </Reveal>
           </div>
         </section>
 
-        <section className="relative overflow-hidden py-16 sm:py-24">
-          <div className="landing-court-surface absolute inset-0" />
-          <div className="container relative mx-auto max-w-6xl px-4 sm:px-6">
-            <Reveal>
-              <div className="overflow-hidden rounded-[2rem] border border-border/70 bg-card/84 shadow-sm backdrop-blur">
-                <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-                  <div className="flex flex-col justify-between gap-10 p-6 sm:p-10">
-                    <div>
-                      <Badge variant="outline" className="mb-4">
-                        Ready when the group is
-                      </Badge>
-                      <h2 className="font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                        Create the session before the next paddle tap.
-                      </h2>
-                      <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                        No account wall, no app download, no spreadsheet. Just
-                        enough structure to keep pickup play moving.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <TextureButton
-                        asChild
-                        size="lg"
-                        className="h-12 sm:w-auto"
-                        data-testid="final-create-session"
-                      >
-                        <Link href="/tournament?new=1&mode=rotating">
-                          Create a Session
-                          <ArrowRight data-icon="inline-end" />
-                        </Link>
-                      </TextureButton>
-                      <Button
-                        asChild
-                        size="lg"
-                        variant="outline"
-                        className="h-12 text-base"
-                      >
-                        <Link href="/tournament?join=1" data-testid="final-join-code">
-                          Join with Code
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex min-h-80 items-center justify-center border-t border-border/70 bg-foreground p-6 text-background lg:border-l lg:border-t-0">
-                    <div className="w-full max-w-sm">
-                      <div className="mb-6 flex items-center justify-between">
-                        <div>
-                          <p className="font-data text-xs uppercase tracking-[0.18em] text-background/60">
-                            Launch check
-                          </p>
-                          <p className="mt-1 font-display text-2xl font-semibold">
-                            Court-ready on mobile
-                          </p>
-                        </div>
-                        <Sparkles className="size-6 text-primary" />
-                      </div>
-                      <div className="grid gap-3">
-                        {[
-                          "Create session",
-                          "Share QR or code",
-                          "Track scores live",
-                          "Advance the round",
-                        ].map((item) => (
-                          <div
-                            key={item}
-                            className="flex items-center gap-3 rounded-2xl border border-background/14 bg-background/8 p-3"
-                          >
-                            <CheckCircle2 className="size-5 text-primary" />
-                            <span className="font-medium">{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <section className="section-cta border-b border-border">
+          <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+            <Reveal className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <p className="section-kicker">Ready courtside</p>
+                <h2 className="mt-3 max-w-3xl font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
+                  Start a session before warmups are over.
+                </h2>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="h-12 rounded-md text-base">
+                  <Link
+                    href="/tournament?new=1&mode=rotating"
+                    data-testid="final-create-session"
+                    data-analytics-event="create_session_clicked"
+                    data-analytics-location="final_cta"
+                    data-analytics-mode="rotating"
+                  >
+                    Start session
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-md bg-background text-base"
+                >
+                  <Link
+                    href="/tournament?join=1"
+                    data-testid="final-join-code"
+                    data-analytics-event="join_code_clicked"
+                    data-analytics-location="final_cta"
+                  >
+                    Join with code
+                  </Link>
+                </Button>
               </div>
             </Reveal>
           </div>

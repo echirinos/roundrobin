@@ -22,17 +22,34 @@ export function Footer() {
             <h4 className="text-sm font-semibold">Start</h4>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/tournament?new=1&mode=rotating" className="transition-colors hover:text-foreground">
+                <Link
+                  href="/tournament?new=1&mode=rotating"
+                  className="transition-colors hover:text-foreground"
+                  data-analytics-event="create_session_clicked"
+                  data-analytics-location="footer"
+                  data-analytics-mode="rotating"
+                >
                   Round robin
                 </Link>
               </li>
               <li>
-                <Link href="/tournament?new=1&mode=fixed" className="transition-colors hover:text-foreground">
+                <Link
+                  href="/tournament?new=1&mode=fixed"
+                  className="transition-colors hover:text-foreground"
+                  data-analytics-event="create_session_clicked"
+                  data-analytics-location="footer"
+                  data-analytics-mode="fixed"
+                >
                   Set teams
                 </Link>
               </li>
               <li>
-                <Link href="/tournament?join=1" className="transition-colors hover:text-foreground">
+                <Link
+                  href="/tournament?join=1"
+                  className="transition-colors hover:text-foreground"
+                  data-analytics-event="join_code_clicked"
+                  data-analytics-location="footer"
+                >
                   Join code
                 </Link>
               </li>
@@ -43,12 +60,24 @@ export function Footer() {
             <h4 className="text-sm font-semibold">On this page</h4>
             <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
               <li>
-                <Link href="#features" className="transition-colors hover:text-foreground">
+                <Link
+                  href="#features"
+                  className="transition-colors hover:text-foreground"
+                  data-analytics-event="navigation_clicked"
+                  data-analytics-location="footer"
+                  data-analytics-target="Features"
+                >
                   Features
                 </Link>
               </li>
               <li>
-                <Link href="#how-it-works" className="transition-colors hover:text-foreground">
+                <Link
+                  href="#how-it-works"
+                  className="transition-colors hover:text-foreground"
+                  data-analytics-event="navigation_clicked"
+                  data-analytics-location="footer"
+                  data-analytics-target="Courtside flow"
+                >
                   Courtside flow
                 </Link>
               </li>

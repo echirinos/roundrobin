@@ -1325,6 +1325,10 @@ export function EnhancedPlayerSetup({
               onClick={onStartTournament}
               disabled={!canStart}
               className="h-13 w-full text-base"
+              data-analytics-event="first_round_generate_clicked"
+              data-analytics-location="setup_sticky_cta"
+              data-analytics-format={settings.format}
+              data-analytics-mode={sessionMode}
             >
               {canStart ? (
                 <Play data-icon="inline-start" />

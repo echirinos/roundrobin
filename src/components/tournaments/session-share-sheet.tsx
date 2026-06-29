@@ -165,6 +165,9 @@ export function SessionShareSheet({
           variant={code ? "outline" : "default"}
           size="sm"
           className="shrink-0"
+          data-analytics-event="live_session_sheet_opened"
+          data-analytics-location="tournament_header"
+          data-analytics-state={code ? "published" : "local"}
         >
           <Share2 data-icon="inline-start" />
           {isReadOnly ? "Session" : code ? "Share" : "Go live"}
@@ -244,6 +247,8 @@ export function SessionShareSheet({
                     variant="outline"
                     onClick={() => copyValue("code", code ?? "")}
                     disabled={!code}
+                    data-analytics-event="share_code_copied"
+                    data-analytics-location="live_session_sheet"
                   >
                     {copied === "code" ? (
                       <Check data-icon="inline-start" />
@@ -273,6 +278,8 @@ export function SessionShareSheet({
                     variant="outline"
                     onClick={() => copyValue("link", shareUrl)}
                     disabled={!shareUrl}
+                    data-analytics-event="share_link_copied"
+                    data-analytics-location="live_session_sheet"
                   >
                     {copied === "link" ? (
                       <Check data-icon="inline-start" />
@@ -282,7 +289,12 @@ export function SessionShareSheet({
                     Copy spectator link
                   </Button>
                   {canUseNativeShare && (
-                    <Button variant="outline" onClick={handleNativeShare}>
+                    <Button
+                      variant="outline"
+                      onClick={handleNativeShare}
+                      data-analytics-event="native_share_clicked"
+                      data-analytics-location="live_session_sheet"
+                    >
                       <ExternalLink data-icon="inline-start" />
                       Share with phone
                     </Button>
@@ -306,6 +318,10 @@ export function SessionShareSheet({
                 type="button"
                 onClick={onPublish}
                 disabled={isBusy}
+                data-analytics-event={
+                  code ? "live_session_sync_clicked" : "live_session_publish_clicked"
+                }
+                data-analytics-location="live_session_sheet"
                 borderRadius="0.5rem"
                 background="linear-gradient(135deg, var(--primary), var(--accent))"
                 shimmerColor="var(--live)"

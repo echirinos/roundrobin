@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PlaySync
 
-## Getting Started
+Phone-first pickleball open-play sessions with live court assignments, QR
+check-in, scores, and shareable session links.
 
-First, run the development server:
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Analytics
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app includes two analytics layers:
 
-## Learn More
+- Vercel Web Analytics for visits, pages, referrers, countries, devices, and
+  custom CTA events.
+- Vercel Speed Insights for real-user Core Web Vitals.
+- Optional PostHog for anonymous product funnels, such as create-session clicks,
+  join-code intent, live-session publish clicks, share actions, and first-round
+  generation.
 
-To learn more about Next.js, take a look at the following resources:
+Set these in Vercel Project Settings -> Environment Variables:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_SITE_URL=https://playsync.app
+NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=1
+NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=phc_your_project_token
+NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Vercel Analytics and Speed Insights are enabled automatically on Vercel through
+the `VERCEL=1` environment. `NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=1` is only
+needed if you want to force those scripts in another hosted environment.
 
-## Deploy on Vercel
+`NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` is optional. If it is missing, PostHog does
+not initialize and the app still runs normally with Vercel Analytics. The app
+also accepts `NEXT_PUBLIC_POSTHOG_KEY` as an alias.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+No player names, session codes, or scores are sent through the explicit client
+analytics events. Server logs include aggregate live-session counts and format
+metadata for operational visibility.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Production Check
+
+```bash
+npm run lint
+npm run build
+```
