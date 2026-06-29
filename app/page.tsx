@@ -11,9 +11,6 @@ import {
   RotateCcw,
   ScanLine,
   Smartphone,
-  Share2,
-  Trophy,
-  UsersRound,
   Zap,
 } from "lucide-react";
 
@@ -45,24 +42,6 @@ const sessionRows = [
     secondary: "Back in round 3",
     status: "Bye",
     score: "-",
-  },
-];
-
-const workflow = [
-  {
-    icon: UsersRound,
-    title: "Check in the crew",
-    text: "Open one link, add the people already at the fence, and let late arrivals check themselves in.",
-  },
-  {
-    icon: Share2,
-    title: "Post the next game",
-    text: "Everyone sees the same court call, bye, and partner rotation without passing your phone around.",
-  },
-  {
-    icon: Trophy,
-    title: "Let scores move it along",
-    text: "One score tap updates the board, refreshes standings, and posts the next match before people wander off.",
   },
 ];
 
@@ -737,20 +716,20 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section-soft border-b border-border">
+        <section id="how-it-works" className="section-soft border-b border-border">
           <div className="container mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
             <Reveal>
               <MotionRail />
             </Reveal>
             <div className="mt-8 grid gap-8 lg:grid-cols-[0.34fr_0.66fr] lg:items-start">
               <Reveal>
-                <p className="section-kicker">Why it feels ready</p>
+                <p className="section-kicker">Courtside flow</p>
                 <h2 className="mt-3 max-w-md font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-5xl">
-                  It behaves like the session is already live.
+                  Built for the first five minutes at the fence.
                 </h2>
                 <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground">
-                  The page now proves the core loop: create the session, let
-                  players join, enter a score, and move the courts forward.
+                  Create the session, let players check themselves in, tap a
+                  score, and the next game posts on its own.
                 </p>
               </Reveal>
               <ProductProofGrid />
@@ -763,7 +742,7 @@ export default function Home() {
             <Reveal>
               <p className="section-kicker">The shared feed</p>
               <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
-                The product feels real before anyone downloads anything.
+                No app to download. Everyone opens the same link.
               </h2>
               <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
                 Players see a live mobile feed, organizers keep court calls in
@@ -774,37 +753,6 @@ export default function Home() {
             <Reveal delay={0.06}>
               <LiveBoardPreview />
             </Reveal>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="section-clean border-b border-border">
-          <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-            <Reveal className="max-w-3xl">
-              <p className="section-kicker">Courtside flow</p>
-              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
-                Built for the first five minutes at the fence.
-              </h2>
-            </Reveal>
-
-            <div className="workflow-grid mt-10 grid gap-0 divide-y divide-border border-y border-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
-              {workflow.map((item, index) => {
-                const Icon = item.icon;
-
-                return (
-                  <Reveal key={item.title} delay={index * 0.05}>
-                    <div className="workflow-card h-full px-0 py-7 lg:px-6">
-                      <Icon className="size-5 text-live" />
-                      <h3 className="mt-6 text-xl font-semibold tracking-normal">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                        {item.text}
-                      </p>
-                    </div>
-                  </Reveal>
-                );
-              })}
-            </div>
           </div>
         </section>
 
@@ -841,7 +789,7 @@ export default function Home() {
             </Reveal>
 
             <Reveal delay={0.06}>
-              <p className="section-kicker">Why it feels fast</p>
+              <p className="section-kicker">Less running the show</p>
               <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
                 The organizer gets to play instead of becoming the scoreboard.
               </h2>
