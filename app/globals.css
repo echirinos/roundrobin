@@ -1494,7 +1494,7 @@
     }
   }
 
-  @media (min-width: 960px) {
+  @media (min-width: 1024px) {
     .product-showcase {
       grid-template-columns: minmax(17rem, 0.58fr) minmax(0, 1fr);
       align-items: center;
