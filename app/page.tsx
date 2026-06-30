@@ -19,6 +19,30 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.app";
+
+const softwareAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "PlaySync",
+  applicationCategory: "SportsApplication",
+  operatingSystem: "Web",
+  url: siteUrl,
+  description:
+    "Run pickleball open play and round robins from one shared link. Players scan a QR to check in, scores post the next game, and partner rotations update on their own. No app install.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [
+    "Live open play sessions",
+    "QR code check-in",
+    "Round robin and rotating partners",
+    "Automatic next game and standings",
+  ],
+};
+
 const composerChips = ["QR ready", "9 checked in", "Next game posted"];
 
 const sessionRows = [
@@ -673,6 +697,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }}
+      />
       <Header />
 
       <main className="yc-landing">
