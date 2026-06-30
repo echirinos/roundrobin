@@ -13,9 +13,9 @@ const enableVercelInsights =
 export const metadata: Metadata = {
   ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
   applicationName: "PlaySync",
-  title: "PlaySync - Run open play. Skip group texts.",
+  title: "Pickleball Open Play & Round Robin App | PlaySync",
   description:
-    "Create a live pickleball session, share a QR code, post the next game, and collect courtside scores from one mobile-friendly link.",
+    "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
   alternates: {
     canonical: "/",
   },
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PlaySync - Run open play. Skip group texts.",
     description:
-      "Create a live pickleball session, share a QR code, post the next game, and collect scores from one mobile-friendly link.",
+      "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
     images: [
       {
         url: "/og-image.png",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PlaySync - Run open play. Skip group texts.",
     description:
-      "Create a live pickleball session, share a QR code, post the next game, and collect scores from one mobile-friendly link.",
+      "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
     images: ["/og-image.png"],
   },
 };
