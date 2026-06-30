@@ -1159,7 +1159,7 @@
   }
 
   .score-bug-live-panel {
-    fill: oklch(from var(--live) l c h / 0.92);
+    fill: oklch(from var(--live) calc(l - 0.2) c h);
   }
 
   .score-bug-kicker {
