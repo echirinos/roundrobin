@@ -80,15 +80,19 @@ function RoundGameScoreForm({
   );
 
   const handleSave = () => {
+    if (saved) return; // guard against a double-submit before the result view mounts
+
     const s1 = parseInt(score1);
     const s2 = parseInt(score2);
 
     if (!isNaN(s1) && !isNaN(s2) && s1 >= 0 && s2 >= 0) {
-      // Persist immediately (the card behind updates), then hold the dialog on a
-      // short result beat so the score entry has a felt payoff before it dismisses.
-      setSaved({ s1, s2 });
+      // Persist first (the card behind updates), then hold the dialog on a result
+      // beat so the score entry has a felt payoff before it dismisses itself. The
+      // delay lets the NumberTicker roll settle before auto-dismiss.
       onSave(game.id, s1, s2);
-      closeTimer.current = setTimeout(onClose, reduceMotion ? 700 : 1300);
+      setSaved({ s1, s2 });
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = setTimeout(onClose, reduceMotion ? 1100 : 1900);
     }
   };
 
