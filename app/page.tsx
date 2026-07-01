@@ -11,9 +11,6 @@ import {
   RotateCcw,
   ScanLine,
   Smartphone,
-  Share2,
-  Trophy,
-  UsersRound,
   Zap,
 } from "lucide-react";
 
@@ -21,6 +18,30 @@ import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.app";
+
+const softwareAppJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "PlaySync",
+  applicationCategory: "SportsApplication",
+  operatingSystem: "Web",
+  url: siteUrl,
+  description:
+    "Run pickleball open play and round robins from one shared link. Players scan a QR to check in, scores post the next game, and partner rotations update on their own. No app install.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [
+    "Live open play sessions",
+    "QR code check-in",
+    "Round robin and rotating partners",
+    "Automatic next game and standings",
+  ],
+};
 
 const composerChips = ["QR ready", "9 checked in", "Next game posted"];
 
@@ -45,24 +66,6 @@ const sessionRows = [
     secondary: "Back in round 3",
     status: "Bye",
     score: "-",
-  },
-];
-
-const workflow = [
-  {
-    icon: UsersRound,
-    title: "Check in the crew",
-    text: "Open one link, add the people already at the fence, and let late arrivals check themselves in.",
-  },
-  {
-    icon: Share2,
-    title: "Post the next game",
-    text: "Everyone sees the same court call, bye, and partner rotation without passing your phone around.",
-  },
-  {
-    icon: Trophy,
-    title: "Let scores move it along",
-    text: "One score tap updates the board, refreshes standings, and posts the next match before people wander off.",
   },
 ];
 
@@ -132,8 +135,8 @@ function Reveal({
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { y: 18 }}
+      whileInView={reduceMotion ? undefined : { y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
@@ -148,8 +151,8 @@ function CourtLanes() {
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, x: 18 }}
-      animate={reduceMotion ? undefined : { opacity: 1, x: 0 }}
+      initial={reduceMotion ? false : { x: 18 }}
+      animate={reduceMotion ? undefined : { x: 0 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
       className="court-lanes"
       aria-label="Animated pickleball court with a live score"
@@ -477,8 +480,8 @@ function SessionComposer() {
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { y: 16 }}
+      animate={reduceMotion ? undefined : { y: 0 }}
       transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
       className="session-composer relative mx-auto w-full max-w-3xl overflow-hidden"
     >
@@ -562,41 +565,12 @@ function SessionComposer() {
   );
 }
 
-function HeroActionGroup() {
+function HeroAssurance() {
   return (
-    <div className="hero-action-group mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-      <Button asChild size="lg" className="hero-primary-cta h-12 rounded-full px-5 text-base">
-        <Link
-          href="/tournament?new=1&mode=rotating"
-          data-testid="hero-top-create-session"
-          data-analytics-event="create_session_clicked"
-          data-analytics-location="hero_primary"
-          data-analytics-mode="rotating"
-        >
-          Create a session
-          <ArrowRight className="size-4" />
-        </Link>
-      </Button>
-      <Button
-        asChild
-        size="lg"
-        variant="outline"
-        className="hero-secondary-cta h-12 rounded-full bg-background/70 px-5 text-base"
-      >
-        <Link
-          href="/tournament?join=1"
-          data-testid="hero-top-join-code"
-          data-analytics-event="join_code_clicked"
-          data-analytics-location="hero_primary"
-        >
-          Join with code
-        </Link>
-      </Button>
-      <span className="hero-action-note inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Smartphone className="size-3.5 text-live" />
-        Works from a phone browser
-      </span>
-    </div>
+    <p className="hero-action-note mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+      <Smartphone className="size-3.5 text-live" />
+      Works from any phone browser, no install
+    </p>
   );
 }
 
@@ -723,34 +697,40 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }}
+      />
       <Header />
 
       <main className="yc-landing">
         <section className="yc-hero overflow-hidden border-b border-border/80">
-          <div className="container mx-auto grid max-w-[88rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
-            <div className="hero-copy-stack">
-              <motion.div
-                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-                className="max-w-3xl"
-              >
-                <p className="hero-eyebrow">
-                  Open play, in one shared link
-                </p>
-                <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
-                  Run open play. Skip group texts.
-                </h1>
-                <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
-                  Create a live pickleball session, share the QR, post the next
-                  game, and collect scores from one mobile-friendly link.
-                </p>
-                <HeroActionGroup />
-              </motion.div>
+          <div className="container mx-auto flex max-w-[88rem] flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
+            <motion.div
+              initial={reduceMotion ? false : { y: 16 }}
+              animate={reduceMotion ? undefined : { y: 0 }}
+              transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+              className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
+            >
+              <p className="hero-eyebrow">
+                Open play, in one shared link
+              </p>
+              <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
+                Run open play. Skip group texts.
+              </h1>
+              <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
+                Create a live pickleball session, share the QR, post the next
+                game, and collect scores from one mobile-friendly link.
+              </p>
+              <HeroAssurance />
+            </motion.div>
 
-              <div className="mt-6 sm:mt-8">
-                <SessionComposer />
-              </div>
+            <div className="order-2 relative mx-auto w-full max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
+              <CourtLanes />
+            </div>
+
+            <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
+              <SessionComposer />
 
               <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 {proofPoints.map((point) => (
@@ -761,27 +741,23 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
-            <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-              <CourtLanes />
-            </div>
           </div>
         </section>
 
-        <section className="section-soft border-b border-border">
+        <section id="how-it-works" className="section-soft border-b border-border">
           <div className="container mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
             <Reveal>
               <MotionRail />
             </Reveal>
             <div className="mt-8 grid gap-8 lg:grid-cols-[0.34fr_0.66fr] lg:items-start">
               <Reveal>
-                <p className="section-kicker">Why it feels ready</p>
+                <p className="section-kicker">Courtside flow</p>
                 <h2 className="mt-3 max-w-md font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-5xl">
-                  It behaves like the session is already live.
+                  Built for the first five minutes at the fence.
                 </h2>
                 <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground">
-                  The page now proves the core loop: create the session, let
-                  players join, enter a score, and move the courts forward.
+                  Create the session, let players check themselves in, tap a
+                  score, and the next game posts on its own.
                 </p>
               </Reveal>
               <ProductProofGrid />
@@ -794,7 +770,7 @@ export default function Home() {
             <Reveal>
               <p className="section-kicker">The shared feed</p>
               <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
-                The product feels real before anyone downloads anything.
+                No app to download. Everyone opens the same link.
               </h2>
               <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
                 Players see a live mobile feed, organizers keep court calls in
@@ -805,37 +781,6 @@ export default function Home() {
             <Reveal delay={0.06}>
               <LiveBoardPreview />
             </Reveal>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="section-clean border-b border-border">
-          <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-            <Reveal className="max-w-3xl">
-              <p className="section-kicker">Courtside flow</p>
-              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
-                Built for the first five minutes at the fence.
-              </h2>
-            </Reveal>
-
-            <div className="workflow-grid mt-10 grid gap-0 divide-y divide-border border-y border-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
-              {workflow.map((item, index) => {
-                const Icon = item.icon;
-
-                return (
-                  <Reveal key={item.title} delay={index * 0.05}>
-                    <div className="workflow-card h-full px-0 py-7 lg:px-6">
-                      <Icon className="size-5 text-live" />
-                      <h3 className="mt-6 text-xl font-semibold tracking-normal">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                        {item.text}
-                      </p>
-                    </div>
-                  </Reveal>
-                );
-              })}
-            </div>
           </div>
         </section>
 
@@ -872,7 +817,7 @@ export default function Home() {
             </Reveal>
 
             <Reveal delay={0.06}>
-              <p className="section-kicker">Why it feels fast</p>
+              <p className="section-kicker">Less running the show</p>
               <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
                 The organizer gets to play instead of becoming the scoreboard.
               </h2>
