@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -67,16 +68,41 @@ function RoundGameScoreForm({
 }: RoundGameScoreFormProps) {
   const [score1, setScore1] = useState(game.team1Score?.toString() ?? "");
   const [score2, setScore2] = useState(game.team2Score?.toString() ?? "");
+  const [saved, setSaved] = useState<{ s1: number; s2: number } | null>(null);
+  const reduceMotion = useReducedMotion();
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    []
+  );
 
   const handleSave = () => {
     const s1 = parseInt(score1);
     const s2 = parseInt(score2);
 
     if (!isNaN(s1) && !isNaN(s2) && s1 >= 0 && s2 >= 0) {
+      // Persist immediately (the card behind updates), then hold the dialog on a
+      // short result beat so the score entry has a felt payoff before it dismisses.
+      setSaved({ s1, s2 });
       onSave(game.id, s1, s2);
-      onClose();
+      closeTimer.current = setTimeout(onClose, reduceMotion ? 700 : 1300);
     }
   };
+
+  if (saved) {
+    return (
+      <ScoreSavedView
+        team1={`${game.team1[0].name} & ${game.team1[1].name}`}
+        team2={`${game.team2[0].name} & ${game.team2[1].name}`}
+        s1={saved.s1}
+        s2={saved.s2}
+        reduceMotion={!!reduceMotion}
+      />
+    );
+  }
 
   return (
     <>
@@ -194,6 +220,96 @@ function RoundGameScoreForm({
         </ShimmerButton>
       </DialogFooter>
     </>
+  );
+}
+
+interface ScoreSavedViewProps {
+  team1: string;
+  team2: string;
+  s1: number;
+  s2: number;
+  reduceMotion: boolean;
+}
+
+function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewProps) {
+  const rows = [
+    { name: team1, score: s1, won: s1 > s2 },
+    { name: team2, score: s2, won: s2 > s1 },
+  ];
+  const winner = rows.find((r) => r.won);
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
+      animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="flex flex-col items-center gap-5 py-6 text-center"
+      aria-live="polite"
+    >
+      <div className="relative flex size-14 items-center justify-center">
+        {!reduceMotion && (
+          <motion.span
+            className="absolute inset-0 rounded-full bg-live/30"
+            initial={{ scale: 0.6, opacity: 0.7 }}
+            animate={{ scale: 1.9, opacity: 0 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        )}
+        <motion.span
+          className="relative flex size-14 items-center justify-center rounded-full bg-live text-live-foreground shadow-sm"
+          initial={reduceMotion ? false : { scale: 0.5 }}
+          animate={reduceMotion ? undefined : { scale: 1 }}
+          transition={{ type: "spring", stiffness: 420, damping: 18 }}
+        >
+          <Check className="size-7" strokeWidth={2.5} />
+        </motion.span>
+      </div>
+
+      <div className="w-full space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          Final
+        </p>
+        {rows.map((row, i) => (
+          <div
+            key={i}
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-lg border px-3 py-2",
+              row.won
+                ? "border-live/45 bg-live/10"
+                : "border-border/60 bg-background/50"
+            )}
+          >
+            <span
+              className={cn(
+                "truncate text-sm font-semibold",
+                row.won ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              {row.name}
+            </span>
+            <span
+              className={cn(
+                "font-display text-3xl font-semibold tabular-nums tracking-tight",
+                row.won ? "text-success" : "text-muted-foreground"
+              )}
+            >
+              <NumberTicker value={row.score} startValue={reduceMotion ? row.score : 0} />
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        {winner ? (
+          <>
+            <span className="font-semibold text-foreground">{winner.name}</span> take
+            it. The next game is up.
+          </>
+        ) : (
+          "Score saved. The next game is up."
+        )}
+      </p>
+    </motion.div>
   );
 }
 

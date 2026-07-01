@@ -76,9 +76,9 @@ export function EnhancedSchedule({
   };
 
   const handleSaveScore = (gameId: string, team1Score: number, team2Score: number) => {
+    // Persist immediately so the round updates behind the dialog; the score
+    // entry dismisses itself after its result beat (see RoundGameScoreForm).
     onUpdateGame(gameId, team1Score, team2Score);
-    setDialogOpen(false);
-    setSelectedGame(null);
   };
 
   const handleGenerateRound = (newGames: LocalRoundGame[]) => {
