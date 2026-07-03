@@ -26,6 +26,7 @@ export type EventFormat =
   | 'scramble'
   // Fixed partner formats
   | 'shuffle'
+  | 'team_gauntlet'
   | 'bracket'
   | 'milp';
 
@@ -375,6 +376,23 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
     minPlayers: 4,
     keyFeatures: ['Set teams', 'Round robin', 'Fixed partners'],
     rules: ['Keep the same partner', 'Rotate opponents each round', 'Rank teams by win percentage'],
+  },
+
+  team_gauntlet: {
+    id: 'team_gauntlet',
+    name: 'Team Gauntlet',
+    shortName: 'Team Gauntlet',
+    description: 'Set-partner Gauntlet. Winning teams draw harder opponents, losing teams face easier ones.',
+    category: 'fixed',
+    partnerMode: 'fixed',
+    scoringType: 'win_percentage',
+    gamesPerRound: 1,
+    seedingMethod: 'standings',
+    minPlayers: 8,
+    requiresEvenPlayers: true,
+    supportsByes: true,
+    keyFeatures: ['Set teams', 'Skill-based matching', 'Harder as you win'],
+    rules: ['Keep the same partner', 'Teams seeded by current standings', 'Winning teams face tougher opponents'],
   },
 
   bracket: {

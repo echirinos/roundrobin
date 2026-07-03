@@ -3,7 +3,7 @@
  * Generates matchups for formats where teams stay together
  */
 
-import type { LocalPlayer, LocalRoundGame, LocalStanding } from '@/src/types/database';
+import type { LocalPlayer, LocalRoundGame } from '@/src/types/database';
 import type { EventSettings } from '@/src/types/formats';
 
 // ============================================
@@ -288,6 +288,132 @@ export function generateShuffleRound(ctx: FixedGeneratorContext): GeneratedFixed
 }
 
 // ============================================
+// TEAM GAUNTLET GENERATOR
+// Fixed-partner Gauntlet (Pickleheads "Rumble"):
+// teams seeded by record, winners draw harder opponents
+// ============================================
+
+interface TeamRecord {
+  team: Team;
+  gamesPlayed: number;
+  gamesWon: number;
+  pointDifferential: number;
+}
+
+function calculateTeamRecords(teams: Team[], games: LocalRoundGame[]): Map<string, TeamRecord> {
+  const records = new Map<string, TeamRecord>(
+    teams.map(team => [
+      team.id,
+      { team, gamesPlayed: 0, gamesWon: 0, pointDifferential: 0 },
+    ])
+  );
+
+  for (const game of games) {
+    // Mirror scoring.ts: only completed games with both scores count,
+    // and ties credit neither team, so seeding matches displayed standings.
+    if (!game.completed || game.team1Score === undefined || game.team2Score === undefined) {
+      continue;
+    }
+
+    const team1Id = getTeamIdFromPlayers(game.team1, teams);
+    const team2Id = getTeamIdFromPlayers(game.team2, teams);
+    if (!team1Id || !team2Id) continue;
+
+    const record1 = records.get(team1Id);
+    const record2 = records.get(team2Id);
+    if (!record1 || !record2) continue;
+
+    const score1 = game.team1Score;
+    const score2 = game.team2Score;
+
+    record1.gamesPlayed++;
+    record2.gamesPlayed++;
+    record1.pointDifferential += score1 - score2;
+    record2.pointDifferential += score2 - score1;
+
+    if (score1 > score2) {
+      record1.gamesWon++;
+    } else if (score2 > score1) {
+      record2.gamesWon++;
+    }
+  }
+
+  return records;
+}
+
+function getPreviousMatchupKeys(teams: Team[], games: LocalRoundGame[], round: number): Set<string> {
+  const keys = new Set<string>();
+
+  for (const game of games) {
+    if (game.round !== round) continue;
+
+    const team1Id = getTeamIdFromPlayers(game.team1, teams);
+    const team2Id = getTeamIdFromPlayers(game.team2, teams);
+    if (team1Id && team2Id) {
+      keys.add([team1Id, team2Id].sort().join('-'));
+    }
+  }
+
+  return keys;
+}
+
+export function generateTeamGauntletRound(ctx: FixedGeneratorContext): GeneratedFixedRound {
+  const { teams, existingGames, currentRound, settings } = ctx;
+  const numberOfCourts = settings.numberOfCourts;
+  const records = calculateTeamRecords(teams, existingGames);
+
+  const bySeed = (a: Team, b: Team) => {
+    const recordA = records.get(a.id)!;
+    const recordB = records.get(b.id)!;
+    if (recordB.gamesWon !== recordA.gamesWon) return recordB.gamesWon - recordA.gamesWon;
+    if (recordB.pointDifferential !== recordA.pointDifferential) {
+      return recordB.pointDifferential - recordA.pointDifferential;
+    }
+    return (b.rating ?? 0) - (a.rating ?? 0);
+  };
+
+  // Teams with the fewest games get priority when courts are short (fair byes);
+  // within a fairness tier, standings decide who plays — winners keep playing.
+  const byFairness = [...teams].sort((a, b) => {
+    const playedDelta =
+      records.get(a.id)!.gamesPlayed - records.get(b.id)!.gamesPlayed;
+    return playedDelta !== 0 ? playedDelta : bySeed(a, b);
+  });
+
+  const capacity = Math.min(numberOfCourts, Math.floor(teams.length / 2)) * 2;
+  const playing = byFairness.slice(0, capacity);
+  const byeTeams = byFairness.slice(capacity);
+
+  const seeded = [...playing].sort(bySeed);
+
+  const lastRoundMatchups = getPreviousMatchupKeys(teams, existingGames, currentRound - 1);
+  const games: LocalRoundGame[] = [];
+  let gameNumber = 1;
+  let courtNumber = 1;
+
+  // Pair adjacent seeds (1v2 on court 1, 3v4 on court 2, ...), nudging one seat
+  // down to avoid an immediate rematch of the previous round.
+  const queue = [...seeded];
+
+  while (queue.length >= 2 && courtNumber <= numberOfCourts) {
+    const team1 = queue.shift()!;
+    let opponentIndex = 0;
+
+    const directKey = [team1.id, queue[0].id].sort().join('-');
+    if (queue.length > 1 && lastRoundMatchups.has(directKey)) {
+      opponentIndex = 1;
+    }
+
+    const team2 = queue.splice(opponentIndex, 1)[0];
+    games.push(createGameFromTeams(currentRound, gameNumber++, courtNumber++, team1, team2));
+  }
+
+  byeTeams.push(...queue);
+
+  return { games, byeTeams };
+}
+
+// ============================================
 // BRACKET GENERATOR
 // Single elimination + consolation bracket
 // ============================================
@@ -301,7 +427,6 @@ export function generateBracket(teams: Team[], consolationBracket: boolean = fal
 
   // Calculate bracket size (power of 2)
   const bracketSize = Math.pow(2, Math.ceil(Math.log2(seededTeams.length)));
-  const byes = bracketSize - seededTeams.length;
 
   const matches: BracketMatch[] = [];
   let matchNumber = 1;
@@ -578,6 +703,8 @@ export function generateFixedRound(ctx: FixedGeneratorContext): GeneratedFixedRo
       return generatePoolPlayRound(ctx);
     case 'shuffle':
       return generateShuffleRound(ctx);
+    case 'team_gauntlet':
+      return generateTeamGauntletRound(ctx);
     case 'bracket':
       return generateBracketRound(ctx);
     case 'milp':
