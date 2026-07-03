@@ -249,7 +249,7 @@ export function FormatSettingsForm({
           )}
 
           {/* Points to Win */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Points to Win</label>
               <NumericSettingInput
@@ -293,10 +293,9 @@ export function FormatSettingsForm({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
-                id="optimizer-enabled"
                 checked={settings.courtOptimizer.enabled}
                 onChange={(e) =>
                   updateSetting("courtOptimizer", {
@@ -305,19 +304,16 @@ export function FormatSettingsForm({
                   })
                 }
                 disabled={disabled}
-                className="rounded"
+                className="size-5 shrink-0 rounded accent-primary"
               />
-              <label htmlFor="optimizer-enabled" className="text-sm">
-                Enable court optimizer
-              </label>
-            </div>
+              Enable court optimizer
+            </label>
 
             {settings.courtOptimizer.enabled && (
-              <div className="space-y-2 pl-6">
-                <div className="flex items-center gap-2">
+              <div className="space-y-1 pl-6">
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
                   <input
                     type="checkbox"
-                    id="minimize-idle"
                     checked={settings.courtOptimizer.minimizeIdleTime}
                     onChange={(e) =>
                       updateSetting("courtOptimizer", {
@@ -326,17 +322,14 @@ export function FormatSettingsForm({
                       })
                     }
                     disabled={disabled}
-                    className="rounded"
+                    className="size-5 shrink-0 rounded accent-primary"
                   />
-                  <label htmlFor="minimize-idle" className="text-sm">
-                    Minimize idle time between games
-                  </label>
-                </div>
+                  Minimize idle time between games
+                </label>
 
-                <div className="flex items-center gap-2">
+                <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
                   <input
                     type="checkbox"
-                    id="balance-playtime"
                     checked={settings.courtOptimizer.balancePlaytime}
                     onChange={(e) =>
                       updateSetting("courtOptimizer", {
@@ -345,12 +338,10 @@ export function FormatSettingsForm({
                       })
                     }
                     disabled={disabled}
-                    className="rounded"
+                    className="size-5 shrink-0 rounded accent-primary"
                   />
-                  <label htmlFor="balance-playtime" className="text-sm">
-                    Balance playtime across all players
-                  </label>
-                </div>
+                  Balance playtime across all players
+                </label>
               </div>
             )}
           </CardContent>
@@ -389,7 +380,7 @@ function renderFormatSpecificSettings(
             <CardTitle className="text-base">Pool Play Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Number of Pools</label>
                 <NumericSettingInput
@@ -444,32 +435,26 @@ function renderFormatSpecificSettings(
             <CardTitle className="text-base">Bracket Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
-                id="consolation-bracket"
                 checked={settings.formatOptions.consolationBracket ?? false}
                 onChange={(e) => updateFormatOption("consolationBracket", e.target.checked)}
                 disabled={disabled}
-                className="rounded"
+                className="size-5 shrink-0 rounded accent-primary"
               />
-              <label htmlFor="consolation-bracket" className="text-sm">
-                Include consolation bracket for first-round losers
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
+              Include consolation bracket for first-round losers
+            </label>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
-                id="third-place"
                 checked={settings.formatOptions.thirdPlaceMatch ?? false}
                 onChange={(e) => updateFormatOption("thirdPlaceMatch", e.target.checked)}
                 disabled={disabled}
-                className="rounded"
+                className="size-5 shrink-0 rounded accent-primary"
               />
-              <label htmlFor="third-place" className="text-sm">
-                Include third place match
-              </label>
-            </div>
+              Include third place match
+            </label>
           </CardContent>
         </Card>
       );
@@ -530,7 +515,7 @@ function renderFormatSpecificSettings(
             <CardTitle className="text-base">Cream of the Crop Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Sorting Rounds</label>
                 <NumericSettingInput
@@ -642,7 +627,7 @@ function renderFormatSpecificSettings(
             <CardTitle className="text-base">Up & Down the River Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Players Moving Up</label>
                 <NumericSettingInput
