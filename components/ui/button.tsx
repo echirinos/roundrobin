@@ -23,12 +23,13 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-10 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-7 min-h-7 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-9 min-h-9 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+        // Compact sizes keep desktop density; pointer-coarse restores the 44px touch target on phones
+        xs: "h-7 min-h-7 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        sm: "h-9 min-h-9 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
         lg: "h-11 px-6 text-base has-[>svg]:px-4",
         icon: "size-10",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-9",
+        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        "icon-sm": "size-9 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
         "icon-lg": "size-11",
       },
     },
