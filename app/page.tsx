@@ -155,7 +155,7 @@ function CourtLanes() {
       animate={reduceMotion ? undefined : { x: 0 }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
       className="court-lanes"
-      aria-label="Animated pickleball court with a live score"
+      aria-hidden="true"
     >
       <svg viewBox="0 0 560 520" fill="none" className="court-lanes-svg">
         <g className="pickleball-court">
@@ -531,7 +531,7 @@ function SessionComposer() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-2 sm:min-w-44">
+        <div className="order-first flex flex-col gap-2 sm:order-none sm:min-w-44">
           <Button asChild size="lg" className="h-12 rounded-md text-base">
             <Link
               href="/tournament?new=1&mode=rotating"
@@ -611,7 +611,7 @@ function LiveBoardPreview({ className }: { className?: string }) {
               <span>Ana / Ben</span>
               <span>Cara / Diego</span>
             </div>
-            <div className="phone-score-button">
+            <div className="phone-score-button" aria-hidden="true">
               Post score and call next
               <ArrowRight className="size-3.5" />
             </div>
@@ -725,11 +725,11 @@ export default function Home() {
               <HeroAssurance />
             </motion.div>
 
-            <div className="order-2 relative mx-auto w-full max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
+            <div className="order-3 relative mx-auto w-full max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
               <CourtLanes />
             </div>
 
-            <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
+            <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-2">
               <SessionComposer />
 
               <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">

@@ -29,19 +29,11 @@ export function Footer() {
                   data-analytics-location="footer"
                   data-analytics-mode="rotating"
                 >
-                  Round robin
+                  Create a session
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/tournament?new=1&mode=fixed"
-                  className="transition-colors hover:text-foreground"
-                  data-analytics-event="create_session_clicked"
-                  data-analytics-location="footer"
-                  data-analytics-mode="fixed"
-                >
-                  Set teams
-                </Link>
+              <li className="text-muted-foreground/80">
+                Round robin or set teams
               </li>
               <li>
                 <Link

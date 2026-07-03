@@ -9,7 +9,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navItems = [
   { href: "#features", label: "Product" },
   { href: "#how-it-works", label: "Flow" },
-  { href: "/tournament?join=1", label: "Join code" },
 ];
 
 export function Header() {
@@ -53,7 +52,7 @@ export function Header() {
             asChild
             size="sm"
             variant="outline"
-            className="site-header-secondary hidden h-11 rounded-full px-4 font-medium sm:inline-flex"
+            className="site-header-secondary inline-flex h-11 rounded-full px-3 font-medium sm:px-4"
           >
             <Link
               href="/tournament?join=1"
@@ -66,7 +65,7 @@ export function Header() {
           <Button
             asChild
             size="sm"
-            className="site-header-primary h-11 rounded-full px-4 font-semibold"
+            className="site-header-primary h-11 rounded-full px-3 font-semibold sm:px-4"
           >
             <Link
               href="/tournament?new=1&mode=rotating"
