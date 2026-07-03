@@ -1470,14 +1470,17 @@
       display: none;
     }
 
+    /* Decorative visual sits below the composer on mobile; cap it so the
+       headline + primary CTA own the first viewport. */
     .court-lanes {
-      min-height: 30.5rem;
+      min-height: 17rem;
+      max-height: 19rem;
     }
 
     .court-lanes-svg {
-      inset: -2.25rem;
-      width: calc(100% + 4.5rem);
-      height: calc(100% + 4.5rem);
+      inset: -1.25rem;
+      width: calc(100% + 2.5rem);
+      height: calc(100% + 2.5rem);
     }
   }
 

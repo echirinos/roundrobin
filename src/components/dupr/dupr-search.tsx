@@ -106,6 +106,7 @@ export function DuprSearch({ onPlayerSelect, disabled = false }: DuprSearchProps
           <Button
             variant={searchMode === "id" ? "default" : "outline"}
             size="sm"
+            className="min-h-11 sm:min-h-8"
             onClick={() => setSearchMode("id")}
             disabled={disabled || isSearching}
           >
@@ -114,6 +115,7 @@ export function DuprSearch({ onPlayerSelect, disabled = false }: DuprSearchProps
           <Button
             variant={searchMode === "name" ? "default" : "outline"}
             size="sm"
+            className="min-h-11 sm:min-h-8"
             onClick={() => setSearchMode("name")}
             disabled={disabled || isSearching}
           >

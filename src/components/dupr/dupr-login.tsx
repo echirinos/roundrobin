@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -106,52 +107,54 @@ export function DuprLogin({ open, onClose, onLoginSuccess }: DuprLoginProps) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-md sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Login with DUPR
-            <Badge variant="outline" className="text-xs">
-              {DUPR_CONFIG.environment.toUpperCase()}
-            </Badge>
-          </DialogTitle>
-          <DialogDescription>
-            Sign in with your DUPR account to import your rating
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[85dvh] max-w-[min(28rem,calc(100%-2rem))] flex-col sm:max-w-lg">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Login with DUPR
+              <Badge variant="outline" className="text-xs">
+                {DUPR_CONFIG.environment.toUpperCase()}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Sign in with your DUPR account to import your rating
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="relative min-h-[400px] bg-muted/30 rounded-lg overflow-hidden">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                <p className="text-sm text-muted-foreground">Loading DUPR...</p>
+          <div className="relative min-h-[min(400px,60dvh)] bg-muted/30 rounded-lg overflow-hidden">
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Loading DUPR...</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
-              <div className="text-center p-4">
-                <p className="text-destructive mb-4">{error}</p>
-                <Button onClick={() => window.location.reload()}>Retry</Button>
+            {error && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+                <div className="text-center p-4">
+                  <p className="text-destructive mb-4">{error}</p>
+                  <Button onClick={() => window.location.reload()}>Retry</Button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <iframe
-            src={loginUrl}
-            className="w-full h-[400px] border-0"
-            onLoad={handleIframeLoad}
-            onError={handleIframeError}
-            title="DUPR Login"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
-        </div>
+            <iframe
+              src={loginUrl}
+              className="w-full h-[min(400px,60dvh)] border-0"
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+              title="DUPR Login"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            />
+          </div>
 
-        <div className="text-center">
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Cancel
-          </Button>
+          <div className="text-center">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -252,10 +255,12 @@ export function DuprPlayerCard({ player, onRemove, compact = false }: DuprPlayer
       {/* Remove button */}
       {onRemove && (
         <button
+          type="button"
           onClick={onRemove}
-          className="text-lg text-muted-foreground hover:text-destructive"
+          aria-label={`Remove ${player.name}`}
+          className="-m-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-destructive"
         >
-          ×
+          <X className="size-4" />
         </button>
       )}
     </div>

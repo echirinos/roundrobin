@@ -164,7 +164,7 @@ export function SessionShareSheet({
         <Button
           variant={code ? "outline" : "default"}
           size="sm"
-          className="shrink-0"
+          className="min-h-11 shrink-0 sm:min-h-8"
           data-analytics-event="live_session_sheet_opened"
           data-analytics-location="tournament_header"
           data-analytics-state={code ? "published" : "local"}
@@ -191,7 +191,7 @@ export function SessionShareSheet({
           </div>
         </SheetHeader>
 
-        <div className="flex flex-col gap-4 px-4 pb-4">
+        <div className="flex flex-col gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
           {syncError && (
             <Alert variant="destructive">
               <AlertTriangle />

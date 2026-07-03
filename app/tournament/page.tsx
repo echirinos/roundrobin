@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -9,6 +9,7 @@ import {
   Eye,
   LogIn,
   RefreshCw,
+  RotateCcw,
   Trophy,
   UserCheck,
   Users,
@@ -94,9 +95,19 @@ function buildSnapshot(state: TournamentState): LiveTournamentSnapshot {
   };
 }
 
+// Restored state (remote snapshot or localStorage) can carry formats this
+// bundle doesn't know — newer publisher, downgraded client, corrupted storage.
+// Normalize so every downstream FORMAT_DEFINITIONS lookup is safe.
+function normalizeSettings(settings: EventSettings): EventSettings {
+  return FORMAT_DEFINITIONS[settings?.format]
+    ? settings
+    : { ...settings, format: "popcorn" as const };
+}
+
 function stateFromSnapshot(snapshot: LiveTournamentSnapshot): TournamentState {
   return {
     ...snapshot,
+    settings: normalizeSettings(snapshot.settings),
     checkIns: snapshot.checkIns ?? {},
   };
 }
@@ -183,9 +194,31 @@ export default function TournamentPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [checkedInPlayerId, setCheckedInPlayerId] = useState<string | null>(null);
+  // Bumped on reset so EnhancedPlayerSetup remounts and drops its lazy state.
+  const [setupEpoch, setSetupEpoch] = useState(0);
+  const setupTabRef = useRef<HTMLButtonElement>(null);
+  const pendingSetupFocus = useRef(false);
 
   const snapshot = useMemo(() => buildSnapshot(state), [state]);
   const sessionStats = useMemo(() => getSessionStats(snapshot), [snapshot]);
+  // Fixed-partner standings show one row per TEAM (like Pickleheads Rumble):
+  // both partners share identical records, so one representative per pair
+  // carries the team name and the exact team record.
+  const standingsPlayers = useMemo(() => {
+    if (!shouldUseFixedTeams(state.settings)) return state.players;
+
+    const teamRows: LocalPlayer[] = [];
+    for (let i = 0; i + 1 < state.players.length; i += 2) {
+      teamRows.push({
+        ...state.players[i],
+        name: `${state.players[i].name} & ${state.players[i + 1].name}`,
+      });
+    }
+    if (state.players.length % 2 === 1) {
+      teamRows.push(state.players[state.players.length - 1]);
+    }
+    return teamRows;
+  }, [state.players, state.settings]);
   const shareUrl = useMemo(
     () => getShareUrl(origin, sessionCode),
     [origin, sessionCode]
@@ -306,6 +339,7 @@ export default function TournamentPage() {
           const parsed = JSON.parse(saved) as TournamentState;
           setState({
             ...parsed,
+            settings: normalizeSettings(parsed.settings),
             checkIns: parsed.checkIns ?? {},
           });
           setActiveTab(parsed.tournamentStarted ? "schedule" : "setup");
@@ -447,13 +481,13 @@ export default function TournamentPage() {
   );
 
   const standings = useMemo(() => {
-    if (state.players.length === 0) return [];
-    return calculateStandingsForFormat(state.players, state.games, {
+    if (standingsPlayers.length === 0) return [];
+    return calculateStandingsForFormat(standingsPlayers, state.games, {
       scoringType: state.settings.scoringType,
       courtWeights,
       includePointDifferential: true,
     });
-  }, [state.players, state.games, state.settings.scoringType, courtWeights]);
+  }, [standingsPlayers, state.games, state.settings.scoringType, courtWeights]);
 
   const handlePlayersChange = useCallback(
     (players: LocalPlayer[]) => {
@@ -592,6 +626,7 @@ export default function TournamentPage() {
       setLastSyncedAt(null);
       setShowJoinPrompt(false);
       setActiveTab("setup");
+      setSetupEpoch((epoch) => epoch + 1);
       localStorage.removeItem(STORAGE_KEY);
       if (sessionCode) {
         localStorage.removeItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`);
@@ -616,14 +651,38 @@ export default function TournamentPage() {
     [joinCode]
   );
 
-  const formatDefinition = FORMAT_DEFINITIONS[state.settings.format];
+  const handleStartOwnSession = useCallback(() => {
+    setShowJoinPrompt(false);
+    setActiveTab("setup");
+    // Clear any lingering join errors so they don't leak into the create view.
+    setSyncStatus("local");
+    setSyncError(null);
+    setJoinCode("");
+    pendingSetupFocus.current = true;
+    // Drop ?join=1 so a refresh lands on setup, not the join prompt.
+    window.history.replaceState(null, "", "/tournament");
+  }, []);
+
+  // Live-session snapshots can carry formats this bundle doesn't know yet
+  // (stale spectator client) — fall back instead of white-screening.
+  const formatDefinition =
+    FORMAT_DEFINITIONS[state.settings.format] ?? FORMAT_DEFINITIONS.popcorn;
   const isLive = Boolean(sessionCode) && syncStatus === "live";
+  // Join arrivals (?join=1) see only the code entry until they opt into setup.
+  const isJoinMode = showJoinPrompt && !isSpectator && !state.tournamentStarted;
+
+  // Move focus to the Setup tab after leaving the join prompt.
+  useEffect(() => {
+    if (!isJoinMode && pendingSetupFocus.current) {
+      pendingSetupFocus.current = false;
+      setupTabRef.current?.focus();
+    }
+  }, [isJoinMode]);
   const shouldShowSessionHero =
     state.tournamentStarted ||
     isSpectator ||
     Boolean(sessionCode) ||
-    Boolean(syncError) ||
-    showJoinPrompt;
+    Boolean(syncError);
   const checkedInPlayer = state.players.find(
     (player) => player.id === checkedInPlayerId
   );
@@ -655,6 +714,33 @@ export default function TournamentPage() {
     },
   ];
 
+  const joinSessionForm = (
+    <form
+      onSubmit={handleJoinSession}
+      className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur sm:flex-row"
+    >
+      <Input
+        value={joinCode}
+        onChange={(event) =>
+          setJoinCode(normalizeSessionCode(event.target.value))
+        }
+        placeholder="Join with code"
+        maxLength={6}
+        className="h-11 text-center font-semibold uppercase tracking-[0.25em] sm:text-left"
+        aria-label="Join a live session by code"
+      />
+      <Button
+        type="submit"
+        className="h-11 sm:w-36"
+        data-analytics-event="session_code_submit_clicked"
+        data-analytics-location="tournament_join_form"
+      >
+        <LogIn data-icon="inline-start" />
+        Join
+      </Button>
+    </form>
+  );
+
   if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -667,9 +753,11 @@ export default function TournamentPage() {
   }
 
   return (
-    <div className="court-app-bg min-h-screen">
+    // --app-header-h keeps the sticky TabsList offset in lockstep with the
+    // fixed header height so the tabs never tuck under a taller header.
+    <div className="court-app-bg min-h-screen [--app-header-h:3.5rem]">
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/78 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-3 px-3 py-2 sm:px-4">
+        <div className="mx-auto flex h-(--app-header-h) max-w-6xl items-center justify-between gap-3 px-3 sm:px-4">
           <Link
             href="/"
             className="min-w-0 rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -682,7 +770,8 @@ export default function TournamentPage() {
           <div className="flex min-w-0 items-center justify-end gap-2">
             {sessionCode && (
               <Badge variant="outline" className="hidden sm:inline-flex">
-                Code {sessionCode}
+                <span>Code</span>
+                {sessionCode}
               </Badge>
             )}
             {isSpectator ? (
@@ -699,30 +788,34 @@ export default function TournamentPage() {
                 Setup
               </Badge>
             )}
-            <SessionShareSheet
-              code={sessionCode}
-              shareUrl={shareUrl}
-              isReadOnly={isSpectator}
-              stats={sessionStats}
-              syncStatus={syncStatus}
-              syncError={syncError}
-              lastSyncedAt={lastSyncedAt}
-              onPublish={() => publishSession(sessionCode)}
-              onRefresh={() => {
-                if (sessionCode) {
-                  void fetchLiveSession(sessionCode);
-                }
-              }}
-            />
+            {!isJoinMode && (
+              <SessionShareSheet
+                code={sessionCode}
+                shareUrl={shareUrl}
+                isReadOnly={isSpectator}
+                stats={sessionStats}
+                syncStatus={syncStatus}
+                syncError={syncError}
+                lastSyncedAt={lastSyncedAt}
+                onPublish={() => publishSession(sessionCode)}
+                onRefresh={() => {
+                  if (sessionCode) {
+                    void fetchLiveSession(sessionCode);
+                  }
+                }}
+              />
+            )}
             <ThemeToggle />
             {!isSpectator && state.tournamentStarted && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleResetTournament}
-                className="hidden text-destructive hover:text-destructive sm:inline-flex"
+                aria-label="Reset tournament"
+                className="min-h-11 min-w-11 text-destructive hover:text-destructive sm:min-h-9 sm:min-w-0"
               >
-                Reset
+                <RotateCcw />
+                <span className="hidden sm:inline">Reset</span>
               </Button>
             )}
           </div>
@@ -730,7 +823,45 @@ export default function TournamentPage() {
       </header>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-5 px-3 py-4 sm:px-4 sm:py-6">
-        {shouldShowSessionHero && (
+        {isJoinMode && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="premium-panel court-line-surface relative overflow-hidden rounded-lg p-4 sm:p-5"
+          >
+            <div className="relative z-10 mx-auto flex w-full max-w-md flex-col gap-4 py-4 sm:py-8">
+              <div className="text-center">
+                <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                  Join with session code
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Enter the organizer&apos;s 6-character code to open the live
+                  session.
+                </p>
+              </div>
+              {joinSessionForm}
+              {syncError && (
+                <Alert variant="destructive">
+                  <WifiOff />
+                  <AlertTitle>Live session issue</AlertTitle>
+                  <AlertDescription>{syncError}</AlertDescription>
+                </Alert>
+              )}
+              <button
+                type="button"
+                onClick={handleStartOwnSession}
+                className="touch-target self-center text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+                data-analytics-event="join_switch_to_setup_clicked"
+                data-analytics-location="tournament_join_hero"
+              >
+                or start your own session
+              </button>
+            </div>
+          </motion.section>
+        )}
+
+        {!isJoinMode && shouldShowSessionHero && (
           <motion.section
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -766,16 +897,10 @@ export default function TournamentPage() {
                     <Badge variant="outline">{formatDefinition.name}</Badge>
                   </div>
                   <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                    {state.tournamentStarted
-                      ? state.name
-                      : showJoinPrompt
-                      ? "Join with session code"
-                      : "Create round robin"}
+                    {state.tournamentStarted ? state.name : "Create round robin"}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    {showJoinPrompt && !state.tournamentStarted
-                      ? "Enter the organizer's 6-character code to open the live session."
-                      : state.tournamentStarted
+                    {state.tournamentStarted
                       ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
                       : "Add names, keep the defaults, and start the first round from your phone."}
                   </p>
@@ -831,32 +956,7 @@ export default function TournamentPage() {
                 </div>
               </div>
 
-              {!isSpectator && !state.tournamentStarted && (
-                <form
-                  onSubmit={handleJoinSession}
-                  className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur sm:flex-row"
-                >
-                  <Input
-                    value={joinCode}
-                    onChange={(event) =>
-                      setJoinCode(normalizeSessionCode(event.target.value))
-                    }
-                    placeholder="Join with code"
-                    maxLength={6}
-                    className="h-11 text-center font-semibold uppercase tracking-[0.25em] sm:text-left"
-                    aria-label="Join a live session by code"
-                  />
-                  <Button
-                    type="submit"
-                    className="h-11 sm:w-36"
-                    data-analytics-event="session_code_submit_clicked"
-                    data-analytics-location="tournament_join_form"
-                  >
-                    <LogIn data-icon="inline-start" />
-                    Join
-                  </Button>
-                </form>
-              )}
+              {!isSpectator && !state.tournamentStarted && joinSessionForm}
 
               {isSpectator && sessionCode && state.players.length > 0 && (
                 <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur">
@@ -906,97 +1006,112 @@ export default function TournamentPage() {
                 <Alert variant="destructive">
                   <WifiOff />
                   <AlertTitle>Live session issue</AlertTitle>
-                  <AlertDescription>{syncError}</AlertDescription>
+                  <AlertDescription>
+                    {syncError}
+                    {isSpectator && (
+                      <a
+                        href="/tournament?join=1"
+                        className="touch-target mt-1 inline-flex items-center font-medium underline underline-offset-4"
+                        data-analytics-event="join_retry_code_clicked"
+                        data-analytics-location="spectator_sync_error"
+                      >
+                        Try a different code
+                      </a>
+                    )}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
           </motion.section>
         )}
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as TournamentTab)}
-          className="flex flex-col gap-4"
-        >
-          <TabsList className="sticky top-14 z-40 grid h-12 w-full grid-cols-3 shadow-lg shadow-background/20">
-            <TabsTrigger value="setup" className="text-sm">
-              {state.tournamentStarted ? "Players" : "Setup"}
-            </TabsTrigger>
-            <TabsTrigger
-              value="schedule"
-              disabled={!state.tournamentStarted}
-              className="text-sm"
-            >
-              Matches
-            </TabsTrigger>
-            <TabsTrigger
-              value="standings"
-              disabled={!state.tournamentStarted}
-              className="text-sm"
-            >
-              Standings
-            </TabsTrigger>
-          </TabsList>
+        {!isJoinMode && (
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TournamentTab)}
+            className="flex flex-col gap-4"
+          >
+            <TabsList className="sticky top-(--app-header-h) z-40 grid h-12 w-full grid-cols-3 shadow-lg shadow-background/20">
+              <TabsTrigger ref={setupTabRef} value="setup" className="text-sm">
+                {state.tournamentStarted ? "Players" : "Setup"}
+              </TabsTrigger>
+              <TabsTrigger
+                value="schedule"
+                disabled={!state.tournamentStarted}
+                className="text-sm"
+              >
+                Matches
+              </TabsTrigger>
+              <TabsTrigger
+                value="standings"
+                disabled={!state.tournamentStarted}
+                className="text-sm"
+              >
+                Standings
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="setup" className="mt-0">
-            <EnhancedPlayerSetup
-              sessionName={state.name}
-              onSessionNameChange={handleSessionNameChange}
-              players={state.players}
-              onPlayersChange={handlePlayersChange}
-              settings={state.settings}
-              onSettingsChange={handleSettingsChange}
-              onStartTournament={handleStartTournament}
-              tournamentStarted={state.tournamentStarted}
-              readOnly={isSpectator}
-              checkIns={state.checkIns}
-            />
-          </TabsContent>
-
-          <TabsContent value="schedule" className="mt-0">
-            {state.tournamentStarted && (
-              <EnhancedSchedule
-                games={state.games}
+            <TabsContent value="setup" className="mt-0">
+              <EnhancedPlayerSetup
+                key={setupEpoch}
+                sessionName={state.name}
+                onSessionNameChange={handleSessionNameChange}
                 players={state.players}
-                standings={standings}
+                onPlayersChange={handlePlayersChange}
                 settings={state.settings}
-                currentRound={state.currentRound}
-                onUpdateGame={handleUpdateGame}
-                onAddRound={handleAddRound}
+                onSettingsChange={handleSettingsChange}
+                onStartTournament={handleStartTournament}
+                tournamentStarted={state.tournamentStarted}
                 readOnly={isSpectator}
+                checkIns={state.checkIns}
               />
-            )}
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="standings" className="mt-0">
-            {state.tournamentStarted &&
-              (state.settings.scoringType === "court_weighted" &&
-              state.settings.numberOfCourts > 1 ? (
-                <div className="flex flex-col gap-4">
+            <TabsContent value="schedule" className="mt-0">
+              {state.tournamentStarted && (
+                <EnhancedSchedule
+                  games={state.games}
+                  players={state.players}
+                  standings={standings}
+                  settings={state.settings}
+                  currentRound={state.currentRound}
+                  onUpdateGame={handleUpdateGame}
+                  onAddRound={handleAddRound}
+                  readOnly={isSpectator}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="standings" className="mt-0">
+              {state.tournamentStarted &&
+                (state.settings.scoringType === "court_weighted" &&
+                state.settings.numberOfCourts > 1 ? (
+                  <div className="flex flex-col gap-4">
+                    <RotatingLeaderboard
+                      players={standingsPlayers}
+                      games={state.games}
+                      scoringType={state.settings.scoringType}
+                      numberOfCourts={state.settings.numberOfCourts}
+                      previousStandings={previousStandings}
+                      showCourtAssignments
+                    />
+                    <CourtLeaderboard
+                      standings={standings}
+                      numberOfCourts={state.settings.numberOfCourts}
+                    />
+                  </div>
+                ) : (
                   <RotatingLeaderboard
-                    players={state.players}
+                    players={standingsPlayers}
                     games={state.games}
                     scoringType={state.settings.scoringType}
                     numberOfCourts={state.settings.numberOfCourts}
                     previousStandings={previousStandings}
-                    showCourtAssignments
                   />
-                  <CourtLeaderboard
-                    standings={standings}
-                    numberOfCourts={state.settings.numberOfCourts}
-                  />
-                </div>
-              ) : (
-                <RotatingLeaderboard
-                  players={state.players}
-                  games={state.games}
-                  scoringType={state.settings.scoringType}
-                  numberOfCourts={state.settings.numberOfCourts}
-                  previousStandings={previousStandings}
-                />
-              ))}
-          </TabsContent>
-        </Tabs>
+                ))}
+            </TabsContent>
+          </Tabs>
+        )}
 
         <div className="border-t border-border/40 pt-4 text-center">
           <p className="text-xs text-muted-foreground">
