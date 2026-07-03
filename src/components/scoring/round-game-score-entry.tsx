@@ -407,7 +407,7 @@ export function GameCard({
             {game.completed ? "Final" : readOnly ? "Waiting" : "Score"}
           </Badge>
           {!game.completed && (
-            <span className="hidden text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground sm:block">
+            <span className="text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground sm:hidden">
               Tap to enter
             </span>
           )}
@@ -608,9 +608,9 @@ function MultiGameScoreForm({
         {games.map((game, idx) => (
           <div
             key={game.id}
-            className="grid grid-cols-[4.5rem_1fr_auto_1fr] items-center gap-3 rounded-lg border border-border/70 bg-background/60 p-3"
+            className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 rounded-lg border border-border/70 bg-background/60 p-3 sm:gap-3"
           >
-            <div className="text-sm font-semibold text-muted-foreground">
+            <div className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
               Game {idx + 1}
             </div>
             <Input
