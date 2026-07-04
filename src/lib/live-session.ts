@@ -58,6 +58,12 @@ export function createSessionCode(seed: string): string {
   return normalizeSessionCode(`${normalized}${suffix}`).padEnd(CODE_LENGTH, "0");
 }
 
+// A real session (up to a few dozen players and a full evening of rounds)
+// serializes well under ~200KB. Cap generously so one malformed or hostile
+// POST can't park a huge blob in the shared store for 24h.
+export const MAX_SNAPSHOT_PLAYERS = 200;
+export const MAX_SNAPSHOT_GAMES = 2000;
+
 export function isLiveTournamentSnapshot(
   value: unknown
 ): value is LiveTournamentSnapshot {
@@ -69,7 +75,9 @@ export function isLiveTournamentSnapshot(
     typeof candidate.id === "string" &&
     typeof candidate.name === "string" &&
     Array.isArray(candidate.players) &&
+    candidate.players.length <= MAX_SNAPSHOT_PLAYERS &&
     Array.isArray(candidate.games) &&
+    candidate.games.length <= MAX_SNAPSHOT_GAMES &&
     typeof candidate.settings === "object" &&
     typeof candidate.currentRound === "number" &&
     typeof candidate.tournamentStarted === "boolean" &&

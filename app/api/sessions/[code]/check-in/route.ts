@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionStats } from "@/src/lib/live-session";
-import { checkInPlayer } from "@/src/lib/live-session-store";
+import { checkInPlayer, toPublicRecord } from "@/src/lib/live-session-store";
 
 export async function POST(
   request: NextRequest,
@@ -20,7 +20,7 @@ export async function POST(
       );
     }
 
-    const record = checkInPlayer(code, playerId);
+    const record = await checkInPlayer(code, playerId);
 
     if (!record) {
       console.warn(
@@ -54,7 +54,7 @@ export async function POST(
       })
     );
 
-    return NextResponse.json(record);
+    return NextResponse.json(toPublicRecord(record));
   } catch (error) {
     console.error(
       JSON.stringify({
