@@ -65,6 +65,12 @@ interface EnhancedPlayerSetupProps {
   tournamentStarted: boolean;
   readOnly?: boolean;
   checkIns?: Record<string, PlayerCheckIn>;
+  /**
+   * Players who already appear in completed games. They can't be removed
+   * mid-session (their scores are baked into other players' standings), so the
+   * roster editor hides their remove control.
+   */
+  lockedPlayerIds?: ReadonlySet<string>;
 }
 
 type SessionMode = "rotating" | "fixed";
@@ -191,10 +197,13 @@ function TeamRow({
   team,
   checkIns,
   onRemove,
+  locked = false,
 }: {
   team: RosterTeam;
   checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
+  /** Team has already played completed games — can't be removed mid-session. */
+  locked?: boolean;
 }) {
   const isCheckedIn =
     team.player1.id in checkIns && team.player2.id in checkIns;
@@ -215,6 +224,7 @@ function TeamRow({
               Checked in
             </Badge>
           )}
+          {locked && <Badge variant="outline">In play</Badge>}
         </div>
         <p className="mt-2 truncate text-sm font-medium">
           {team.player1.name} &amp; {team.player2.name}
@@ -240,10 +250,13 @@ function PlayerRow({
   player,
   checkIns,
   onRemove,
+  locked = false,
 }: {
   player: LocalPlayer;
   checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
+  /** Player has already played completed games — can't be removed mid-session. */
+  locked?: boolean;
 }) {
   const duprPlayer = player as DuprPlayer;
   const hasDupr = !!duprPlayer.duprId || !!duprPlayer.duprRating;
@@ -264,6 +277,7 @@ function PlayerRow({
           <CheckCircle2 className="size-4 shrink-0 text-success" />
         )}
         <span className="truncate text-sm font-medium">{player.name}</span>
+        {locked && <Badge variant="outline">In play</Badge>}
       </span>
       {onRemove && (
         <Button
@@ -294,46 +308,52 @@ function cleanRosterName(raw: string): string {
     .trim();
 }
 
-const TEAM_SEPARATOR = /\s*(?:&|\+|\/|,| and |\bvs?\b|\bwith\b)\s*/i;
-
-function splitPlayerNames(value: string): string[] {
-  return value
-    .split(/[\n,;]+/)
-    .map(cleanRosterName)
-    .filter(Boolean);
-}
+// Two names on one entry joined by "&", "and", "+", "/", "vs", or "with" is a
+// team. A comma is NOT a team joiner — it separates people, like a newline.
+const TEAM_SEPARATOR = /\s*(?:&|\+|\/| and |\bvs?\b|\bwith\b)\s*/i;
 
 /**
- * Parse a pasted roster into teams. Each non-empty line is one team; the two
- * names are split on "&", "+", "/", ",", "and", "with", "vs". A line with a
- * single name is returned as an unpaired name so the caller can pool it.
+ * Read a pasted roster. Entries are separated by line breaks, commas, or
+ * semicolons. An entry with two names joined by a team separator ("Emily &
+ * Gino") is a team; a lone name ("Emily") is an individual. Works the same
+ * regardless of format, so pasting teams always pairs them and pasting plain
+ * names always keeps them individual.
  */
-function parseTeamRoster(value: string): {
+function parseRoster(value: string): {
   teams: Array<[string, string]>;
-  unpaired: string[];
+  singles: string[];
 } {
-  const rows = value
-    .split(/\n+/)
-    .map((row) => row.trim())
+  const entries = value
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
     .filter(Boolean);
   const teams: Array<[string, string]> = [];
-  const unpaired: string[] = [];
+  const singles: string[] = [];
 
-  for (const row of rows) {
-    const names = row
+  for (const entry of entries) {
+    const names = entry
       .split(TEAM_SEPARATOR)
       .map(cleanRosterName)
       .filter(Boolean);
 
     if (names.length >= 2) {
+      // Two names pair into a team. If a malformed entry has more ("Ana & Ben
+      // & Cara"), keep the first two as the team and add the rest as
+      // individuals rather than silently dropping them.
       teams.push([names[0], names[1]]);
+      for (const extra of names.slice(2)) {
+        singles.push(extra);
+      }
     } else if (names.length === 1) {
-      unpaired.push(names[0]);
+      singles.push(names[0]);
     }
   }
 
-  return { teams, unpaired };
+  return { teams, singles };
 }
+
+// Stable identity so the default prop value doesn't churn renders.
+const EMPTY_LOCKED_IDS: ReadonlySet<string> = new Set();
 
 function buildLocalPlayer(name: string): LocalPlayer {
   return { id: generateId(), name };
@@ -537,6 +557,7 @@ export function EnhancedPlayerSetup({
   tournamentStarted,
   readOnly = false,
   checkIns = {},
+  lockedPlayerIds = EMPTY_LOCKED_IDS,
 }: EnhancedPlayerSetupProps) {
   const reduceMotion = useReducedMotion();
   const [wizardStep, setWizardStep] = useState<WizardStep>(1);
@@ -550,6 +571,8 @@ export function EnhancedPlayerSetup({
   );
   const [stepDirection, setStepDirection] = useState(1);
   const [newPlayerName, setNewPlayerName] = useState("");
+  // Organizer editing the roster after the session has started.
+  const [isEditingRoster, setIsEditingRoster] = useState(false);
   // Set-partner pairing: the pool player tapped first, awaiting a partner tap.
   const [pendingPartnerId, setPendingPartnerId] = useState<string | null>(null);
   const [bulkNames, setBulkNames] = useState("");
@@ -567,13 +590,26 @@ export function EnhancedPlayerSetup({
   const [availableCourtCount, setAvailableCourtCount] = useState(() =>
     Math.min(MAX_SETUP_COURTS, Math.max(1, settings.numberOfCourts))
   );
-  const [hasEditedCourtCount, setHasEditedCourtCount] = useState(false);
+  // Reconstruct the "deliberate cap" flag on mount: a saved session whose court
+  // count sits below what its roster could fill was capped on purpose, so a
+  // reload (which resets this local state) must not treat it as auto and grow
+  // it when a late player is added.
+  const [hasEditedCourtCount, setHasEditedCourtCount] = useState(
+    () =>
+      settings.numberOfCourts <
+      getMaxUsableCourts(Math.max(4, players.length))
+  );
 
   const formatDefinition = FORMAT_DEFINITIONS[settings.format];
   const isFixedPartners = settings.partnerMode === "fixed";
   const sessionMode: SessionMode = isFixedPartners ? "fixed" : "rotating";
   const hasDuprConfig = !!DUPR_CONFIG.clientKey;
-  const playerControlsDisabled = tournamentStarted || readOnly;
+  // The organizer can reopen the roster mid-session to fix a name, add a late
+  // arrival, or drop a no-show; those edits apply to upcoming rounds.
+  const canEditRoster = tournamentStarted && !readOnly;
+  const playerControlsDisabled =
+    readOnly || (tournamentStarted && !isEditingRoster);
+  // Format stays locked once play starts — changing it mid-session is unsafe.
   const formatControlsDisabled = tournamentStarted || readOnly;
   const isWizard = !tournamentStarted && !readOnly;
   const { teams: fixedTeams, pool: unpairedPool } = useMemo(
@@ -740,7 +776,11 @@ export function EnhancedPlayerSetup({
       Math.max(1, selectedCourtCount + delta)
     );
 
-    setHasEditedCourtCount(true);
+    // Only a court count BELOW what the roster can fill is a deliberate cap
+    // (e.g. fewer physical courts). Sitting at the ceiling stays "auto", so
+    // adding more players later still grows the courts instead of freezing
+    // at a value that was only capped by an earlier, smaller roster.
+    setHasEditedCourtCount(nextCourtCount < maxSelectableCourts);
     setAvailableCourtCount(nextCourtCount);
     updateCourtCount(nextCourtCount);
   };
@@ -786,7 +826,8 @@ export function EnhancedPlayerSetup({
         nextSettings.numberOfCourts
       );
 
-      setHasEditedCourtCount(true);
+      // Same rule as the stepper: only a below-ceiling choice is a manual cap.
+      setHasEditedCourtCount(nextCourtCount < maxSelectableCourts);
       setAvailableCourtCount(nextCourtCount);
     }
 
@@ -839,32 +880,27 @@ export function EnhancedPlayerSetup({
   const addBulkEntries = () => {
     if (playerControlsDisabled || !bulkNames.trim()) return;
 
-    if (isFixedPartners) {
-      // Each pasted line is a team ("Emily & Gino"); a lone name pools.
-      const { teams, unpaired } = parseTeamRoster(bulkNames);
-      if (teams.length === 0 && unpaired.length === 0) return;
+    // Detect teams from the paste regardless of format: an entry like
+    // "Emily & Gino" becomes a linked pair, a lone name becomes an individual.
+    // In rotating play the pairing link is simply ignored.
+    const { teams, singles } = parseRoster(bulkNames);
+    if (teams.length === 0 && singles.length === 0) return;
 
-      const linkedTeams = teams.flatMap(([playerName, partnerName]) => {
-        const p1 = buildLocalPlayer(playerName);
-        const p2 = buildLocalPlayer(partnerName);
-        p1.partnerId = p2.id;
-        p2.partnerId = p1.id;
-        return [p1, p2];
-      });
+    const linkedTeams = teams.flatMap(([playerName, partnerName]) => {
+      const p1 = buildLocalPlayer(playerName);
+      const p2 = buildLocalPlayer(partnerName);
+      p1.partnerId = p2.id;
+      p2.partnerId = p1.id;
+      return [p1, p2];
+    });
 
-      updatePlayers(
-        orderRosterByPairing([
-          ...players,
-          ...linkedTeams,
-          ...unpaired.map(buildLocalPlayer),
-        ])
-      );
-    } else {
-      const names = splitPlayerNames(bulkNames);
-      if (names.length === 0) return;
-
-      updatePlayers([...players, ...names.map(buildLocalPlayer)]);
-    }
+    updatePlayers(
+      orderRosterByPairing([
+        ...players,
+        ...linkedTeams,
+        ...singles.map(buildLocalPlayer),
+      ])
+    );
 
     setBulkNames("");
     setShowBulkEntry(false);
@@ -909,6 +945,9 @@ export function EnhancedPlayerSetup({
 
   const removePlayer = (id: string) => {
     if (playerControlsDisabled) return;
+    // A player with completed games can't leave: their scores are already part
+    // of everyone else's standings, so dropping them would strand those games.
+    if (lockedPlayerIds.has(id)) return;
 
     // A stale "already added" error no longer applies once the roster changes.
     setDuplicatePlayerError(null);
@@ -930,6 +969,9 @@ export function EnhancedPlayerSetup({
   // Break up a team: both players lose their partnerId and return to the pool.
   const unpairTeam = (firstId: string, secondId: string) => {
     if (playerControlsDisabled) return;
+    // Keep teams that have already played intact — re-pairing mid-session would
+    // rewrite the partnerships their completed games were recorded under.
+    if (lockedPlayerIds.has(firstId) || lockedPlayerIds.has(secondId)) return;
 
     updatePlayers(
       orderRosterByPairing(
@@ -1047,14 +1089,24 @@ export function EnhancedPlayerSetup({
         </div>
         {fixedTeams.length > 0 ? (
           <div className="grid gap-2">
-            {fixedTeams.map((team) => (
-              <TeamRow
-                key={team.player1.id}
-                team={team}
-                checkIns={checkIns}
-                onRemove={() => unpairTeam(team.player1.id, team.player2.id)}
-              />
-            ))}
+            {fixedTeams.map((team) => {
+              const teamLocked =
+                lockedPlayerIds.has(team.player1.id) ||
+                lockedPlayerIds.has(team.player2.id);
+              return (
+                <TeamRow
+                  key={team.player1.id}
+                  team={team}
+                  checkIns={checkIns}
+                  locked={teamLocked}
+                  onRemove={
+                    teamLocked
+                      ? undefined
+                      : () => unpairTeam(team.player1.id, team.player2.id)
+                  }
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground">
@@ -1283,15 +1335,23 @@ export function EnhancedPlayerSetup({
                 </p>
               </div>
               <ul className="flex flex-col gap-2">
-                {players.map((player) => (
-                  <li key={player.id}>
-                    <PlayerRow
-                      player={player}
-                      checkIns={checkIns}
-                      onRemove={() => removePlayer(player.id)}
-                    />
-                  </li>
-                ))}
+                {players.map((player) => {
+                  const playerLocked = lockedPlayerIds.has(player.id);
+                  return (
+                    <li key={player.id}>
+                      <PlayerRow
+                        player={player}
+                        checkIns={checkIns}
+                        locked={playerLocked}
+                        onRemove={
+                          playerLocked
+                            ? undefined
+                            : () => removePlayer(player.id)
+                        }
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -1512,6 +1572,41 @@ export function EnhancedPlayerSetup({
     </>
   );
 
+  if (canEditRoster && isEditingRoster) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="premium-panel flex items-center justify-between gap-3 rounded-lg p-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-semibold tracking-tight">
+              Edit players
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Changes apply to upcoming rounds. Games already played keep their
+              scores.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => {
+              setPendingPartnerId(null);
+              setIsEditingRoster(false);
+            }}
+            className="shrink-0"
+          >
+            <CheckCircle2 data-icon="inline-start" />
+            Done
+          </Button>
+        </div>
+        {stepOne}
+        <DuprLogin
+          open={showDuprLogin}
+          onClose={() => setShowDuprLogin(false)}
+          onLoginSuccess={addDuprPlayer}
+        />
+      </div>
+    );
+  }
+
   if (!isWizard) {
     return (
       <div className="flex flex-col gap-3 sm:gap-4">
@@ -1536,6 +1631,17 @@ export function EnhancedPlayerSetup({
                   ? "Open Matches to follow live scores and round status."
                   : "Go to Matches to enter scores or add more rounds."}
               </p>
+              {canEditRoster && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditingRoster(true)}
+                  className="mt-4"
+                >
+                  <UserPlus data-icon="inline-start" />
+                  Edit players
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
