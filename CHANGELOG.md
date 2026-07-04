@@ -3,6 +3,27 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.6] - 2026-07-04
+
+Standings lead with point margin, the round preview reads cleaner, and you can
+rename players or hand the bye to a specific team.
+
+### Changed
+- Standings now show point margin as the big number, colored green or red, so
+  you can tell teams apart when everyone is on the same win rate. Win rate
+  moves to the record line. Court-weighted formats still lead with court points.
+- The top three now get trophy, medal, and award icons instead of plain
+  numbers.
+- The round preview matchup cards stack the two team names on the left with a
+  compact "vs" tag, instead of floating "vs" in the middle of a wide card.
+
+### Added
+- Rename a player any time by tapping their name — even after they've played
+  (a rename keeps their scores, since it's the same person).
+- Hand the bye to a specific team: in the round preview, "Change who sits" lets
+  you pick which team sits out (e.g. when a team asks to rest), and the team
+  that was sitting steps into the court they vacated.
+
 ## [0.4.5] - 2026-07-04
 
 Three setup fixes: pasted team lists always pair, the court count you pick is
