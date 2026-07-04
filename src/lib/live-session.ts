@@ -1,12 +1,6 @@
 import type { LocalPlayer, LocalRoundGame } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 
-export interface PlayerCheckIn {
-  playerId: string;
-  playerName: string;
-  checkedInAt: string;
-}
-
 export interface LiveTournamentSnapshot {
   id: string;
   name: string;
@@ -15,7 +9,6 @@ export interface LiveTournamentSnapshot {
   settings: EventSettings;
   currentRound: number;
   tournamentStarted: boolean;
-  checkIns?: Record<string, PlayerCheckIn>;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,7 +26,6 @@ export interface SessionStats {
   completionPercent: number;
   currentRoundGames: number;
   currentRoundCompleted: number;
-  checkedInPlayers: number;
   totalPlayers: number;
   statusLabel: string;
 }
@@ -94,7 +86,6 @@ export function getSessionStats(snapshot: LiveTournamentSnapshot): SessionStats 
   const currentRoundCompleted = currentRoundGames.filter(
     (game) => game.completed
   ).length;
-  const checkedInPlayers = Object.keys(snapshot.checkIns ?? {}).length;
   const totalPlayers = snapshot.players.length;
   const completionPercent =
     totalGames > 0 ? Math.round((completedGames / totalGames) * 100) : 0;
@@ -119,7 +110,6 @@ export function getSessionStats(snapshot: LiveTournamentSnapshot): SessionStats 
     completionPercent,
     currentRoundGames: currentRoundGames.length,
     currentRoundCompleted,
-    checkedInPlayers,
     totalPlayers,
     statusLabel,
   };

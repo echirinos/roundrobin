@@ -5,7 +5,6 @@ import {
   normalizeSessionCode,
   type LiveSessionRecord,
   type LiveTournamentSnapshot,
-  type PlayerCheckIn,
 } from "@/src/lib/live-session";
 
 /**
@@ -155,24 +154,23 @@ export async function upsertLiveSession(
   const organizerToken =
     existing?.organizerToken ?? cleanToken ?? crypto.randomUUID();
 
-  const validPlayerIds = new Set(snapshot.players.map((player) => player.id));
-  const mergedCheckIns = {
-    ...(existing?.snapshot.checkIns ?? {}),
-    ...(snapshot.checkIns ?? {}),
-  };
-  const filteredCheckIns = Object.fromEntries(
-    Object.entries(mergedCheckIns).filter(([playerId]) =>
-      validPlayerIds.has(playerId)
-    )
-  );
   const record: StoredLiveSessionRecord = {
     code,
     organizerToken,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    // Store only known fields. Old clients (mid-deploy) may still send a
+    // now-removed `checkIns`; validation tolerates extras, so strip them
+    // explicitly instead of persisting and echoing dead data.
     snapshot: {
-      ...snapshot,
-      checkIns: filteredCheckIns,
+      id: snapshot.id,
+      name: snapshot.name,
+      players: snapshot.players,
+      games: snapshot.games,
+      settings: snapshot.settings,
+      currentRound: snapshot.currentRound,
+      tournamentStarted: snapshot.tournamentStarted,
+      createdAt: snapshot.createdAt,
       updatedAt: now,
     },
   };
@@ -192,47 +190,4 @@ export async function getLiveSession(
   }
 
   return readRecord(normalizedCode);
-}
-
-export async function checkInPlayer(
-  code: string,
-  playerId: string
-): Promise<StoredLiveSessionRecord | null> {
-  const normalizedCode = normalizeSessionCode(code);
-  const existing = normalizedCode ? await readRecord(normalizedCode) : null;
-
-  if (!existing) {
-    return null;
-  }
-
-  const player = existing.snapshot.players.find(
-    (candidate) => candidate.id === playerId
-  );
-
-  if (!player) {
-    return null;
-  }
-
-  const now = new Date().toISOString();
-  const checkIn: PlayerCheckIn = {
-    playerId: player.id,
-    playerName: player.name,
-    checkedInAt: now,
-  };
-  const record: StoredLiveSessionRecord = {
-    ...existing,
-    updatedAt: now,
-    snapshot: {
-      ...existing.snapshot,
-      checkIns: {
-        ...(existing.snapshot.checkIns ?? {}),
-        [player.id]: checkIn,
-      },
-      updatedAt: now,
-    },
-  };
-
-  await writeRecord(record);
-
-  return record;
 }

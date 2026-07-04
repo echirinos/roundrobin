@@ -3,6 +3,18 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.7] - 2026-07-04
+
+Simpler for guests: no check-in. Spectators just open the link and watch.
+
+### Removed
+- Player check-in is gone. Spectators no longer tap their name to "check in" —
+  opening the share link (or scanning the QR) shows the live schedule, scores,
+  and standings straight away, read-only. This drops the check-in prompt, the
+  personalized "you're up" card, the "checked in" badges and count, and the
+  check-in API endpoint. Running a session is one less thing for everyone to
+  do.
+
 ## [0.4.6] - 2026-07-04
 
 Standings lead with point margin, the round preview reads cleaner, and you can

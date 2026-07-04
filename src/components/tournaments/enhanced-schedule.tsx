@@ -6,7 +6,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import { RoundGameScoreEntry, RoundGamesList } from "@/src/components/scoring/round-game-score-entry";
-import { YouAreUpCard } from "@/src/components/scoring/you-are-up-card";
 import { RoundManager } from "./round-manager";
 import { getDefaultCourtWeights } from "@/src/lib/formats/scoring";
 import { Eye } from "lucide-react";
@@ -33,8 +32,6 @@ interface EnhancedScheduleProps {
   onAddRound: (newGames: LocalRoundGame[]) => void;
   onRemoveRound?: (roundNumber: number) => void;
   readOnly?: boolean;
-  /** Checked-in player: pins a personalized "you're up" card above the rounds. */
-  highlightPlayerId?: string | null;
 }
 
 export function EnhancedSchedule({
@@ -47,7 +44,6 @@ export function EnhancedSchedule({
   onAddRound,
   onRemoveRound,
   readOnly = false,
-  highlightPlayerId = null,
 }: EnhancedScheduleProps) {
   const [selectedGame, setSelectedGame] = useState<LocalRoundGame | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -143,15 +139,6 @@ export function EnhancedSchedule({
           <span className="data-chip">{settings.numberOfCourts} courts</span>
         </div>
       </div>
-
-      {highlightPlayerId && (
-        <YouAreUpCard
-          playerId={highlightPlayerId}
-          players={players}
-          games={games}
-          showMovement={isMovementFormat}
-        />
-      )}
 
       {readOnly && (
         <Alert>
