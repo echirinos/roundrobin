@@ -40,13 +40,13 @@ const softwareAppJsonLd = {
   },
   featureList: [
     "Live open play sessions",
-    "QR code check-in",
+    "QR code live scoreboard",
     "Round robin and rotating partners",
     "Automatic next game and standings",
   ],
 };
 
-const composerChips = ["QR ready", "9 checked in", "Next game posted"];
+const composerChips = ["QR ready", "Live scores", "Next game posted"];
 
 const sessionRows = [
   {
@@ -74,14 +74,14 @@ const sessionRows = [
 
 const proofPoints = [
   "No sign-up required to start",
-  "QR check-in for late arrivals",
+  "QR scoreboard anyone can follow",
   "Scores update the next game",
   "Rotating or set-team sessions",
 ];
 
 const laneEvents = [
   "QR shared",
-  "9 checked in",
+  "Players watching",
   "Score posted",
   "Next game ready",
 ];
@@ -96,9 +96,9 @@ const productProof = [
   },
   {
     kind: "join" as const,
-    label: "Join",
-    title: "Players check themselves in",
-    text: "Latecomers scan the QR and join mid-session. You never stop to take names.",
+    label: "Follow",
+    title: "Everyone follows live",
+    text: "Players scan the QR to watch live scores, standings, and who's up next — no sign-up.",
     metric: "QR",
   },
   {
@@ -113,8 +113,8 @@ const productProof = [
 const surfaceProof = [
   {
     icon: ScanLine,
-    label: "QR check-in",
-    value: "Players join themselves",
+    label: "QR scoreboard",
+    value: "Everyone sees live scores",
   },
   {
     icon: MessageCircleOff,
@@ -647,7 +647,7 @@ function LiveBoardPreview({ className }: { className?: string }) {
           <div className="phone-app-top">
             <div>
               <p>Riverside Open Play</p>
-              <span>9 checked in · 2 courts</span>
+              <span>9 players · 2 courts</span>
             </div>
             <span className="phone-live-pill">Live</span>
           </div>
@@ -687,7 +687,7 @@ function LiveBoardPreview({ className }: { className?: string }) {
           </div>
 
           <div className="phone-feed-list">
-            {["Gia checked in", "Court 1 needs a score", "Eli / Fran up next"].map(
+            {["Court 2 finished 11-7", "Court 1 needs a score", "Eli / Fran up next"].map(
               (item) => (
                 <div key={item} className="phone-feed-row">
                   <span />

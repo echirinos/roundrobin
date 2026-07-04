@@ -5,7 +5,6 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { motion } from "framer-motion";
 import {
   Activity,
-  CheckCircle2,
   Eye,
   LogIn,
   RefreshCw,

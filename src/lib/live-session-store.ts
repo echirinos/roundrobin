@@ -159,8 +159,18 @@ export async function upsertLiveSession(
     organizerToken,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    // Store only known fields. Old clients (mid-deploy) may still send a
+    // now-removed `checkIns`; validation tolerates extras, so strip them
+    // explicitly instead of persisting and echoing dead data.
     snapshot: {
-      ...snapshot,
+      id: snapshot.id,
+      name: snapshot.name,
+      players: snapshot.players,
+      games: snapshot.games,
+      settings: snapshot.settings,
+      currentRound: snapshot.currentRound,
+      tournamentStarted: snapshot.tournamentStarted,
+      createdAt: snapshot.createdAt,
       updatedAt: now,
     },
   };
