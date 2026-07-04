@@ -67,6 +67,9 @@ import { isFixedPartnerFormat } from "@/src/types/formats";
 
 const STORAGE_KEY = "playsync-tournament-v3";
 const SESSION_CODE_STORAGE_KEY = "playsync-live-session-code-v1";
+// Proof of session ownership: minted by the server on publish, required for
+// every snapshot write. Keyed by code so stale codes don't leak old tokens.
+const ORGANIZER_TOKEN_STORAGE_PREFIX = "playsync-organizer-token-v1:";
 const CHECKIN_STORAGE_PREFIX = "playsync-checkin-player-v1-";
 
 type TournamentTab = "setup" | "schedule" | "standings";
@@ -405,31 +408,66 @@ export default function TournamentPage() {
       const normalizedCode = normalizeSessionCode(requestedCode ?? sessionCode);
       setSyncStatus(normalizedCode ? "syncing" : "publishing");
 
-      try {
-        const endpoint = normalizedCode
-          ? `/api/sessions/${normalizedCode}`
-          : "/api/sessions";
-        const response = await fetch(endpoint, {
-          method: normalizedCode ? "PUT" : "POST",
+      const storedToken = normalizedCode
+        ? localStorage.getItem(
+            `${ORGANIZER_TOKEN_STORAGE_PREFIX}${normalizedCode}`
+          )
+        : null;
+      const snapshot = buildSnapshot(state);
+
+      const send = (method: "PUT" | "POST", endpoint: string) =>
+        fetch(endpoint, {
+          method,
           headers: {
             "Content-Type": "application/json",
+            ...(storedToken ? { "x-organizer-token": storedToken } : {}),
           },
           body: JSON.stringify({
             code: normalizedCode || undefined,
-            snapshot: buildSnapshot(state),
+            snapshot,
           }),
         });
+
+      try {
+        let response = normalizedCode
+          ? await send("PUT", `/api/sessions/${normalizedCode}`)
+          : await send("POST", "/api/sessions");
+
+        // A 404 means the session expired (24h TTL) or predates this deploy;
+        // a 401 means we have no token for it (same situation from the
+        // client's side). Re-create it under the same code — the server
+        // honors our stored token or mints a fresh one.
+        if (
+          normalizedCode &&
+          (response.status === 404 || response.status === 401)
+        ) {
+          response = await send("POST", "/api/sessions");
+        }
+
+        if (response.status === 403) {
+          throw new Error(
+            "This code belongs to another organizer's session. Reset to publish under a new code."
+          );
+        }
 
         if (!response.ok) {
           throw new Error("Unable to publish this live session.");
         }
 
-        const record = (await response.json()) as LiveSessionRecord;
+        const record = (await response.json()) as LiveSessionRecord & {
+          organizerToken?: string;
+        };
         setSessionCode(record.code);
         setLastSyncedAt(record.updatedAt);
         setSyncStatus("live");
         setSyncError(null);
         localStorage.setItem(SESSION_CODE_STORAGE_KEY, record.code);
+        if (record.organizerToken) {
+          localStorage.setItem(
+            `${ORGANIZER_TOKEN_STORAGE_PREFIX}${record.code}`,
+            record.organizerToken
+          );
+        }
       } catch (error) {
         setSyncStatus("error");
         setSyncError(getErrorMessage(error));
@@ -679,6 +717,9 @@ export default function TournamentPage() {
     localStorage.removeItem(STORAGE_KEY);
     if (sessionCode) {
       localStorage.removeItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`);
+      localStorage.removeItem(
+        `${ORGANIZER_TOKEN_STORAGE_PREFIX}${sessionCode}`
+      );
     }
     localStorage.removeItem(SESSION_CODE_STORAGE_KEY);
   }, [isSpectator, sessionCode]);
