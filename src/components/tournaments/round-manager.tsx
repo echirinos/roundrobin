@@ -2,9 +2,18 @@
 
 import { useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Armchair, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
@@ -33,6 +42,7 @@ interface RoundManagerProps {
   currentRound: number;
   onGenerateRound: (games: LocalRoundGame[]) => void;
   onShuffleRound?: (roundNumber: number) => void;
+  onRemoveRound?: (roundNumber: number) => void;
   disabled?: boolean;
 }
 
@@ -43,11 +53,13 @@ export function RoundManager({
   settings,
   currentRound,
   onGenerateRound,
+  onRemoveRound,
   disabled = false,
 }: RoundManagerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewGames, setPreviewGames] = useState<LocalRoundGame[] | null>(null);
   const [previewByePlayers, setPreviewByePlayers] = useState<LocalPlayer[]>([]);
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
 
   const formatDefinition = FORMAT_DEFINITIONS[settings.format];
   const isRotating = isRotatingFormat(settings.format);
@@ -134,6 +146,19 @@ export function RoundManager({
     }
   };
 
+  const currentRoundScoredCount = currentRoundGames.filter(
+    (g) => g.completed
+  ).length;
+
+  const handleConfirmUndoRound = () => {
+    setShowUndoConfirm(false);
+    // Defensive: the undo button only renders when no preview is open, but a
+    // stale preview after removal would commit games seeded from a dead round.
+    setPreviewGames(null);
+    setPreviewByePlayers([]);
+    onRemoveRound?.(currentRound);
+  };
+
   const canAddBeforeComplete = ["popcorn", "round_robin", "shuffle"].includes(
     settings.format
   );
@@ -192,6 +217,21 @@ export function RoundManager({
                 ? `Generate Round 1 (${formatDefinition.name})`
                 : `Generate Round ${currentRound + 1}`}
             </ShimmerButton>
+          )}
+
+          {!previewGames && currentRound >= 1 && onRemoveRound && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowUndoConfirm(true)}
+              disabled={disabled}
+              className="w-full text-muted-foreground hover:text-destructive"
+              data-testid="undo-round"
+            >
+              <Undo2 />
+              Undo Round {currentRound} & redraw matchups
+            </Button>
           )}
 
           {players.length < 4 && (
@@ -279,13 +319,25 @@ export function RoundManager({
               </AnimatePresence>
             </div>
 
-            {previewByePlayers.length > 0 && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">Sitting out: </span>
-                <span className="font-medium">
-                  {previewByePlayers.map((p) => p.name).join(", ")}
+            {previewByePlayers.length > 0 ? (
+              <div
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/30 p-3"
+                data-testid="preview-byes"
+              >
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Armchair className="size-4 text-muted-foreground" />
+                  Sitting out
                 </span>
+                {previewByePlayers.map((p) => (
+                  <Badge key={p.id} variant="secondary" className="max-w-full">
+                    <span className="truncate">{p.name}</span>
+                  </Badge>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Everyone plays this round — no byes.
+              </p>
             )}
 
             <div className="flex gap-2">
@@ -306,6 +358,37 @@ export function RoundManager({
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={showUndoConfirm} onOpenChange={setShowUndoConfirm}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Undo Round {currentRound}?</DialogTitle>
+            <DialogDescription>
+              {currentRoundScoredCount > 0
+                ? `Round ${currentRound}'s matchups and its ${currentRoundScoredCount} entered ${
+                    currentRoundScoredCount === 1 ? "score" : "scores"
+                  } will be deleted. Earlier rounds keep their results.`
+                : `Round ${currentRound}'s matchups will be discarded. You can generate a fresh round right after.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowUndoConfirm(false)}
+              data-testid="undo-round-cancel"
+            >
+              Keep round
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmUndoRound}
+              data-testid="undo-round-confirm"
+            >
+              Undo round
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card className="bg-card/70">
         <CardContent className="pt-4">

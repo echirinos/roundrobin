@@ -14,3 +14,5 @@ export {
   RoundGamesList,
   MultiGameScoreEntry,
 } from './round-game-score-entry';
+
+export { YouAreUpCard } from './you-are-up-card';

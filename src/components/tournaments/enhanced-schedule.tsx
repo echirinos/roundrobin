@@ -6,9 +6,22 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import { RoundGameScoreEntry, RoundGamesList } from "@/src/components/scoring/round-game-score-entry";
+import { YouAreUpCard } from "@/src/components/scoring/you-are-up-card";
 import { RoundManager } from "./round-manager";
 import { getDefaultCourtWeights } from "@/src/lib/formats/scoring";
 import { Eye } from "lucide-react";
+
+// Explicit allowlist of formats whose generators really move players between
+// courts by results. Deriving this from seedingMethod is wrong on both edges:
+// cream_crop's early sorting rounds are random, and formats without a wired
+// generator (e.g. swiss) fall back to random matchups.
+const MOVEMENT_FORMATS = new Set([
+  "gauntlet",
+  "team_gauntlet",
+  "king_of_court",
+  "up_down_river",
+  "claim_throne",
+]);
 
 interface EnhancedScheduleProps {
   games: LocalRoundGame[];
@@ -18,7 +31,10 @@ interface EnhancedScheduleProps {
   currentRound: number;
   onUpdateGame: (gameId: string, team1Score: number, team2Score: number) => void;
   onAddRound: (newGames: LocalRoundGame[]) => void;
+  onRemoveRound?: (roundNumber: number) => void;
   readOnly?: boolean;
+  /** Checked-in player: pins a personalized "you're up" card above the rounds. */
+  highlightPlayerId?: string | null;
 }
 
 export function EnhancedSchedule({
@@ -29,7 +45,9 @@ export function EnhancedSchedule({
   currentRound,
   onUpdateGame,
   onAddRound,
+  onRemoveRound,
   readOnly = false,
+  highlightPlayerId = null,
 }: EnhancedScheduleProps) {
   const [selectedGame, setSelectedGame] = useState<LocalRoundGame | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -54,6 +72,26 @@ export function EnhancedSchedule({
   const rounds = Object.keys(gamesByRound)
     .map(Number)
     .sort((a, b) => b - a); // Descending order (newest first)
+
+  const isMovementFormat = MOVEMENT_FORMATS.has(settings.format);
+
+  // playerId -> court per round, so round N can show movement vs round N-1.
+  const courtsByRound = useMemo(() => {
+    const byRound = new Map<number, Map<string, number>>();
+    if (!isMovementFormat) return byRound;
+
+    for (const game of games) {
+      let courts = byRound.get(game.round);
+      if (!courts) {
+        courts = new Map<string, number>();
+        byRound.set(game.round, courts);
+      }
+      for (const player of [...game.team1, ...game.team2]) {
+        courts.set(player.id, game.courtNumber);
+      }
+    }
+    return byRound;
+  }, [games, isMovementFormat]);
 
   // Get bye players for each round
   const getByePlayersForRound = (roundNumber: number): LocalPlayer[] => {
@@ -106,6 +144,15 @@ export function EnhancedSchedule({
         </div>
       </div>
 
+      {highlightPlayerId && (
+        <YouAreUpCard
+          playerId={highlightPlayerId}
+          players={players}
+          games={games}
+          showMovement={isMovementFormat}
+        />
+      )}
+
       {readOnly && (
         <Alert>
           <Eye />
@@ -126,6 +173,7 @@ export function EnhancedSchedule({
           settings={settings}
           currentRound={currentRound}
           onGenerateRound={handleGenerateRound}
+          onRemoveRound={onRemoveRound}
         />
       )}
 
@@ -139,6 +187,7 @@ export function EnhancedSchedule({
           byePlayers={getByePlayersForRound(roundNumber)}
           onScoreClick={handleGameClick}
           readOnly={readOnly}
+          previousRoundCourts={courtsByRound.get(roundNumber - 1)}
         />
       ))}
 
