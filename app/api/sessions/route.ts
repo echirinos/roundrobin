@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
         requestId: request.headers.get("x-vercel-id"),
         ms: Date.now() - start,
         playerCount: stats.totalPlayers,
-        checkedInPlayers: stats.checkedInPlayers,
         gameCount: stats.totalGames,
         completedGames: stats.completedGames,
         format: snapshot.settings.format,

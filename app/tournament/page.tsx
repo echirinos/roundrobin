@@ -11,7 +11,6 @@ import {
   RefreshCw,
   RotateCcw,
   Trophy,
-  UserCheck,
   Users,
   Wifi,
   WifiOff,
@@ -61,7 +60,6 @@ import {
   normalizeSessionCode,
   type LiveSessionRecord,
   type LiveTournamentSnapshot,
-  type PlayerCheckIn,
 } from "@/src/lib/live-session";
 import { isFixedPartnerFormat } from "@/src/types/formats";
 
@@ -70,7 +68,6 @@ const SESSION_CODE_STORAGE_KEY = "playsync-live-session-code-v1";
 // Proof of session ownership: minted by the server on publish, required for
 // every snapshot write. Keyed by code so stale codes don't leak old tokens.
 const ORGANIZER_TOKEN_STORAGE_PREFIX = "playsync-organizer-token-v1:";
-const CHECKIN_STORAGE_PREFIX = "playsync-checkin-player-v1-";
 
 type TournamentTab = "setup" | "schedule" | "standings";
 
@@ -82,7 +79,6 @@ interface TournamentState {
   settings: EventSettings;
   currentRound: number;
   tournamentStarted: boolean;
-  checkIns: Record<string, PlayerCheckIn>;
   createdAt: string;
 }
 
@@ -94,14 +90,12 @@ const createInitialState = (): TournamentState => ({
   settings: createDefaultEventSettings("popcorn"),
   currentRound: 0,
   tournamentStarted: false,
-  checkIns: {},
   createdAt: new Date().toISOString(),
 });
 
 function buildSnapshot(state: TournamentState): LiveTournamentSnapshot {
   return {
     ...state,
-    checkIns: state.checkIns ?? {},
     updatedAt: new Date().toISOString(),
   };
 }
@@ -119,7 +113,6 @@ function stateFromSnapshot(snapshot: LiveTournamentSnapshot): TournamentState {
   return {
     ...snapshot,
     settings: normalizeSettings(snapshot.settings),
-    checkIns: snapshot.checkIns ?? {},
   };
 }
 
@@ -204,7 +197,6 @@ export default function TournamentPage() {
   const [syncStatus, setSyncStatus] = useState<LiveSyncStatus>("local");
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-  const [checkedInPlayerId, setCheckedInPlayerId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   // Bumped on reset so EnhancedPlayerSetup remounts and drops its lazy state.
   const [setupEpoch, setSetupEpoch] = useState(0);
@@ -357,7 +349,6 @@ export default function TournamentPage() {
           setState({
             ...parsed,
             settings: normalizeSettings(parsed.settings),
-            checkIns: parsed.checkIns ?? {},
           });
           setActiveTab(parsed.tournamentStarted ? "schedule" : "setup");
         } catch (error) {
@@ -393,13 +384,6 @@ export default function TournamentPage() {
     }
   }, [state, isLoaded, isSpectator]);
 
-  useEffect(() => {
-    if (!isLoaded || !sessionCode) return;
-
-    setCheckedInPlayerId(
-      localStorage.getItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`)
-    );
-  }, [isLoaded, sessionCode]);
 
   const publishSession = useCallback(
     async (requestedCode?: string | null) => {
@@ -498,35 +482,6 @@ export default function TournamentPage() {
     return () => window.clearInterval(interval);
   }, [fetchLiveSession, isLoaded, isSpectator, sessionCode]);
 
-  // Organizers poll too so player check-ins appear without a page refresh.
-  useEffect(() => {
-    if (!isLoaded || isSpectator || !sessionCode) return;
-
-    const interval = window.setInterval(async () => {
-      try {
-        const response = await fetch(`/api/sessions/${sessionCode}`, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) return;
-
-        const record = (await response.json()) as LiveSessionRecord;
-        setLastSyncedAt(record.updatedAt);
-        setState((prev) => ({
-          ...prev,
-          checkIns: {
-            ...(prev.checkIns ?? {}),
-            ...(record.snapshot.checkIns ?? {}),
-          },
-        }));
-      } catch (error) {
-        console.error("Failed to refresh live check-ins:", error);
-      }
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, [isLoaded, isSpectator, sessionCode]);
-
   const courtWeights = useMemo(
     () => getDefaultCourtWeights(state.settings.numberOfCourts),
     [state.settings.numberOfCourts]
@@ -557,16 +512,10 @@ export default function TournamentPage() {
   const handlePlayersChange = useCallback(
     (players: LocalPlayer[]) => {
       if (isSpectator) return;
-      const playerIds = new Set(players.map((player) => player.id));
 
       setState((prev) => ({
         ...prev,
         players,
-        checkIns: Object.fromEntries(
-          Object.entries(prev.checkIns ?? {}).filter(([playerId]) =>
-            playerIds.has(playerId)
-          )
-        ),
       }));
     },
     [isSpectator]
@@ -611,40 +560,6 @@ export default function TournamentPage() {
       console.error("Failed to generate first round:", error);
     }
   }, [isSpectator, state.players, state.settings]);
-
-  const handleCheckIn = useCallback(
-    async (playerId: string) => {
-      if (!sessionCode) return;
-
-      setSyncStatus("syncing");
-
-      try {
-        const response = await fetch(`/api/sessions/${sessionCode}/check-in`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ playerId }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to check in for this session.");
-        }
-
-        const record = (await response.json()) as LiveSessionRecord;
-        setState(stateFromSnapshot(record.snapshot));
-        setLastSyncedAt(record.updatedAt);
-        setSyncStatus("live");
-        setSyncError(null);
-        setCheckedInPlayerId(playerId);
-        localStorage.setItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`, playerId);
-      } catch (error) {
-        setSyncStatus("error");
-        setSyncError(getErrorMessage(error));
-      }
-    },
-    [sessionCode]
-  );
 
   const handleUpdateGame = useCallback(
     (gameId: string, team1Score: number, team2Score: number) => {
@@ -729,7 +644,6 @@ export default function TournamentPage() {
     setSetupEpoch((epoch) => epoch + 1);
     localStorage.removeItem(STORAGE_KEY);
     if (sessionCode) {
-      localStorage.removeItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`);
       localStorage.removeItem(
         `${ORGANIZER_TOKEN_STORAGE_PREFIX}${sessionCode}`
       );
@@ -785,21 +699,12 @@ export default function TournamentPage() {
     isSpectator ||
     Boolean(sessionCode) ||
     Boolean(syncError);
-  const checkedInPlayer = state.players.find(
-    (player) => player.id === checkedInPlayerId
-  );
   const statCards = [
     {
       label: "Players",
       value: state.players.length,
       icon: Users,
       tone: "text-primary",
-    },
-    {
-      label: "Checked",
-      value: sessionStats.checkedInPlayers,
-      icon: UserCheck,
-      tone: "text-live",
     },
     {
       label: "Round",
@@ -1008,7 +913,7 @@ export default function TournamentPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[30rem]">
+                <div className="grid grid-cols-3 gap-2 lg:w-[24rem]">
                   {statCards.map((item, index) => {
                     const StatIcon = item.icon;
 
@@ -1059,50 +964,6 @@ export default function TournamentPage() {
               </div>
 
               {!isSpectator && !state.tournamentStarted && joinSessionForm}
-
-              {isSpectator && sessionCode && state.players.length > 0 && (
-                <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/60 p-3 shadow-sm backdrop-blur">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h2 className="font-display text-sm font-semibold">
-                        Check in
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        {checkedInPlayer
-                          ? `You are checked in as ${checkedInPlayer.name}.`
-                          : "Tap your name so the organizer knows who is here."}
-                      </p>
-                    </div>
-                    <Badge variant="outline">
-                      {sessionStats.checkedInPlayers}/{sessionStats.totalPlayers}
-                    </Badge>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {state.players.map((player) => {
-                      const isCheckedIn = Boolean(state.checkIns[player.id]);
-                      const isThisDevice = checkedInPlayerId === player.id;
-
-                      return (
-                        <Button
-                          key={player.id}
-                          type="button"
-                          variant={isThisDevice ? "default" : "outline"}
-                          className="h-auto justify-start py-3 text-left"
-                          onClick={() => void handleCheckIn(player.id)}
-                        >
-                          {isCheckedIn && <CheckCircle2 data-icon="inline-start" />}
-                          <span className="min-w-0 truncate">{player.name}</span>
-                          {isCheckedIn && !isThisDevice && (
-                            <span className="ml-auto text-xs text-muted-foreground">
-                              Here
-                            </span>
-                          )}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {syncError && (
                 <Alert variant="destructive">
@@ -1165,7 +1026,6 @@ export default function TournamentPage() {
                 onStartTournament={handleStartTournament}
                 tournamentStarted={state.tournamentStarted}
                 readOnly={isSpectator}
-                checkIns={state.checkIns}
                 lockedPlayerIds={lockedPlayerIds}
               />
             </TabsContent>
@@ -1182,7 +1042,6 @@ export default function TournamentPage() {
                   onAddRound={handleAddRound}
                   onRemoveRound={handleRemoveRound}
                   readOnly={isSpectator}
-                  highlightPlayerId={checkedInPlayerId}
                 />
               )}
             </TabsContent>

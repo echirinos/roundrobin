@@ -62,7 +62,6 @@ export async function PUT(
         requestId: request.headers.get("x-vercel-id"),
         ms: Date.now() - start,
         playerCount: stats.totalPlayers,
-        checkedInPlayers: stats.checkedInPlayers,
         gameCount: stats.totalGames,
         completedGames: stats.completedGames,
         currentRound: snapshot.currentRound,

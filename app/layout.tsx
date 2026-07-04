@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   applicationName: "PlaySync",
   title: "Pickleball Open Play & Round Robin App | PlaySync",
   description:
-    "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
+    "Run pickleball open play & round robins from one link. Players scan a QR to follow live scores and standings, the next game posts itself, and rotations stay fair. No app to install, no group texts.",
   alternates: {
     canonical: "/",
   },
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "PlaySync - Play more. Organize less.",
     description:
-      "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
+      "Run pickleball open play & round robins from one link. Players scan a QR to follow live scores and standings, the next game posts itself, and rotations stay fair. No app to install, no group texts.",
     images: [
       {
         url: "/og-image.png",
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PlaySync - Play more. Organize less.",
     description:
-      "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
+      "Run pickleball open play & round robins from one link. Players scan a QR to follow live scores and standings, the next game posts itself, and rotations stay fair. No app to install, no group texts.",
     images: ["/og-image.png"],
   },
 };

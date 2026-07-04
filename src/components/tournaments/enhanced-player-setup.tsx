@@ -48,7 +48,6 @@ import {
   FORMAT_DEFINITIONS,
   createDefaultEventSettings,
 } from "@/src/types/formats";
-import type { PlayerCheckIn } from "@/src/lib/live-session";
 import { generateId } from "@/src/lib/formats/rotating-generators";
 import { FormatSettingsForm } from "./format-settings-form";
 import { DuprLogin, DuprPlayerCard } from "@/src/components/dupr/dupr-login";
@@ -66,7 +65,6 @@ interface EnhancedPlayerSetupProps {
   onStartTournament: () => void;
   tournamentStarted: boolean;
   readOnly?: boolean;
-  checkIns?: Record<string, PlayerCheckIn>;
   /**
    * Players who already appear in completed games. They can't be removed
    * mid-session (their scores are baked into other players' standings), so the
@@ -276,21 +274,16 @@ type RosterTeam = ReturnType<typeof derivePairing>["teams"][number];
 
 function TeamRow({
   team,
-  checkIns,
   onRemove,
   onRenamePlayer,
   locked = false,
 }: {
   team: RosterTeam;
-  checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
   onRenamePlayer?: (playerId: string, next: string) => void;
   /** Team has already played completed games — can't be removed mid-session. */
   locked?: boolean;
 }) {
-  const isCheckedIn =
-    team.player1.id in checkIns && team.player2.id in checkIns;
-
   return (
     <div
       className={cn(
@@ -301,12 +294,6 @@ function TeamRow({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">Team {team.index + 1}</Badge>
-          {isCheckedIn && (
-            <Badge variant="outline">
-              <CheckCircle2 className="size-3" />
-              Checked in
-            </Badge>
-          )}
           {locked && <Badge variant="outline">In play</Badge>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-1 text-sm font-medium">
@@ -347,13 +334,11 @@ function TeamRow({
 
 function PlayerRow({
   player,
-  checkIns,
   onRemove,
   onRename,
   locked = false,
 }: {
   player: LocalPlayer;
-  checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
   onRename?: (next: string) => void;
   /** Player has already played completed games — can't be removed mid-session. */
@@ -374,9 +359,6 @@ function PlayerRow({
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
-        {checkIns[player.id] && (
-          <CheckCircle2 className="size-4 shrink-0 text-success" />
-        )}
         <EditableName
           name={player.name}
           onRename={onRename}
@@ -661,7 +643,6 @@ export function EnhancedPlayerSetup({
   onStartTournament,
   tournamentStarted,
   readOnly = false,
-  checkIns = {},
   lockedPlayerIds = EMPTY_LOCKED_IDS,
 }: EnhancedPlayerSetupProps) {
   const reduceMotion = useReducedMotion();
@@ -1261,7 +1242,6 @@ export function EnhancedPlayerSetup({
                 <TeamRow
                   key={team.player1.id}
                   team={team}
-                  checkIns={checkIns}
                   locked={teamLocked}
                   onRenamePlayer={renamePlayer}
                   onRemove={
@@ -1506,7 +1486,6 @@ export function EnhancedPlayerSetup({
                     <li key={player.id}>
                       <PlayerRow
                         player={player}
-                        checkIns={checkIns}
                         locked={playerLocked}
                         onRename={(next) => renamePlayer(player.id, next)}
                         onRemove={
@@ -1834,18 +1813,10 @@ export function EnhancedPlayerSetup({
 
             {isFixedPartners
               ? fixedTeams.map((team) => (
-                  <TeamRow
-                    key={team.player1.id}
-                    team={team}
-                    checkIns={checkIns}
-                  />
+                  <TeamRow key={team.player1.id} team={team} />
                 ))
               : players.map((player) => (
-                  <PlayerRow
-                    key={player.id}
-                    player={player}
-                    checkIns={checkIns}
-                  />
+                  <PlayerRow key={player.id} player={player} />
                 ))}
           </CardContent>
         </Card>

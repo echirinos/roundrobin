@@ -32,7 +32,7 @@ const softwareAppJsonLd = {
   operatingSystem: "Web",
   url: siteUrl,
   description:
-    "Run pickleball open play and round robins from one shared link. Players scan a QR to check in, scores post the next game, and partner rotations update on their own. No app install.",
+    "Run pickleball open play and round robins from one shared link. Players scan a QR to follow live scores and standings, the next game posts itself, and partner rotations update on their own. No app install.",
   offers: {
     "@type": "Offer",
     price: "0",
