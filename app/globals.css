@@ -1355,7 +1355,10 @@
   }
 
   .product-proof-card {
-    min-height: 13rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 14rem;
     overflow: hidden;
     border: 1px solid oklch(from var(--border) l c h / 0.8);
     border-radius: var(--radius);
@@ -1411,31 +1414,165 @@
     line-height: 1.55;
   }
 
-  .product-proof-visual {
+  /* Each card's visual is a small, literal preview of what that step produces
+     (a share link, a check-in row, a posted score) rather than abstract bars. */
+  .pp-visual {
+    margin-top: auto;
+    padding-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pp-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid oklch(from var(--border) l c h / 0.85);
+    border-radius: 999px;
+    background: var(--card);
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .pp-link-url {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground);
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+
+  .pp-link-copy {
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--foreground);
+    padding: 0.2rem 0.6rem;
+    color: var(--background);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .pp-chips {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .pp-chips span {
+    border: 1px solid oklch(from var(--border) l c h / 0.8);
+    border-radius: 999px;
+    background: oklch(from var(--secondary) l c h / 0.5);
+    padding: 0.25rem 0.6rem;
+    color: var(--muted-foreground);
+    font-size: 0.74rem;
+    font-weight: 600;
+  }
+
+  .pp-visual-join {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pp-avatars {
+    display: flex;
+  }
+
+  .pp-avatar {
     position: relative;
-    margin-top: 1.2rem;
-    display: grid;
-    grid-template-columns: 0.55fr 1fr 0.45fr;
-    gap: 0.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-left: -0.4rem;
+    border: 2px solid var(--card);
+    border-radius: 999px;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-size: 0.78rem;
+    font-weight: 700;
   }
 
-  .product-proof-visual span {
-    min-height: 2.25rem;
-    border: 1px solid oklch(from var(--border) l c h / 0.72);
+  .pp-avatar:first-child {
+    margin-left: 0;
+  }
+
+  .pp-avatar-check {
+    position: absolute;
+    right: -0.2rem;
+    bottom: -0.2rem;
+    color: var(--live);
+    background: var(--card);
+    border-radius: 999px;
+  }
+
+  .pp-avatar-more {
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 0.7rem;
+  }
+
+  .pp-qr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid oklch(from var(--border) l c h / 0.85);
     border-radius: calc(var(--radius) - 2px);
-    background:
-      linear-gradient(180deg, oklch(from var(--card) l c h / 0.82), oklch(from var(--court-mint) l c h / 0.12));
+    background: var(--card);
+    color: var(--foreground);
   }
 
-  .product-proof-visual span:nth-child(2) {
-    background:
-      linear-gradient(90deg, oklch(from var(--live) l c h / 0.18), transparent 70%),
-      oklch(from var(--card) l c h / 0.68);
+  .pp-scoreline {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid oklch(from var(--border) l c h / 0.85);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--card);
+    padding: 0.55rem 0.75rem;
   }
 
-  .product-proof-visual span:nth-child(3) {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) l c h / 0.92), oklch(from var(--primary) calc(l + 0.04) c h / 0.92));
+  .pp-court {
+    color: var(--muted-foreground);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .pp-score {
+    margin-left: auto;
+    color: var(--foreground);
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .pp-final {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    background: oklch(from var(--success) l c h / 0.15);
+    padding: 0.2rem 0.5rem;
+    color: var(--success-strong);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pp-next {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted-foreground);
+    font-size: 0.8rem;
   }
 
   @media (min-width: 768px) {
