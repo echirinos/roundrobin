@@ -3,6 +3,65 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.0] - 2026-07-04
+
+Players now see exactly where to go each round, organizers can undo a
+mis-confirmed round, and the round engine got a correctness overhaul verified
+by a new simulation suite (`npm run sim`).
+
+Checked-in players get a pinned "You're up" card — court number, partner,
+opponents, and a "Moved up / Moved down" badge — instead of scanning the round
+list for their name. Court-movement chips (↑ UP / ↓ DOWN) appear on game cards
+for seeded formats, and every round now shows who's sitting out as clear
+badges, both in the round preview and on the round card.
+
+### Added
+- "You're up" card for checked-in players: your court, your partner, your
+  opponents, and whether you moved up or down — pinned above the schedule,
+  visible in spectator mode. Shows a "you sit out this round" state on byes.
+- Court-movement chips on game cards (↑ UP / ↓ DOWN per team) for formats
+  that move teams between courts by results, like Team Gauntlet and King of
+  the Court.
+- Undo round: an accidental "Confirm Round" is no longer final. Undo the
+  latest round (with a confirmation dialog that warns when scores would be
+  deleted), then redraw fresh matchups.
+- Sitting-out badges in the round preview and on every round card, for all
+  formats — plus "Everyone plays this round" in the round preview when
+  nobody sits.
+- Regression simulations (`npm run sim`): deterministic checks that Team
+  Gauntlet seeding always matches the standings tab, winners never rank below
+  a team they just beat, back-to-back rematches don't happen, and ladder-format
+  byes rotate fairly across eight court/player configurations for each of the
+  three ladder formats.
+
+### Changed
+- The app's typefaces actually load now: Inter for the interface, Newsreader
+  for the landing headline. (They were declared but silently falling back to
+  system fonts.)
+- Reset and undo confirmations are proper in-app dialogs instead of browser
+  popups, correctly sized on phones.
+- Duplicate-player warnings when adding by DUPR appear inline instead of as a
+  browser alert, and clear when you fix the roster.
+- Warning text is readable in light mode (was low-contrast yellow).
+
+### Fixed
+- Team Gauntlet seeding now matches the standings tab exactly (wins → win % →
+  head-to-head → point differential → points scored), so the leaderboard
+  predicts next round's courts, apart from bye rotation and rematch-avoidance
+  nudges. Beating a team can no longer leave you seeded below them.
+- King of the Court, Claim the Throne, and Up & Down the River no longer
+  permanently bench players: anyone waiting re-enters at the bottom court in
+  fair first-in-first-out order, including sessions with more sitters than one
+  court can seat.
+- Claim the Throne no longer crashes on single-court sessions.
+- The bottom court can't be forced into an immediate rematch of the previous
+  round in Team Gauntlet.
+- Court counts that exceed what the roster can fill are clamped by the round
+  engine itself, so a stale or hand-edited session can't strand players on
+  empty courts.
+- Rank-change arrows reset after undoing a round instead of comparing against
+  deleted scores.
+
 ## [0.3.0] - 2026-07-02
 
 Setup is now a guided 3-step wizard, Team Gauntlet joins the format list, and

@@ -49,4 +49,17 @@ metadata for operational visibility.
 ```bash
 npm run lint
 npm run build
+npm run sim
 ```
+
+`npm run sim` runs the deterministic round-engine regression simulations
+(`scripts/sim-gauntlet.ts` and `scripts/sim-ladder-byes.ts` via the pinned
+`tsx` dev dependency): Team Gauntlet seeding stays in lockstep with the
+standings tab, winners never rank below a team they just beat, back-to-back
+rematches don't happen, and ladder-format byes rotate fairly. It exits
+non-zero on any failed assertion, so it is CI-ready as-is.
+
+## Project Docs
+
+Release notes live in [CHANGELOG.md](CHANGELOG.md). Planned work and known
+gaps are tracked in [TODOS.md](TODOS.md).

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -317,12 +317,58 @@ function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewPr
   );
 }
 
+// Court-movement chip: shown when a whole team came from the same court last
+// round and moved together (always true for fixed-team formats).
+function getTeamMovement(
+  team: LocalPlayer[],
+  currentCourt: number,
+  previousRoundCourts: Map<string, number> | undefined
+): "up" | "down" | null {
+  if (!previousRoundCourts || previousRoundCourts.size === 0) return null;
+
+  const fromCourts = team.map((p) => previousRoundCourts.get(p.id));
+  if (fromCourts.some((c) => c === undefined)) return null;
+  if (new Set(fromCourts).size !== 1) return null;
+
+  const fromCourt = fromCourts[0]!;
+  if (currentCourt < fromCourt) return "up";
+  if (currentCourt > fromCourt) return "down";
+  return null;
+}
+
+function TeamMovementChip({ movement }: { movement: "up" | "down" | null }) {
+  if (!movement) return null;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
+        movement === "up"
+          ? "bg-success/15 text-success-strong"
+          : "bg-muted text-muted-foreground"
+      )}
+    >
+      {movement === "up" ? (
+        <ArrowUp className="size-3" />
+      ) : (
+        <ArrowDown className="size-3" />
+      )}
+      <span aria-hidden="true">{movement}</span>
+      <span className="sr-only">
+        {movement === "up" ? "moved up a court" : "moved down a court"}
+      </span>
+    </span>
+  );
+}
+
 // Game card component for displaying games in a list
 interface GameCardProps {
   game: LocalRoundGame;
   courtWeight?: number;
   onScoreClick: (game: LocalRoundGame) => void;
   readOnly?: boolean;
+  /** playerId -> court last round; enables the moved up/down chips. */
+  previousRoundCourts?: Map<string, number>;
 }
 
 export function GameCard({
@@ -330,7 +376,18 @@ export function GameCard({
   courtWeight,
   onScoreClick,
   readOnly = false,
+  previousRoundCourts,
 }: GameCardProps) {
+  const team1Movement = getTeamMovement(
+    game.team1,
+    game.courtNumber,
+    previousRoundCourts
+  );
+  const team2Movement = getTeamMovement(
+    game.team2,
+    game.courtNumber,
+    previousRoundCourts
+  );
   const team1Won = game.completed && (game.team1Score ?? 0) > (game.team2Score ?? 0);
   const team2Won = game.completed && (game.team2Score ?? 0) > (game.team1Score ?? 0);
 
@@ -362,11 +419,14 @@ export function GameCard({
           <div className="flex items-center justify-between gap-2">
             <span
               className={cn(
-                "truncate text-sm font-semibold",
+                "flex min-w-0 items-center gap-1.5 text-sm font-semibold",
                 team1Won && "text-success"
               )}
             >
-              {game.team1[0].name} & {game.team1[1].name}
+              <span className="truncate">
+                {game.team1[0].name} & {game.team1[1].name}
+              </span>
+              <TeamMovementChip movement={team1Movement} />
             </span>
             {game.completed && (
               <span
@@ -383,11 +443,14 @@ export function GameCard({
           <div className="flex items-center justify-between gap-2">
             <span
               className={cn(
-                "truncate text-sm font-semibold",
+                "flex min-w-0 items-center gap-1.5 text-sm font-semibold",
                 team2Won && "text-success"
               )}
             >
-              {game.team2[0].name} & {game.team2[1].name}
+              <span className="truncate">
+                {game.team2[0].name} & {game.team2[1].name}
+              </span>
+              <TeamMovementChip movement={team2Movement} />
             </span>
             {game.completed && (
               <span
@@ -433,6 +496,8 @@ interface RoundGamesListProps {
   byePlayers?: LocalPlayer[];
   onScoreClick: (game: LocalRoundGame) => void;
   readOnly?: boolean;
+  /** playerId -> court in the previous round; enables moved up/down chips. */
+  previousRoundCourts?: Map<string, number>;
 }
 
 export function RoundGamesList({
@@ -442,6 +507,7 @@ export function RoundGamesList({
   byePlayers = [],
   onScoreClick,
   readOnly = false,
+  previousRoundCourts,
 }: RoundGamesListProps) {
   const roundGames = games.filter((g) => g.round === roundNumber);
   const completedCount = roundGames.filter((g) => g.completed).length;
@@ -476,9 +542,16 @@ export function RoundGamesList({
           </Badge>
         </CardTitle>
         {byePlayers.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Sitting out: {byePlayers.map((p) => p.name).join(", ")}
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-xs font-semibold text-muted-foreground">
+              Sitting out
+            </span>
+            {byePlayers.map((p) => (
+              <Badge key={p.id} variant="secondary" className="max-w-full text-xs">
+                <span className="truncate">{p.name}</span>
+              </Badge>
+            ))}
+          </div>
         )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">
@@ -509,6 +582,7 @@ export function RoundGamesList({
                   courtWeight={courtWeights?.[courtNumber]}
                   onScoreClick={onScoreClick}
                   readOnly={readOnly}
+                  previousRoundCourts={previousRoundCourts}
                 />
               ))}
             </AnimatePresence>

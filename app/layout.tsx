@@ -1,9 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
+
+// Newsreader is only rendered on the landing page (.font-serif-editorial), so
+// skip the route-wide preload; it still loads via CSS where it's used.
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+  display: "swap",
+  preload: false,
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.app";
 const enableVercelInsights =
@@ -86,7 +102,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${newsreader.variable}`}
+    >
       <body className="antialiased">
         <ThemeProvider
           attribute="class"

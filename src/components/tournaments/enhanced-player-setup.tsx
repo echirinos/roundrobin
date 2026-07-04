@@ -518,6 +518,9 @@ export function EnhancedPlayerSetup({
   const [showMorePlayModes, setShowMorePlayModes] = useState(false);
   const [showDuprLogin, setShowDuprLogin] = useState(false);
   const [addMode, setAddMode] = useState<"manual" | "dupr">("manual");
+  const [duplicatePlayerError, setDuplicatePlayerError] = useState<
+    string | null
+  >(null);
   const [expectedPlayerCount, setExpectedPlayerCount] = useState(() =>
     Math.max(4, players.length)
   );
@@ -810,9 +813,10 @@ export function EnhancedPlayerSetup({
         (player.duprId && (p as DuprPlayer).duprId === player.duprId)
     );
     if (exists) {
-      alert("This player is already in the tournament.");
+      setDuplicatePlayerError("This player is already in the session.");
       return;
     }
+    setDuplicatePlayerError(null);
     updatePlayers([...players, player as LocalPlayer]);
   };
 
@@ -821,9 +825,10 @@ export function EnhancedPlayerSetup({
 
     const exists = players.some((p) => (p as DuprPlayer).duprId === duprId);
     if (exists) {
-      alert("This DUPR ID is already in the tournament.");
+      setDuplicatePlayerError("This DUPR ID is already in the session.");
       return;
     }
+    setDuplicatePlayerError(null);
 
     const player: DuprPlayer = {
       id: generateId(),
@@ -839,6 +844,8 @@ export function EnhancedPlayerSetup({
   const removePlayer = (id: string) => {
     if (playerControlsDisabled) return;
 
+    // A stale "already added" error no longer applies once the roster changes.
+    setDuplicatePlayerError(null);
     updatePlayers(players.filter((player) => player.id !== id));
   };
 
@@ -886,7 +893,10 @@ export function EnhancedPlayerSetup({
                 type="button"
                 variant={addMode === "manual" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setAddMode("manual")}
+                onClick={() => {
+                  setAddMode("manual");
+                  setDuplicatePlayerError(null);
+                }}
               >
                 Manual
               </Button>
@@ -894,7 +904,10 @@ export function EnhancedPlayerSetup({
                 type="button"
                 variant={addMode === "dupr" ? "secondary" : "ghost"}
                 size="sm"
-                onClick={() => setAddMode("dupr")}
+                onClick={() => {
+                  setAddMode("dupr");
+                  setDuplicatePlayerError(null);
+                }}
               >
                 DUPR
               </Button>
@@ -1067,6 +1080,13 @@ export function EnhancedPlayerSetup({
                 onSubmit={addPlayerByDuprId}
                 disabled={playerControlsDisabled}
               />
+              {duplicatePlayerError && (
+                <Alert variant="destructive">
+                  <Users />
+                  <AlertTitle>Already added</AlertTitle>
+                  <AlertDescription>{duplicatePlayerError}</AlertDescription>
+                </Alert>
+              )}
             </div>
           )}
 
