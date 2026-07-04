@@ -3,6 +3,22 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.4] - 2026-07-04
+
+Cleaner hero. The landing scoreboard no longer clips its "next up" line, and
+the busy diagonal color wedges behind it are replaced by a single soft glow,
+so the hero reads calmer and more intentional on desktop and mobile.
+
+### Fixed
+- The live-scoreboard illustration in the hero had its "Next up" label
+  colliding with the sync bar and clipping past the card's bottom edge; the
+  scoreboard now has room to breathe and reads "Court 2 · 9–6 · Next: Court 1"
+  cleanly.
+
+### Changed
+- Replaced the hard-edged teal/peach diagonal gradient bands across the hero
+  with one soft glow behind the illustration, keeping the subtle court grid.
+
 ## [0.4.3] - 2026-07-04
 
 Plainer words everywhere, and a landing page that shows what it does.
