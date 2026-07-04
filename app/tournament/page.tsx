@@ -532,6 +532,19 @@ export default function TournamentPage() {
     [state.settings.numberOfCourts]
   );
 
+  // Players who already appear in a completed game can't be removed while
+  // editing the roster mid-session — their scores are baked into standings.
+  const lockedPlayerIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const game of state.games) {
+      if (!game.completed) continue;
+      for (const player of [...game.team1, ...game.team2]) {
+        ids.add(player.id);
+      }
+    }
+    return ids;
+  }, [state.games]);
+
   const standings = useMemo(() => {
     if (standingsPlayers.length === 0) return [];
     return calculateStandingsForFormat(standingsPlayers, state.games, {
@@ -1153,6 +1166,7 @@ export default function TournamentPage() {
                 tournamentStarted={state.tournamentStarted}
                 readOnly={isSpectator}
                 checkIns={state.checkIns}
+                lockedPlayerIds={lockedPlayerIds}
               />
             </TabsContent>
 

@@ -3,6 +3,33 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.5] - 2026-07-04
+
+Three setup fixes: pasted team lists always pair, the court count you pick is
+respected, and you can edit the roster after a session starts.
+
+### Fixed
+- Pasting a roster now detects teams the same way no matter which format is
+  selected: a line like "Emily & Gino" (or "Emily and Gino") becomes a team,
+  a lone name stays an individual, and commas separate people instead of
+  being read as a team joiner. Previously, pasting before choosing "Set
+  teams" read every line as one individual.
+- The number of courts you choose is no longer silently reduced. Touching the
+  court stepper while only a few players were added used to freeze the count
+  low, so adding more players later still ran on too few courts; now sitting
+  at the maximum stays automatic and grows with the roster, while a
+  deliberately lower court count is still respected. Court counts are always
+  capped to what the roster can fill, so you never get more courts than
+  players to fill them.
+
+### Added
+- Edit the roster after starting: organizers get an "Edit players" button on
+  the Players tab to fix a name, add a late arrival, or drop a no-show without
+  resetting the session. Changes apply to upcoming rounds; games already
+  played keep their scores. A player who has already played is marked "In
+  play" and can't be removed (their scores are part of everyone's standings).
+  The format stays locked once play begins.
+
 ## [0.4.3] - 2026-07-04
 
 Plainer words everywhere, and a landing page that shows what it does.
