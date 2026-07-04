@@ -680,6 +680,9 @@ export function EnhancedPlayerSetup({
   const [isEditingRoster, setIsEditingRoster] = useState(false);
   // Set-partner pairing: the pool player tapped first, awaiting a partner tap.
   const [pendingPartnerId, setPendingPartnerId] = useState<string | null>(null);
+  // Which unpaired pool player is being renamed inline, and its draft text.
+  const [poolRenameId, setPoolRenameId] = useState<string | null>(null);
+  const [poolRenameDraft, setPoolRenameDraft] = useState("");
   const [bulkNames, setBulkNames] = useState("");
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -1164,15 +1167,55 @@ export function EnhancedPlayerSetup({
                       : "border-border/70 bg-background/60"
                   )}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handlePoolTap(player.id)}
-                    disabled={playerControlsDisabled}
-                    aria-pressed={isPending}
-                    className="min-h-8 text-sm font-medium"
-                  >
-                    {player.name}
-                  </button>
+                  {poolRenameId === player.id ? (
+                    <Input
+                      value={poolRenameDraft}
+                      onChange={(event) => setPoolRenameDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          renamePlayer(player.id, poolRenameDraft);
+                          setPoolRenameId(null);
+                        } else if (event.key === "Escape") {
+                          setPoolRenameId(null);
+                        }
+                      }}
+                      onBlur={() => {
+                        renamePlayer(player.id, poolRenameDraft);
+                        setPoolRenameId(null);
+                      }}
+                      autoFocus
+                      aria-label={`Rename ${player.name}`}
+                      className="h-8 w-32"
+                    />
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handlePoolTap(player.id)}
+                        disabled={playerControlsDisabled}
+                        aria-pressed={isPending}
+                        className="min-h-8 text-sm font-medium"
+                      >
+                        {player.name}
+                      </button>
+                      {!playerControlsDisabled && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setPoolRenameDraft(player.name);
+                            setPoolRenameId(player.id);
+                          }}
+                          aria-label={`Rename ${player.name}`}
+                          className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                      )}
+                    </>
+                  )}
                   <Button
                     type="button"
                     variant="ghost"
