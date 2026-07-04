@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     "score tracker",
   ],
   openGraph: {
-    title: "PlaySync - Run open play. Skip group texts.",
+    title: "PlaySync - Play more. Organize less.",
     description:
       "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
     images: [
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PlaySync - Run open play. Skip group texts.",
+    title: "PlaySync - Play more. Organize less.",
     description:
       "Run pickleball open play & round robins from one link. Players scan a QR to check in, scores post the next game, and rotations stay fair. No app to install, no group texts.",
     images: ["/og-image.png"],

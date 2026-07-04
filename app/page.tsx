@@ -193,7 +193,7 @@ function CourtLanes() {
             x="50"
             y="34"
             width="384"
-            height="118"
+            height="150"
             rx="18"
             className="score-bug-shell"
           />
@@ -201,7 +201,7 @@ function CourtLanes() {
             x="62"
             y="48"
             width="70"
-            height="90"
+            height="122"
             rx="12"
             className="score-bug-live-panel"
           />
@@ -318,12 +318,12 @@ function CourtLanes() {
           </text>
           <motion.rect
             x="144"
-            y="143"
+            y="152"
             width="104"
             height="3"
             rx="1.5"
             className="score-sync-bar"
-            animate={reduceMotion ? undefined : { opacity: [0.25, 0.9, 0.25], width: [104, 178, 104] }}
+            animate={reduceMotion ? undefined : { opacity: [0.25, 0.9, 0.25], width: [104, 150, 104] }}
             transition={
               reduceMotion
                 ? undefined
@@ -340,8 +340,8 @@ function CourtLanes() {
                 : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
             }
           >
-            <rect x="268" y="137" width="82" height="18" rx="9" />
-            <text x="282" y="150">Next up</text>
+            <rect x="272" y="145" width="144" height="20" rx="10" />
+            <text x="284" y="159">Next: Court 1</text>
           </motion.g>
         </g>
 
@@ -772,7 +772,7 @@ export default function Home() {
                 Casual drop-in pickleball, one shared link
               </p>
               <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
-                Run open play. Skip group texts.
+                Play more. Organize less.
               </h1>
               <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
                 Open play is casual pickleball where people show up and rotate

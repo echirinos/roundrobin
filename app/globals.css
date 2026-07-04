@@ -481,10 +481,9 @@
 
   .yc-hero {
     background:
-      linear-gradient(118deg, transparent 0 55%, oklch(from var(--court-teal) l c h / 0.24) 55% 66%, oklch(from var(--court-mint) l c h / 0.16) 66% 75%, transparent 75%),
-      linear-gradient(28deg, oklch(from var(--court-peach) l c h / 0.18) 0 12%, transparent 12% 100%),
-      repeating-linear-gradient(90deg, oklch(from var(--foreground) l c h / 0.03) 0 1px, transparent 1px 5rem),
-      linear-gradient(180deg, oklch(from var(--court-mint) l c h / 0.16), transparent 30rem),
+      radial-gradient(70% 80% at 82% 8%, oklch(from var(--court-teal) l c h / 0.16), transparent 70%),
+      repeating-linear-gradient(90deg, oklch(from var(--foreground) l c h / 0.025) 0 1px, transparent 1px 5rem),
+      linear-gradient(180deg, oklch(from var(--court-mint) l c h / 0.12), transparent 30rem),
       var(--background);
   }
 
@@ -1051,9 +1050,8 @@
     border: 1px solid oklch(from var(--court-teal) l c h / 0.46);
     border-radius: var(--radius);
     background:
-      linear-gradient(138deg, oklch(from var(--court-teal) l c h / 0.34) 0 25%, transparent 25% 100%),
-      linear-gradient(28deg, transparent 0 46%, oklch(from var(--court-peach) l c h / 0.22) 46% 63%, transparent 63%),
-      linear-gradient(180deg, oklch(from var(--card) l c h / 0.96), oklch(from var(--court-mint) l c h / 0.2)),
+      radial-gradient(120% 90% at 15% 0%, oklch(from var(--court-teal) l c h / 0.18), transparent 60%),
+      linear-gradient(180deg, oklch(from var(--card) l c h / 0.97), oklch(from var(--court-mint) l c h / 0.16)),
       var(--card);
     box-shadow:
       0 34px 100px -64px rgb(0 94 105 / 0.58),
