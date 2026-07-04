@@ -19,17 +19,20 @@ badges, both in the round preview and on the round card.
 - "You're up" card for checked-in players: your court, your partner, your
   opponents, and whether you moved up or down — pinned above the schedule,
   visible in spectator mode. Shows a "you sit out this round" state on byes.
-- Court-movement chips on game cards (↑ UP / ↓ DOWN per team) for
-  standings-seeded formats like Team Gauntlet and King of the Court.
+- Court-movement chips on game cards (↑ UP / ↓ DOWN per team) for formats
+  that move teams between courts by results, like Team Gauntlet and King of
+  the Court.
 - Undo round: an accidental "Confirm Round" is no longer final. Undo the
   latest round (with a confirmation dialog that warns when scores would be
   deleted), then redraw fresh matchups.
 - Sitting-out badges in the round preview and on every round card, for all
-  formats — plus "Everyone plays this round" when nobody sits.
+  formats — plus "Everyone plays this round" in the round preview when
+  nobody sits.
 - Regression simulations (`npm run sim`): deterministic checks that Team
   Gauntlet seeding always matches the standings tab, winners never rank below
   a team they just beat, back-to-back rematches don't happen, and ladder-format
-  byes rotate fairly across 18 court/player configurations.
+  byes rotate fairly across eight court/player configurations for each of the
+  three ladder formats.
 
 ### Changed
 - The app's typefaces actually load now: Inter for the interface, Newsreader
@@ -44,8 +47,8 @@ badges, both in the round preview and on the round card.
 ### Fixed
 - Team Gauntlet seeding now matches the standings tab exactly (wins → win % →
   head-to-head → point differential → points scored), so the leaderboard
-  always predicts next round's courts. Beating a team can no longer leave you
-  seeded below them.
+  predicts next round's courts, apart from bye rotation and rematch-avoidance
+  nudges. Beating a team can no longer leave you seeded below them.
 - King of the Court, Claim the Throne, and Up & Down the River no longer
   permanently bench players: anyone waiting re-enters at the bottom court in
   fair first-in-first-out order, including sessions with more sitters than one

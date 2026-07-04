@@ -44,7 +44,7 @@
 
 **What:** Add a CI workflow (GitHub Actions) that runs lint, build, and `npm run sim` on push/PR.
 
-**Why:** The simulation suite is the only automated regression net for the round generators (seeding parity, bye fairness, rematch avoidance across 26 assertions) — and it only protects when someone remembers to run it.
+**Why:** The simulation suite is the only automated regression net for the round generators (seeding parity, bye fairness, rematch avoidance across 5 gauntlet scenarios and 24 ladder generator/config runs) — and it only protects when someone remembers to run it.
 
 **Context:** The repo has no `.github/workflows/` at all. `npm run sim` exits non-zero on any assertion failure, so it's CI-ready as-is (tsx is a pinned devDependency).
 
