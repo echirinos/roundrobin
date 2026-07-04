@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionStats, isLiveTournamentSnapshot } from "@/src/lib/live-session";
-import { upsertLiveSession } from "@/src/lib/live-session-store";
+import {
+  UnauthorizedSessionWriteError,
+  toPublicRecord,
+  upsertLiveSession,
+} from "@/src/lib/live-session-store";
 
 export async function POST(request: NextRequest) {
   const start = Date.now();
@@ -16,7 +20,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const record = upsertLiveSession(snapshot, body.code);
+    const providedToken =
+      request.headers.get("x-organizer-token") ||
+      (typeof body.organizerToken === "string" ? body.organizerToken : null);
+    const record = await upsertLiveSession(snapshot, body.code, providedToken);
     const stats = getSessionStats(snapshot);
 
     console.log(
@@ -37,8 +44,18 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json(record);
+    return NextResponse.json({
+      ...toPublicRecord(record),
+      organizerToken: record.organizerToken,
+    });
   } catch (error) {
+    if (error instanceof UnauthorizedSessionWriteError) {
+      return NextResponse.json(
+        { error: "This session code belongs to another organizer." },
+        { status: 403 }
+      );
+    }
+
     console.error(
       JSON.stringify({
         level: "error",
