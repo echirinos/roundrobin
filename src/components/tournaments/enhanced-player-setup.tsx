@@ -139,25 +139,53 @@ function preserveCommonSettings(
   };
 }
 
-function getFixedTeams(players: LocalPlayer[]) {
+/**
+ * Split the roster into paired teams and the unpaired pool, using each
+ * player's partnerId (a mutual reference). Order-independent and self-healing:
+ * a dangling partnerId with no matching partner falls back to the pool.
+ */
+function derivePairing(players: LocalPlayer[]): {
+  teams: Array<{ index: number; player1: LocalPlayer; player2: LocalPlayer }>;
+  pool: LocalPlayer[];
+} {
+  const byId = new Map(players.map((p) => [p.id, p]));
   const teams: Array<{
     index: number;
     player1: LocalPlayer;
-    player2?: LocalPlayer;
+    player2: LocalPlayer;
   }> = [];
+  const pool: LocalPlayer[] = [];
+  const consumed = new Set<string>();
 
-  for (let index = 0; index < players.length; index += 2) {
-    teams.push({
-      index: index / 2,
-      player1: players[index],
-      player2: players[index + 1],
-    });
+  for (const player of players) {
+    if (consumed.has(player.id)) continue;
+
+    const partner = player.partnerId ? byId.get(player.partnerId) : undefined;
+    const mutual = partner && partner.partnerId === player.id;
+
+    if (partner && mutual) {
+      teams.push({ index: teams.length, player1: player, player2: partner });
+      consumed.add(player.id);
+      consumed.add(partner.id);
+    } else {
+      pool.push(player);
+    }
   }
 
-  return teams;
+  return { teams, pool };
 }
 
-type RosterTeam = ReturnType<typeof getFixedTeams>[number];
+/**
+ * Canonical roster order for a set-partner event: every team's two players
+ * adjacent and first, then the unpaired pool. This preserves the downstream
+ * "adjacent pair = team" invariant that generation and standings rely on.
+ */
+function orderRosterByPairing(players: LocalPlayer[]): LocalPlayer[] {
+  const { teams, pool } = derivePairing(players);
+  return [...teams.flatMap((team) => [team.player1, team.player2]), ...pool];
+}
+
+type RosterTeam = ReturnType<typeof derivePairing>["teams"][number];
 
 function TeamRow({
   team,
@@ -169,35 +197,27 @@ function TeamRow({
   onRemove?: () => void;
 }) {
   const isCheckedIn =
-    !!team.player2 &&
-    team.player1.id in checkIns &&
-    team.player2.id in checkIns;
+    team.player1.id in checkIns && team.player2.id in checkIns;
 
   return (
     <div
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg border bg-background/60 py-2 pl-3",
-        onRemove ? "pr-2" : "pr-3",
-        !team.player2 && "border-destructive/50 bg-destructive/10"
+        onRemove ? "pr-2" : "pr-3"
       )}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">Team {team.index + 1}</Badge>
-          {team.player2 ? (
-            isCheckedIn && (
-              <Badge variant="outline">
-                <CheckCircle2 className="size-3" />
-                Checked in
-              </Badge>
-            )
-          ) : (
-            <Badge variant="destructive">Needs partner</Badge>
+          {isCheckedIn && (
+            <Badge variant="outline">
+              <CheckCircle2 className="size-3" />
+              Checked in
+            </Badge>
           )}
         </div>
         <p className="mt-2 truncate text-sm font-medium">
-          {team.player1.name}
-          {team.player2 ? ` & ${team.player2.name}` : ""}
+          {team.player1.name} &amp; {team.player2.name}
         </p>
       </div>
       {onRemove && (
@@ -206,7 +226,7 @@ function TeamRow({
           variant="ghost"
           size="icon-lg"
           onClick={onRemove}
-          aria-label={`Remove team ${team.index + 1}`}
+          aria-label={`Break up team ${team.index + 1}`}
           className="shrink-0 text-muted-foreground hover:text-destructive"
         >
           <Trash2 />
@@ -261,39 +281,58 @@ function PlayerRow({
   );
 }
 
+// Pasted rosters arrive with all kinds of junk: numbered list markers
+// ("1.", "10)", "- "), and invisible unicode (word-joiner U+2060, zero-width
+// spaces, non-breaking spaces) that phones and docs slip in. Strip it so
+// "1.⁠ ⁠Emily" becomes "Emily".
+function cleanRosterName(raw: string): string {
+  return raw
+    .replace(/[\u2060\u200B\u200C\u200D\uFEFF]/g, "")
+    .replace(/\u00A0/g, " ")
+    .replace(/^\s*(?:\d+\s*[.)\-:]|[\u2022*\-#])\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const TEAM_SEPARATOR = /\s*(?:&|\+|\/|,| and |\bvs?\b|\bwith\b)\s*/i;
+
 function splitPlayerNames(value: string): string[] {
   return value
     .split(/[\n,;]+/)
-    .map((name) => name.trim())
+    .map(cleanRosterName)
     .filter(Boolean);
 }
 
-function parseTeamRows(value: string): Array<[string, string]> {
+/**
+ * Parse a pasted roster into teams. Each non-empty line is one team; the two
+ * names are split on "&", "+", "/", ",", "and", "with", "vs". A line with a
+ * single name is returned as an unpaired name so the caller can pool it.
+ */
+function parseTeamRoster(value: string): {
+  teams: Array<[string, string]>;
+  unpaired: string[];
+} {
   const rows = value
     .split(/\n+/)
     .map((row) => row.trim())
     .filter(Boolean);
   const teams: Array<[string, string]> = [];
-  const looseNames: string[] = [];
+  const unpaired: string[] = [];
 
   for (const row of rows) {
     const names = row
-      .split(/\s*(?:&|\+|\/|,|\band\b)\s*/i)
-      .map((name) => name.trim())
+      .split(TEAM_SEPARATOR)
+      .map(cleanRosterName)
       .filter(Boolean);
 
     if (names.length >= 2) {
       teams.push([names[0], names[1]]);
-    } else {
-      looseNames.push(row);
+    } else if (names.length === 1) {
+      unpaired.push(names[0]);
     }
   }
 
-  for (let index = 0; index < looseNames.length - 1; index += 2) {
-    teams.push([looseNames[index], looseNames[index + 1]]);
-  }
-
-  return teams;
+  return { teams, unpaired };
 }
 
 function buildLocalPlayer(name: string): LocalPlayer {
@@ -511,7 +550,8 @@ export function EnhancedPlayerSetup({
   );
   const [stepDirection, setStepDirection] = useState(1);
   const [newPlayerName, setNewPlayerName] = useState("");
-  const [newPartnerName, setNewPartnerName] = useState("");
+  // Set-partner pairing: the pool player tapped first, awaiting a partner tap.
+  const [pendingPartnerId, setPendingPartnerId] = useState<string | null>(null);
   const [bulkNames, setBulkNames] = useState("");
   const [showBulkEntry, setShowBulkEntry] = useState(false);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -536,8 +576,11 @@ export function EnhancedPlayerSetup({
   const playerControlsDisabled = tournamentStarted || readOnly;
   const formatControlsDisabled = tournamentStarted || readOnly;
   const isWizard = !tournamentStarted && !readOnly;
-  const fixedTeams = useMemo(() => getFixedTeams(players), [players]);
-  const teamCount = Math.floor(players.length / 2);
+  const { teams: fixedTeams, pool: unpairedPool } = useMemo(
+    () => derivePairing(players),
+    [players]
+  );
+  const teamCount = fixedTeams.length;
   const minimumPlayers = formatDefinition?.minPlayers ?? 4;
   const visiblePlayModes = isFixedPartners
     ? FIXED_FORMATS
@@ -561,7 +604,8 @@ export function EnhancedPlayerSetup({
     availableCourtCount
   );
   const hasEnoughPlayers = players.length >= targetPlayerCount;
-  const hasCompleteTeams = !isFixedPartners || players.length % 2 === 0;
+  // Set-partner play needs every player in a team — no leftover pool.
+  const hasCompleteTeams = !isFixedPartners || unpairedPool.length === 0;
   const canStart = hasEnoughPlayers && hasCompleteTeams;
   const gamesPerRound = isFixedPartners
     ? Math.min(selectedCourtCount, Math.floor(teamCount / 2))
@@ -764,35 +808,57 @@ export function EnhancedPlayerSetup({
     setNewPlayerName("");
   };
 
-  const addFixedTeam = () => {
-    const playerName = newPlayerName.trim();
-    const partnerName = newPartnerName.trim();
+  // Link two pool players into a fixed team (mutual partnerId).
+  const pairPlayers = (firstId: string, secondId: string) => {
+    if (playerControlsDisabled || firstId === secondId) return;
 
-    if (playerControlsDisabled || !playerName || !partnerName) return;
+    const next = players.map((player) => {
+      if (player.id === firstId) return { ...player, partnerId: secondId };
+      if (player.id === secondId) return { ...player, partnerId: firstId };
+      return player;
+    });
+    updatePlayers(orderRosterByPairing(next));
+    setPendingPartnerId(null);
+  };
 
-    updatePlayers([
-      ...players,
-      buildLocalPlayer(playerName),
-      buildLocalPlayer(partnerName),
-    ]);
-    setNewPlayerName("");
-    setNewPartnerName("");
+  // Tap-to-pair: first tap arms a player, second tap forms the team.
+  const handlePoolTap = (playerId: string) => {
+    if (playerControlsDisabled) return;
+
+    if (!pendingPartnerId) {
+      setPendingPartnerId(playerId);
+      return;
+    }
+    if (pendingPartnerId === playerId) {
+      setPendingPartnerId(null);
+      return;
+    }
+    pairPlayers(pendingPartnerId, playerId);
   };
 
   const addBulkEntries = () => {
     if (playerControlsDisabled || !bulkNames.trim()) return;
 
     if (isFixedPartners) {
-      const teams = parseTeamRows(bulkNames);
-      if (teams.length === 0) return;
+      // Each pasted line is a team ("Emily & Gino"); a lone name pools.
+      const { teams, unpaired } = parseTeamRoster(bulkNames);
+      if (teams.length === 0 && unpaired.length === 0) return;
 
-      updatePlayers([
-        ...players,
-        ...teams.flatMap(([playerName, partnerName]) => [
-          buildLocalPlayer(playerName),
-          buildLocalPlayer(partnerName),
-        ]),
-      ]);
+      const linkedTeams = teams.flatMap(([playerName, partnerName]) => {
+        const p1 = buildLocalPlayer(playerName);
+        const p2 = buildLocalPlayer(partnerName);
+        p1.partnerId = p2.id;
+        p2.partnerId = p1.id;
+        return [p1, p2];
+      });
+
+      updatePlayers(
+        orderRosterByPairing([
+          ...players,
+          ...linkedTeams,
+          ...unpaired.map(buildLocalPlayer),
+        ])
+      );
     } else {
       const names = splitPlayerNames(bulkNames);
       if (names.length === 0) return;
@@ -846,27 +912,45 @@ export function EnhancedPlayerSetup({
 
     // A stale "already added" error no longer applies once the roster changes.
     setDuplicatePlayerError(null);
-    updatePlayers(players.filter((player) => player.id !== id));
-  };
-
-  const removeTeam = (teamIndex: number) => {
-    if (playerControlsDisabled) return;
-
-    const firstPlayerIndex = teamIndex * 2;
+    if (pendingPartnerId === id) setPendingPartnerId(null);
+    // Removing a paired player also frees their partner back to the pool.
     updatePlayers(
-      players.filter(
-        (_player, index) =>
-          index !== firstPlayerIndex && index !== firstPlayerIndex + 1
+      orderRosterByPairing(
+        players
+          .filter((player) => player.id !== id)
+          .map((player) =>
+            player.partnerId === id
+              ? { ...player, partnerId: undefined }
+              : player
+          )
       )
     );
   };
 
-  const incompleteTeamAlert = isFixedPartners && !hasCompleteTeams && (
-    <Alert variant="destructive">
+  // Break up a team: both players lose their partnerId and return to the pool.
+  const unpairTeam = (firstId: string, secondId: string) => {
+    if (playerControlsDisabled) return;
+
+    updatePlayers(
+      orderRosterByPairing(
+        players.map((player) =>
+          player.id === firstId || player.id === secondId
+            ? { ...player, partnerId: undefined }
+            : player
+        )
+      )
+    );
+  };
+
+  const poolCount = unpairedPool.length;
+  const incompleteTeamAlert = isFixedPartners && poolCount > 0 && (
+    <Alert>
       <Users />
-      <AlertTitle>One player needs a partner</AlertTitle>
+      <AlertTitle>
+        {pluralize(poolCount, "player")} still need a partner
+      </AlertTitle>
       <AlertDescription>
-        Add one more name or remove the incomplete team.
+        Tap two players below to pair them into a team.
       </AlertDescription>
     </Alert>
   );
@@ -882,6 +966,104 @@ export function EnhancedPlayerSetup({
       x: reduceMotion ? 0 : direction * -24,
     }),
   };
+
+  // Pool + tap-to-pair editor for set-partner rosters. Shown on the players
+  // step and again on review, so pairing is reachable no matter when the
+  // organizer picks Set Teams.
+  const fixedPairingEditor = (
+    <div className="flex flex-col gap-4">
+      {unpairedPool.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-sm font-semibold">
+              Tap two to pair ({unpairedPool.length} unpaired)
+            </h3>
+            {pendingPartnerId && (
+              <button
+                type="button"
+                onClick={() => setPendingPartnerId(null)}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {unpairedPool.map((player) => {
+              const isPending = pendingPartnerId === player.id;
+              return (
+                <div
+                  key={player.id}
+                  className={cn(
+                    "flex items-center gap-1 rounded-full border py-1 pl-3 pr-1 transition-colors",
+                    isPending
+                      ? "border-primary bg-primary/12"
+                      : "border-border/70 bg-background/60"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handlePoolTap(player.id)}
+                    disabled={playerControlsDisabled}
+                    aria-pressed={isPending}
+                    className="min-h-8 text-sm font-medium"
+                  >
+                    {player.name}
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePlayer(player.id)}
+                    aria-label={`Remove ${player.name}`}
+                    className="size-7 shrink-0 rounded-full text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          {pendingPartnerId ? (
+            <p className="text-xs font-medium text-primary" role="status">
+              Tap another player to partner them.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground" role="status">
+              Tap a player, then tap their partner.
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="font-display text-sm font-semibold">
+            Teams ({fixedTeams.length})
+          </h3>
+          <p className="text-xs text-muted-foreground" role="status">
+            {liveCourtLine}
+          </p>
+        </div>
+        {fixedTeams.length > 0 ? (
+          <div className="grid gap-2">
+            {fixedTeams.map((team) => (
+              <TeamRow
+                key={team.player1.id}
+                team={team}
+                checkIns={checkIns}
+                onRemove={() => unpairTeam(team.player1.id, team.player2.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground">
+            No teams yet. Pair players above, or paste a team list.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const stepOne = (
     <>
@@ -945,16 +1127,16 @@ export function EnhancedPlayerSetup({
 
           {addMode === "manual" && isFixedPartners && (
             <form
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-1"
               onSubmit={(event) => {
                 event.preventDefault();
-                addFixedTeam();
+                addPlayer();
               }}
             >
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="flex gap-2">
                 <Input
-                  placeholder="Player 1"
-                  aria-label="Player 1 name"
+                  placeholder="Add a player"
+                  aria-label="Player name"
                   value={newPlayerName}
                   onChange={(event) => setNewPlayerName(event.target.value)}
                   disabled={playerControlsDisabled}
@@ -962,28 +1144,20 @@ export function EnhancedPlayerSetup({
                   autoFocus={canAutoFocus && players.length === 0}
                   className="h-12 text-base"
                 />
-                <Input
-                  placeholder="Player 2"
-                  aria-label="Player 2 name"
-                  value={newPartnerName}
-                  onChange={(event) => setNewPartnerName(event.target.value)}
-                  disabled={playerControlsDisabled}
-                  autoComplete="off"
-                  className="h-12 text-base"
-                />
+                <Button
+                  type="submit"
+                  disabled={playerControlsDisabled || !newPlayerName.trim()}
+                  className="h-12 px-4"
+                >
+                  <Plus data-icon="inline-start" />
+                  Add
+                </Button>
               </div>
-              <Button
-                type="submit"
-                disabled={
-                  playerControlsDisabled ||
-                  !newPlayerName.trim() ||
-                  !newPartnerName.trim()
-                }
-                className="h-12"
-              >
-                <Plus data-icon="inline-start" />
-                Add team
-              </Button>
+              <p className="px-1 text-xs text-muted-foreground">
+                Add everyone, then tap two players below to pair them. Or paste
+                a list like &ldquo;1. Emily &amp; Gino&rdquo; to add whole teams
+                at once.
+              </p>
             </form>
           )}
 
@@ -1096,28 +1270,7 @@ export function EnhancedPlayerSetup({
             </div>
           )}
 
-          {players.length > 0 && isFixedPartners && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <h3 className="font-display text-sm font-semibold">
-                  Teams added ({fixedTeams.length})
-                </h3>
-                <p className="text-xs text-muted-foreground" role="status">
-                  {liveCourtLine}
-                </p>
-              </div>
-              <div className="grid gap-2">
-                {fixedTeams.map((team) => (
-                  <TeamRow
-                    key={team.player1.id}
-                    team={team}
-                    checkIns={checkIns}
-                    onRemove={() => removeTeam(team.index)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {players.length > 0 && isFixedPartners && fixedPairingEditor}
 
           {players.length > 0 && !isFixedPartners && (
             <div className="flex flex-col gap-2">
@@ -1266,10 +1419,17 @@ export function EnhancedPlayerSetup({
             icon={LayoutGrid}
             label="Courts"
             value={selectedCourtCount}
-            caption={`Up to ${pluralize(maxSelectableCourts, "court")} for ${pluralize(
-              targetPlayerCount,
-              "player"
-            )}.`}
+            caption={
+              isFixedPartners
+                ? `Up to ${pluralize(maxSelectableCourts, "court")} for ${pluralize(
+                    teamCount,
+                    "team"
+                  )} (2 teams per court).`
+                : `Up to ${pluralize(maxSelectableCourts, "court")} for ${pluralize(
+                    targetPlayerCount,
+                    "player"
+                  )}.`
+            }
             onStep={adjustCourtCount}
             canDecrement={selectedCourtCount > 1}
             canIncrement={selectedCourtCount < maxSelectableCourts}
@@ -1283,6 +1443,12 @@ export function EnhancedPlayerSetup({
       </Card>
 
       {incompleteTeamAlert}
+
+      {isFixedPartners && (
+        <Card>
+          <CardContent className="pt-6">{fixedPairingEditor}</CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

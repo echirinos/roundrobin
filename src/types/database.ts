@@ -346,6 +346,9 @@ export interface LocalPlayer {
   name: string;
   gender?: PlayerGender;
   rating?: number;
+  // Set-partner formats: the id of this player's fixed partner. Present only
+  // while the two are a paired team; absent for players still in the pool.
+  partnerId?: string;
   // DUPR integration fields
   duprId?: string;
   duprRating?: number;
