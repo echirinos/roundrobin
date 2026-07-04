@@ -5,6 +5,7 @@
 
 import type { LocalPlayer, LocalRoundGame } from '@/src/types/database';
 import type { EventSettings } from '@/src/types/formats';
+import { calculateWinPercentageDisplay, getHeadToHeadRecord } from './scoring';
 
 // ============================================
 // TYPES
@@ -298,13 +299,14 @@ interface TeamRecord {
   gamesPlayed: number;
   gamesWon: number;
   pointDifferential: number;
+  pointsFor: number;
 }
 
 function calculateTeamRecords(teams: Team[], games: LocalRoundGame[]): Map<string, TeamRecord> {
   const records = new Map<string, TeamRecord>(
     teams.map(team => [
       team.id,
-      { team, gamesPlayed: 0, gamesWon: 0, pointDifferential: 0 },
+      { team, gamesPlayed: 0, gamesWon: 0, pointDifferential: 0, pointsFor: 0 },
     ])
   );
 
@@ -330,6 +332,8 @@ function calculateTeamRecords(teams: Team[], games: LocalRoundGame[]): Map<strin
     record2.gamesPlayed++;
     record1.pointDifferential += score1 - score2;
     record2.pointDifferential += score2 - score1;
+    record1.pointsFor += score1;
+    record2.pointsFor += score2;
 
     if (score1 > score2) {
       record1.gamesWon++;
@@ -362,14 +366,30 @@ export function generateTeamGauntletRound(ctx: FixedGeneratorContext): Generated
   const numberOfCourts = settings.numberOfCourts;
   const records = calculateTeamRecords(teams, existingGames);
 
+  // Mirror sortStandings (scoring.ts) exactly — wins, win %, head-to-head,
+  // point differential, points for — so the standings tab always predicts
+  // next round's seeding. Full ties keep stable roster order, like the tab.
   const bySeed = (a: Team, b: Team) => {
     const recordA = records.get(a.id)!;
     const recordB = records.get(b.id)!;
     if (recordB.gamesWon !== recordA.gamesWon) return recordB.gamesWon - recordA.gamesWon;
+
+    // The same rounded percentage the standings tab displays — a fractional
+    // comparison here could order two teams differently than the tab does.
+    const winPctA = calculateWinPercentageDisplay(recordA.gamesWon, recordA.gamesPlayed);
+    const winPctB = calculateWinPercentageDisplay(recordB.gamesWon, recordB.gamesPlayed);
+    if (winPctB !== winPctA) return winPctB - winPctA;
+
+    const h2h = getHeadToHeadRecord(a.players[0].id, b.players[0].id, existingGames);
+    if (h2h.wins !== h2h.losses) return h2h.losses - h2h.wins;
+
     if (recordB.pointDifferential !== recordA.pointDifferential) {
       return recordB.pointDifferential - recordA.pointDifferential;
     }
-    return (b.rating ?? 0) - (a.rating ?? 0);
+    // Full tie: return 0 so the stable sort keeps roster order — the exact
+    // order the standings tab falls back to. A rating tiebreak here would
+    // diverge from the displayed standings whenever every record key ties.
+    return recordB.pointsFor - recordA.pointsFor;
   };
 
   // Teams with the fewest games get priority when courts are short (fair byes);
@@ -384,7 +404,13 @@ export function generateTeamGauntletRound(ctx: FixedGeneratorContext): Generated
   const playing = byFairness.slice(0, capacity);
   const byeTeams = byFairness.slice(capacity);
 
-  const seeded = [...playing].sort(bySeed);
+  // Sort from roster order — the same input order the standings tab sorts —
+  // not from byFairness order. Head-to-head can be cyclic (A beat B beat C
+  // beat A), and with an intransitive comparator the sorted result depends on
+  // input order; starting both sorts from the same order keeps the seeding
+  // consistent with the displayed standings even in cycle states.
+  const playingIds = new Set(playing.map(t => t.id));
+  const seeded = teams.filter(t => playingIds.has(t.id)).sort(bySeed);
 
   const lastRoundMatchups = getPreviousMatchupKeys(teams, existingGames, currentRound - 1);
   const games: LocalRoundGame[] = [];
@@ -402,6 +428,14 @@ export function generateTeamGauntletRound(ctx: FixedGeneratorContext): Generated
     const directKey = [team1.id, queue[0].id].sort().join('-');
     if (queue.length > 1 && lastRoundMatchups.has(directKey)) {
       opponentIndex = 1;
+    } else if (queue.length === 3) {
+      // Lookahead: taking queue[0] here leaves queue[1]/queue[2] as the final
+      // pair, which the nudge above can never protect. If that leftover pair
+      // just played each other, take queue[1] instead.
+      const leftoverKey = [queue[1].id, queue[2].id].sort().join('-');
+      if (lastRoundMatchups.has(leftoverKey)) {
+        opponentIndex = 1;
+      }
     }
 
     const team2 = queue.splice(opponentIndex, 1)[0];

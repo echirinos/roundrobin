@@ -237,14 +237,16 @@ export function generateGauntletRound(ctx: GeneratorContext): GeneratedRound {
 
   const { playing, byes } = selectPlayersForRound(players, existingGames, numberOfCourts);
 
-  // Sort by current standings (best players first)
-  const sorted = [...playing].sort((a, b) => {
-    const aStanding = standings.find(s => s.player.id === a.id);
-    const bStanding = standings.find(s => s.player.id === b.id);
-    const aWins = aStanding?.gamesWon ?? 0;
-    const bWins = bStanding?.gamesWon ?? 0;
-    return bWins - aWins;
-  });
+  // Seed by the DISPLAYED standings order (ctx.standings is already sorted by
+  // sortStandings: wins → win % → head-to-head → point diff → points for).
+  // A wins-only sort here diverged from the standings tab on every tie, which
+  // the court-movement chips would narrate as bogus up/down moves.
+  const rankById = new Map(standings.map((s, index) => [s.player.id, index]));
+  const sorted = [...playing].sort(
+    (a, b) =>
+      (rankById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+      (rankById.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+  );
 
   // Create matchups: top players face each other
   const games: LocalRoundGame[] = [];
@@ -276,7 +278,14 @@ export function generateGauntletRound(ctx: GeneratorContext): GeneratedRound {
 
 export function generateUpDownRiverRound(ctx: GeneratorContext): GeneratedRound {
   const { players, standings, existingGames, currentRound, settings, usedPartnerships } = ctx;
-  const numberOfCourts = settings.numberOfCourts;
+  // Clamp to courts the roster can actually fill: ladder movement and the
+  // sideline queue both anchor on the bottom court, so an overprovisioned
+  // court count (stale or tampered snapshot bypassing the setup clamp) would
+  // drift losers and queue re-entries onto empty courts forever.
+  const numberOfCourts = Math.min(
+    settings.numberOfCourts,
+    Math.max(1, Math.floor(players.length / 4))
+  );
   const playersMovingUp = settings.formatOptions.playersMovingUp ?? 2;
   const playersMovingDown = settings.formatOptions.playersMovingDown ?? 2;
 
@@ -295,6 +304,14 @@ export function generateUpDownRiverRound(ctx: GeneratorContext): GeneratedRound 
     currentRound - 1,
     playersMovingUp,
     playersMovingDown,
+    numberOfCourts
+  );
+
+  queueWaitingPlayersAtBottomCourt(
+    newCourtAssignments,
+    players,
+    existingGames,
+    currentRound - 1,
     numberOfCourts
   );
 
@@ -321,6 +338,56 @@ export function generateUpDownRiverRound(ctx: GeneratorContext): GeneratedRound 
   return { games, byePlayers };
 }
 
+// Ladder formats derive next-round courts only from last round's games, so
+// anyone who sat a bye would otherwise never be scheduled again. Standard
+// sideline-queue rule: waiting players enter at the bottom court AHEAD of the
+// players already there — each court game takes its first four, so the
+// bottom-court losers (at the tail) rotate out for a round instead.
+// The queue is ordered longest-sitting-first (a true FIFO): when more players
+// are waiting than one court can seat, ordering by roster instead would let
+// recently rotated-out players jump ahead of players who have never entered.
+function queueWaitingPlayersAtBottomCourt(
+  courtAssignments: Map<number, LocalPlayer[]>,
+  players: LocalPlayer[],
+  allGames: LocalRoundGame[],
+  lastRound: number,
+  numberOfCourts: number
+): void {
+  const inLastRound = new Set<string>();
+  const lastPlayedRound = new Map<string, number>();
+
+  for (const game of allGames) {
+    for (const player of [...game.team1, ...game.team2]) {
+      if (game.round === lastRound) inLastRound.add(player.id);
+      lastPlayedRound.set(
+        player.id,
+        Math.max(lastPlayedRound.get(player.id) ?? 0, game.round)
+      );
+    }
+  }
+
+  const waiting = players
+    .filter(p => !inLastRound.has(p.id))
+    .sort(
+      (a, b) => (lastPlayedRound.get(a.id) ?? 0) - (lastPlayedRound.get(b.id) ?? 0)
+    );
+  if (waiting.length === 0) return;
+
+  const bottom = courtAssignments.get(numberOfCourts) ?? [];
+  if (numberOfCourts === 1) {
+    // Single court: the bottom court IS the king court. The winning pair
+    // (first two in the list) holds it, challengers enter from the queue,
+    // and the rest rotate out — classic one-court king of the court.
+    courtAssignments.set(1, [
+      ...bottom.slice(0, 2),
+      ...waiting,
+      ...bottom.slice(2),
+    ]);
+  } else {
+    courtAssignments.set(numberOfCourts, [...waiting, ...bottom]);
+  }
+}
+
 // ============================================
 // KING OF THE COURT GENERATOR
 // Winners move up, losers move down
@@ -328,7 +395,14 @@ export function generateUpDownRiverRound(ctx: GeneratorContext): GeneratedRound 
 
 export function generateKingOfCourtRound(ctx: GeneratorContext): GeneratedRound {
   const { players, standings, existingGames, currentRound, settings, usedPartnerships } = ctx;
-  const numberOfCourts = settings.numberOfCourts;
+  // Clamp to courts the roster can actually fill: ladder movement and the
+  // sideline queue both anchor on the bottom court, so an overprovisioned
+  // court count (stale or tampered snapshot bypassing the setup clamp) would
+  // drift losers and queue re-entries onto empty courts forever.
+  const numberOfCourts = Math.min(
+    settings.numberOfCourts,
+    Math.max(1, Math.floor(players.length / 4))
+  );
 
   // First round: seed by rating/standings
   if (currentRound === 1) {
@@ -367,6 +441,8 @@ export function generateKingOfCourtRound(ctx: GeneratorContext): GeneratedRound 
     newCourtAssignments.set(loserCourt, loserList);
   }
 
+  queueWaitingPlayersAtBottomCourt(newCourtAssignments, players, existingGames, currentRound - 1, numberOfCourts);
+
   // Generate games
   const games: LocalRoundGame[] = [];
   let gameNumber = 1;
@@ -398,7 +474,14 @@ export function generateKingOfCourtRound(ctx: GeneratorContext): GeneratedRound 
 
 export function generateClaimThroneRound(ctx: GeneratorContext): GeneratedRound {
   const { players, standings, existingGames, currentRound, settings, usedPartnerships } = ctx;
-  const numberOfCourts = settings.numberOfCourts;
+  // Clamp to courts the roster can actually fill: ladder movement and the
+  // sideline queue both anchor on the bottom court, so an overprovisioned
+  // court count (stale or tampered snapshot bypassing the setup clamp) would
+  // drift losers and queue re-entries onto empty courts forever.
+  const numberOfCourts = Math.min(
+    settings.numberOfCourts,
+    Math.max(1, Math.floor(players.length / 4))
+  );
 
   // First round: seed by rating/standings
   if (currentRound === 1) {
@@ -421,7 +504,9 @@ export function generateClaimThroneRound(ctx: GeneratorContext): GeneratedRound 
     const losers = team1Won ? kingCourtGame.team2 : kingCourtGame.team1;
 
     newCourtAssignments.get(1)!.push(...winners);
-    newCourtAssignments.get(2)!.push(...losers);
+    // With a single court there is no court 2 — losers stay in the court-1
+    // list (behind the winners) and rotate out via the sideline queue.
+    newCourtAssignments.get(Math.min(numberOfCourts, 2))!.push(...losers);
   }
 
   // Other courts: winners move up to challenge
@@ -440,6 +525,8 @@ export function generateClaimThroneRound(ctx: GeneratorContext): GeneratedRound 
     newCourtAssignments.get(winnerCourt)!.push(...winners);
     newCourtAssignments.get(loserCourt)!.push(...losers);
   }
+
+  queueWaitingPlayersAtBottomCourt(newCourtAssignments, players, existingGames, currentRound - 1, numberOfCourts);
 
   // Generate games
   const games: LocalRoundGame[] = [];
