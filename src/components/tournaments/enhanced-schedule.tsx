@@ -165,7 +165,10 @@ export function EnhancedSchedule({
       )}
 
       {/* Rounds List */}
-      {rounds.map((roundNumber) => (
+      {/* rounds is newest-first: keep the latest round open, collapse older
+          ones behind a tappable header so the list doesn't grow into a long
+          scroll as the session runs. */}
+      {rounds.map((roundNumber, index) => (
         <RoundGamesList
           key={roundNumber}
           games={games}
@@ -175,6 +178,8 @@ export function EnhancedSchedule({
           onScoreClick={handleGameClick}
           readOnly={readOnly}
           previousRoundCourts={courtsByRound.get(roundNumber - 1)}
+          collapsible={index !== 0}
+          defaultOpen={index === 0}
         />
       ))}
 

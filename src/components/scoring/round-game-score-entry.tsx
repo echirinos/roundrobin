@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -498,6 +498,9 @@ interface RoundGamesListProps {
   readOnly?: boolean;
   /** playerId -> court in the previous round; enables moved up/down chips. */
   previousRoundCourts?: Map<string, number>;
+  /** Older rounds collapse behind a tappable header to avoid a long scroll. */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }
 
 export function RoundGamesList({
@@ -508,10 +511,14 @@ export function RoundGamesList({
   onScoreClick,
   readOnly = false,
   previousRoundCourts,
+  collapsible = false,
+  defaultOpen = true,
 }: RoundGamesListProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const roundGames = games.filter((g) => g.round === roundNumber);
   const completedCount = roundGames.filter((g) => g.completed).length;
   const roundComplete = completedCount === roundGames.length && roundGames.length > 0;
+  const isOpen = collapsible ? open : true;
 
   // Group games by court
   const gamesByCourt = roundGames.reduce((acc, game) => {
@@ -528,20 +535,40 @@ export function RoundGamesList({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between gap-3 text-base">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate">Round {roundNumber}</span>
-            {roundComplete && (
-              <Badge variant="secondary" className="text-xs">
-                Finished
-              </Badge>
+        <CardTitle className="text-base">
+          <button
+            type="button"
+            onClick={collapsible ? () => setOpen((v) => !v) : undefined}
+            aria-expanded={collapsible ? isOpen : undefined}
+            className={cn(
+              "flex w-full items-center justify-between gap-3 text-left",
+              collapsible && "cursor-pointer"
             )}
-          </div>
-          <Badge variant="outline">
-            {completedCount}/{roundGames.length}
-          </Badge>
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate">Round {roundNumber}</span>
+              {roundComplete && (
+                <Badge variant="secondary" className="text-xs">
+                  Finished
+                </Badge>
+              )}
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <Badge variant="outline">
+                {completedCount}/{roundGames.length}
+              </Badge>
+              {collapsible && (
+                <ChevronDown
+                  className={cn(
+                    "size-4 text-muted-foreground transition-transform",
+                    isOpen && "rotate-180"
+                  )}
+                />
+              )}
+            </span>
+          </button>
         </CardTitle>
-        {byePlayers.length > 0 && (
+        {isOpen && byePlayers.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 pt-1">
             <span className="text-xs font-semibold text-muted-foreground">
               Sitting out
@@ -554,6 +581,7 @@ export function RoundGamesList({
           </div>
         )}
       </CardHeader>
+      {isOpen && (
       <CardContent className="flex flex-col gap-4 pt-0">
         {courts.map((courtNumber) => (
           <motion.div
@@ -595,6 +623,7 @@ export function RoundGamesList({
           </p>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }

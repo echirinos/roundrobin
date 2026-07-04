@@ -3,6 +3,15 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.8] - 2026-07-04
+
+Previous rounds collapse so the Matches list stays short.
+
+### Changed
+- On the Matches tab the current round stays expanded, and each earlier round
+  collapses into a tappable header ("Round 2 · Finished · 5 games") you open on
+  demand. No more scrolling past every past round to reach the live one.
+
 ## [0.4.7] - 2026-07-04
 
 Simpler for guests: no check-in. Spectators just open the link and watch.
