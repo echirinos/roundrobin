@@ -2,25 +2,13 @@
 
 ## Live Sessions
 
-### Organizer write-token for the sessions API
-
-**What:** Issue an organizer-only secret when a session is published and require it on `PUT /api/sessions/[code]`; spectators keep GET-only access via the share code.
-
-**Why:** Today the 6-character spectator code is the only credential, so anyone holding a share link can overwrite the entire live snapshot (wipe rounds, falsify scores) for every viewer. The client-side `isSpectator` guard is advisory only.
-
-**Context:** Flagged by both the security specialist and the adversarial review during the v0.4.0 ship. The PUT handler (`app/api/sessions/[code]/route.ts`) validates only snapshot shape (`isLiveTournamentSnapshot`). A minimal fix: mint a token in the publish path, store it with the session record, check it in PUT, and keep it in the organizer's localStorage. Payload size should be bounded at the same time (storage DoS).
-
-**Effort:** M
-**Priority:** P1
-**Depends on:** None
-
 ### Revision check on snapshot sync (stale-writer protection)
 
-**What:** Add a monotonic revision counter to the live-session snapshot; the PUT handler rejects writes whose revision is not greater than the stored one, and the client surfaces the conflict instead of silently overwriting.
+**What:** Add a monotonic revision counter to the live-session snapshot; the PUT handler rejects writes whose revision isn't greater than the stored one (compare-and-set), and the client surfaces/reconciles the conflict instead of silently overwriting. Store check-ins in a separate Redis key from the organizer snapshot so a check-in write and a score write never touch the same blob.
 
-**Why:** Sync is last-writer-wins over full snapshots. A second organizer tab holding pre-undo state can silently resurrect a deleted round and destroy rescored games on its next push. Undo Round (v0.4.0) makes divergent tab histories more likely.
+**Why:** Sync is last-writer-wins over full snapshots on a now-shared store. Two races exist: (1) a spectator check-in POST and an organizer score PUT that both read the same record can clobber each other; (2) two debounced organizer pushes can land out of order. Both are currently **transient and self-healing** — the organizer's localStorage is authoritative, and its 5-second poll + re-push restores the true state within ~5s — but a spectator can briefly see a reverted score, and a permanent loss is possible in the narrow window where the organizer closes the tab within ~5s of a race.
 
-**Context:** Adversarial review finding during the v0.4.0 ship. Until this lands, treat "one organizer tab at a time" as a hard constraint. Touch points: `src/lib/live-session.ts` (snapshot shape), `app/api/sessions/[code]/route.ts` (PUT guard), push effect in `app/tournament/page.tsx` (~line 437), plus a 409 handling path.
+**Context:** Confirmed by Codex adversarial review during the v0.4.1 ship. Until this lands, treat "one organizer tab at a time" as a soft constraint. Touch points: `src/lib/live-session-store.ts` (split check-ins from snapshot; CAS write), `app/api/sessions/[code]/route.ts` (409 on stale revision), push effect + poll in `app/tournament/page.tsx`.
 
 **Effort:** M
 **Priority:** P1
@@ -28,11 +16,11 @@
 
 ### Reset should end or expire the published session
 
-**What:** When the organizer resets a tournament, delete or expire the remote session record instead of leaving spectators polling stale data forever.
+**What:** When the organizer resets a tournament, delete or expire the remote session record instead of leaving spectators polling stale data. (The 24h TTL added in v0.4.1 bounds the staleness; an explicit DELETE would end it immediately.)
 
-**Why:** After "Reset everything," spectators keep seeing the dead session with no signal it ended.
+**Why:** After "Reset everything," spectators keep seeing the dead session until the TTL lapses, with no signal it ended.
 
-**Context:** Pre-existing behavior noted during the v0.4.0 ship review; the reset dialog swap didn't change it. Needs a DELETE endpoint or a tombstone flag in the record that the spectator view renders as "session ended."
+**Context:** Pre-existing behavior. Needs a DELETE endpoint (delete the Redis key) or a tombstone flag the spectator view renders as "session ended."
 
 **Effort:** S
 **Priority:** P2
@@ -91,3 +79,15 @@
 **Depends on:** None
 
 ## Completed
+
+### Organizer write-token for the sessions API
+
+**What:** Mint an organizer-only token on publish, require it on `PUT /api/sessions/[code]`, strip it from all public responses, cap payload size.
+
+**Completed:** v0.4.1 (2026-07-04). The token is stored in the organizer's localStorage keyed by code and sent as `x-organizer-token`; PUT returns 401 without it and 403 on mismatch; check-in stays open. An empty-token fixation bug (found by Codex adversarial review) was fixed before ship.
+
+### Move live sessions off per-instance memory
+
+**What:** Back live sessions with a shared store so spectator links survive redeploys and multiple serverless instances.
+
+**Completed:** v0.4.1 (2026-07-04). Upstash Redis (Vercel Marketplace) with a 24h TTL refreshed on write; in-memory fallback for local dev with no store configured.

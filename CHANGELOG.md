@@ -3,6 +3,30 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.1] - 2026-07-04
+
+Live sessions now survive on a shared store, so spectator links keep working.
+
+Sessions previously lived in the memory of whichever server instance happened
+to serve the request, which meant a redeploy or a second serverless instance
+could make a shared QR link show "no session found" for guests. Sessions now
+live in a shared store with a 24-hour expiry, so every guest device sees the
+same session regardless of which instance answers, and abandoned sessions
+clean themselves up overnight.
+
+### Changed
+- Live sessions are backed by a shared key-value store (Upstash Redis on
+  Vercel) instead of per-instance memory. Spectator links stay valid across
+  redeploys and scale to any number of viewers. Local development works with
+  no setup — it falls back to in-memory storage when no store is configured.
+
+### Fixed
+- Only the organizer who created a session can change it. Each session mints a
+  private owner token on publish (kept on the host's device, never sent to
+  spectators); score and round updates require it, so a guest with the share
+  code can no longer overwrite the session.
+- Oversized session payloads are rejected instead of being stored.
+
 ## [0.4.0] - 2026-07-04
 
 Players now see exactly where to go each round, organizers can undo a
