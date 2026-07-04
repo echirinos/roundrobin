@@ -405,21 +405,21 @@ export function getTiebreakerOrder(scoringType: ScoringType): string[] {
   switch (scoringType) {
     case 'court_weighted':
       return [
-        'Court Points',
-        'Win Percentage',
-        'Head-to-Head',
-        'Point Differential',
-        'Points For',
+        'Court points',
+        'Win rate',
+        'Head-to-head',
+        'Margin',
+        'Points scored',
       ];
     case 'win_percentage':
     case 'games_won':
     default:
       return [
         'Wins',
-        'Win Percentage',
-        'Head-to-Head',
-        'Point Differential',
-        'Points For',
+        'Win rate',
+        'Head-to-head',
+        'Margin',
+        'Points scored',
       ];
   }
 }

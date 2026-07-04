@@ -3,6 +3,36 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.3] - 2026-07-04
+
+Plainer words everywhere, and a landing page that shows what it does.
+
+The three "Setup / Join / Score" cards on the landing page were abstract
+colored blocks; each now shows a real preview — a share link with player and
+court chips, a check-in row with a QR tile, and a posted scoreline with who's
+up next. Across the app, insider shorthand is gone: standings say "margin"
+and "win rate" instead of "PD" and "Win %", scoring is explained in a sentence
+instead of a raw setting name, and a session that can't start now tells you
+exactly why and what to do.
+
+### Changed
+- Landing "Setup / Join / Score" cards show literal previews of what each step
+  produces instead of decorative gradient blocks. Hero copy defines "open
+  play" for people new to it.
+- Standings drop the "PD" abbreviation for "margin", label metrics as "win
+  rate" / "court points", and spell out the tiebreakers in plain English with
+  a one-line legend.
+- The round summary explains scoring in a sentence ("higher courts are worth
+  more — a win on Court 1 earns bonus points") instead of printing the setting.
+- Weighted-court badges say "Top court — winner earns 2x points" so the
+  multiplier makes sense.
+- The live-share note is written for humans ("keeps updating as long as you
+  keep this app open and connected") instead of "while this server is running."
+- The "MiLP" format is now "Team League" with a plain description; several
+  format blurbs reworded to say what happens in everyday words.
+- Clearer empty states, status labels, and the odd-player warning now says
+  what to fix.
+
 ## [0.4.2] - 2026-07-04
 
 Building Set Teams is now tap-to-pair, and it reads your pasted team lists.

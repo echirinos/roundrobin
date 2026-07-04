@@ -196,7 +196,8 @@ export function EnhancedSchedule({
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-sm text-muted-foreground">
-              No games yet. Use the Round Manager above to generate your first round.
+              No matches yet. Tap &ldquo;Generate Round 1&rdquo; in the Round
+              control card above to make the first round.
             </p>
           </CardContent>
         </Card>

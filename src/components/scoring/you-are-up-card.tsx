@@ -172,7 +172,7 @@ export function YouAreUpCard({
             )}
             {showMovement && !scored && info.movement === "stay" && (
               <Badge variant="outline" className="text-xs">
-                Holding court
+                Same court
               </Badge>
             )}
           </div>
