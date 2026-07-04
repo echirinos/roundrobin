@@ -7,10 +7,13 @@ import {
   ArrowRight,
   CheckCircle2,
   ClipboardList,
+  Link2,
   MessageCircleOff,
+  QrCode,
   RotateCcw,
   ScanLine,
   Smartphone,
+  Trophy,
   Zap,
 } from "lucide-react";
 
@@ -85,21 +88,24 @@ const laneEvents = [
 
 const productProof = [
   {
+    kind: "setup" as const,
     label: "Setup",
     title: "Start in 30 seconds",
-    text: "Choose courts, add players, and share one live link before warmups end.",
-    metric: "00:30",
+    text: "Add players, set your courts, and share one live link before warmups end.",
+    metric: "0:30",
   },
   {
+    kind: "join" as const,
     label: "Join",
-    title: "Players scan and check in",
-    text: "Late arrivals join from the QR code without asking the organizer to stop playing.",
+    title: "Players check themselves in",
+    text: "Latecomers scan the QR and join mid-session. You never stop to take names.",
     metric: "QR",
   },
   {
+    kind: "score" as const,
     label: "Score",
     title: "The next game posts itself",
-    text: "A score tap updates standings, clears the court, and tells the group who is up.",
+    text: "One score tap updates standings, frees the court, and calls who is up next.",
     metric: "9-6",
   },
 ];
@@ -451,6 +457,60 @@ function MotionRail() {
   );
 }
 
+function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
+  if (kind === "setup") {
+    return (
+      <div className="pp-visual" aria-hidden="true">
+        <div className="pp-link">
+          <Link2 className="size-3.5 text-live" />
+          <span className="pp-link-url">playsync.app/live</span>
+          <span className="pp-link-copy">Copy</span>
+        </div>
+        <div className="pp-chips">
+          <span>9 players</span>
+          <span>2 courts</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === "join") {
+    return (
+      <div className="pp-visual pp-visual-join" aria-hidden="true">
+        <div className="pp-avatars">
+          {["A", "B", "C"].map((initial) => (
+            <span key={initial} className="pp-avatar">
+              {initial}
+              <CheckCircle2 className="pp-avatar-check size-3" />
+            </span>
+          ))}
+          <span className="pp-avatar pp-avatar-more">+6</span>
+        </div>
+        <div className="pp-qr">
+          <QrCode className="size-6" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pp-visual pp-visual-score" aria-hidden="true">
+      <div className="pp-scoreline">
+        <span className="pp-court">Court 1</span>
+        <span className="pp-score">9&ndash;6</span>
+        <span className="pp-final">
+          <Trophy className="size-3" />
+          Final
+        </span>
+      </div>
+      <div className="pp-next">
+        <ArrowRight className="size-3.5 text-live" />
+        Next up: Ellie &amp; Sam on Court 1
+      </div>
+    </div>
+  );
+}
+
 function ProductProofGrid() {
   return (
     <div className="product-proof-grid">
@@ -463,11 +523,7 @@ function ProductProofGrid() {
             </div>
             <h3>{item.title}</h3>
             <p>{item.text}</p>
-            <div className="product-proof-visual" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
+            <ProductProofVisual kind={item.kind} />
           </div>
         </Reveal>
       ))}
