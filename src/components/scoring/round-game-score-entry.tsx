@@ -117,7 +117,7 @@ function RoundGameScoreForm({
           </DialogTitle>
           {courtWeight && courtWeight > 1 && (
             <Badge variant="secondary" className="text-xs">
-              {courtWeight}x points
+              Top court · {courtWeight}x
             </Badge>
           )}
         </div>
@@ -467,7 +467,7 @@ export function GameCard({
 
         <div className="flex shrink-0 flex-col items-end gap-2">
           <Badge variant={game.completed ? "secondary" : "outline"}>
-            {game.completed ? "Final" : readOnly ? "Waiting" : "Score"}
+            {game.completed ? "Final" : readOnly ? "Not played yet" : "Score"}
           </Badge>
           {!game.completed && (
             <span className="text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground sm:hidden">
@@ -480,7 +480,7 @@ export function GameCard({
       {courtWeight && courtWeight > 1 && (
         <div className="relative z-10 mt-3 flex justify-end text-xs text-muted-foreground">
           <span className="data-chip">
-            {courtWeight}x points for winner
+            Top court — winner earns {courtWeight}x points
           </span>
         </div>
       )}

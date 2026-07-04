@@ -134,7 +134,7 @@ export function SessionShareSheet({
     if (syncStatus === "live") return "Live";
     if (syncStatus === "publishing") return "Publishing";
     if (syncStatus === "syncing") return "Syncing";
-    if (syncStatus === "error") return "Needs attention";
+    if (syncStatus === "error") return "Not sharing — tap to retry";
     return "Local only";
   }, [isReadOnly, syncStatus]);
 
@@ -335,8 +335,9 @@ export function SessionShareSheet({
               </ShimmerButton>
             )}
             <p className="text-center text-xs text-muted-foreground">
-              Spectators get a read-only view that updates while this server is
-              running.
+              Anyone with the link or code can watch the scores but can&apos;t
+              change them. The page keeps updating as long as you keep this app
+              open and connected.
             </p>
           </div>
         </div>

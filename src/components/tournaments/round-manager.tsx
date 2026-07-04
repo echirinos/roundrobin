@@ -19,7 +19,23 @@ import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
 import { cn } from "@/lib/utils";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
-import type { EventSettings } from "@/src/types/formats";
+import type { EventSettings, ScoringType } from "@/src/types/formats";
+
+// Plain-language scoring explanation for the round-control summary, instead of
+// printing the raw setting ("court weighted", "win percentage").
+function describeScoring(scoringType: ScoringType): string {
+  switch (scoringType) {
+    case "court_weighted":
+      return "Scoring: higher courts are worth more — a win on Court 1 earns bonus points.";
+    case "points":
+      return "Scoring: ranked by how many points you win by.";
+    case "games_won":
+      return "Scoring: ranked by total games won.";
+    case "win_percentage":
+    default:
+      return "Scoring: ranked by the share of games you win.";
+  }
+}
 import {
   generateRound,
   type GeneratorContext,
@@ -241,7 +257,8 @@ export function RoundManager({
           )}
           {isFixedPartners && players.length % 2 !== 0 && (
             <p className="text-sm font-medium text-warning">
-              Set partners needs complete two-player teams.
+              You have an odd number of players, so one person has no partner.
+              Add or remove one to make full teams.
             </p>
           )}
 
@@ -401,9 +418,12 @@ export function RoundManager({
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">{formatDefinition.description}</p>
-          <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
-            <span>Scoring: {settings.scoringType.replace("_", " ")}</span>
-            <span>Courts: {settings.numberOfCourts}</span>
+          <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
+            <span>{describeScoring(settings.scoringType)}</span>
+            <span>
+              {settings.numberOfCourts}{" "}
+              {settings.numberOfCourts === 1 ? "court" : "courts"}
+            </span>
           </div>
         </CardContent>
       </Card>

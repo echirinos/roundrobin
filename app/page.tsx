@@ -769,14 +769,15 @@ export default function Home() {
               className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
             >
               <p className="hero-eyebrow">
-                Open play, in one shared link
+                Casual drop-in pickleball, one shared link
               </p>
               <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
                 Run open play. Skip group texts.
               </h1>
               <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
-                Create a live pickleball session, share the QR, post the next
-                game, and collect scores from one mobile-friendly link.
+                Open play is casual pickleball where people show up and rotate
+                through games. Run the whole night from one link: players scan a
+                QR to join, you tap scores, and the next game posts itself.
               </p>
               <HeroAssurance />
             </motion.div>

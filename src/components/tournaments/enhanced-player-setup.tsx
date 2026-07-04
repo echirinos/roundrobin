@@ -100,8 +100,8 @@ const PLAY_MODE_HELP_TEXT: Partial<Record<EventFormat, string>> = {
   gauntlet: "More competitive. Winners get harder games.",
   king_of_court: "Winners move up. Losers move down.",
   up_down_river: "Top 2 move up, bottom 2 move down.",
-  round_robin: "Unique partners first. Great for 7 rounds.",
-  scramble: "Small court groups with less movement.",
+  round_robin: "Everyone gets a fresh partner each round, so the group mixes.",
+  scramble: "Small groups stay on one court and rotate partners there.",
   mixed_madness: "Mixed doubles with balanced teams.",
   double_header: "Two games with the same partner.",
   cream_crop: "Sort by skill, then compete.",
@@ -109,7 +109,7 @@ const PLAY_MODE_HELP_TEXT: Partial<Record<EventFormat, string>> = {
   shuffle: "Keep partners. Rotate opponents.",
   team_gauntlet: "Keep partners. Winning teams draw harder opponents.",
   bracket: "Win-and-advance tournament bracket.",
-  milp: "League-style team rotation.",
+  milp: "Everyone plays everyone; matchups auto-rotate.",
 };
 
 function getScoringLabel(format: EventFormat): string {

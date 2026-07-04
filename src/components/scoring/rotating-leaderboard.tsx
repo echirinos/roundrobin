@@ -79,10 +79,10 @@ export function RotatingLeaderboard({
             <CardTitle>Standings</CardTitle>
             <Badge variant="outline" className="text-xs">
               {scoringType === "court_weighted"
-                ? "Court Points"
+                ? "Court points"
                 : scoringType === "win_percentage"
-                ? "Win %"
-                : "Games Won"}
+                ? "Win rate"
+                : "Games won"}
             </Badge>
           </div>
         </CardHeader>
@@ -211,7 +211,7 @@ export function RotatingLeaderboard({
                               )}
                             >
                               {standing.pointDifferential > 0 ? "+" : ""}
-                              {standing.pointDifferential} PD
+                              {standing.pointDifferential} margin
                             </motion.span>
                           </>
                         )}
@@ -244,7 +244,9 @@ export function RotatingLeaderboard({
                       </motion.div>
                       {standing.gamesPlayed > 0 && (
                         <div className="text-xs font-semibold text-muted-foreground">
-                          {scoringType === "court_weighted" ? "PTS" : "WIN %"}
+                          {scoringType === "court_weighted"
+                            ? "court pts"
+                            : "win rate"}
                         </div>
                       )}
                     </div>
@@ -258,13 +260,14 @@ export function RotatingLeaderboard({
 
       {/* Tiebreaker info */}
       {hasGames && (
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground text-center"
+          className="flex flex-col gap-1 text-center text-xs text-muted-foreground"
         >
-          Ranked by: {tiebreakerOrder.join(" → ")}
-        </motion.p>
+          <p>Ranked by {tiebreakerOrder[0].toLowerCase()}. Ties broken by {tiebreakerOrder.slice(1).join(", then ").toLowerCase()}.</p>
+          <p>Margin = your points scored minus points given up. Higher is better.</p>
+        </motion.div>
       )}
     </div>
   );

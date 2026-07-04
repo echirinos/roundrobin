@@ -216,7 +216,7 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
     id: 'gauntlet',
     name: 'Gauntlet',
     shortName: 'Gauntlet',
-    description: 'Seeded matchups where winners face harder opponents.',
+    description: 'Win and you face tougher opponents next round. Keep winning to reach the top.',
     category: 'rotating',
     partnerMode: 'rotating',
     scoringType: 'win_percentage',
@@ -413,9 +413,9 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
 
   milp: {
     id: 'milp',
-    name: 'MiLP',
-    shortName: 'MiLP',
-    description: 'League play with automatic partner and opponent rotation for balanced matchups.',
+    name: 'Team League',
+    shortName: 'League',
+    description: 'Everyone plays everyone. Partners and opponents rotate automatically so matchups stay balanced.',
     category: 'fixed',
     partnerMode: 'fixed',
     scoringType: 'win_percentage',
