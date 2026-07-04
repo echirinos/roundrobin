@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, Medal, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -11,7 +12,6 @@ import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/dat
 import type { ScoringType } from "@/src/types/formats";
 import {
   calculateStandingsForFormat,
-  getPrimaryMetric,
   getTiebreakerOrder,
   calculateRankChanges,
 } from "@/src/lib/formats/scoring";
@@ -78,11 +78,7 @@ export function RotatingLeaderboard({
           <div className="flex items-center justify-between gap-3">
             <CardTitle>Standings</CardTitle>
             <Badge variant="outline" className="text-xs">
-              {scoringType === "court_weighted"
-                ? "Court points"
-                : scoringType === "win_percentage"
-                ? "Win rate"
-                : "Games won"}
+              {scoringType === "court_weighted" ? "Court points" : "Point margin"}
             </Badge>
           </div>
         </CardHeader>
@@ -93,15 +89,22 @@ export function RotatingLeaderboard({
               const isLeader = index === 0 && standing.gamesWon > 0;
               const initial = standing.player.name.charAt(0).toUpperCase();
 
-              // Medal emojis for top 3
-              const getMedal = (rank: number) => {
-                if (!hasGames) return null;
-                if (rank === 0) return "1";
-                if (rank === 1) return "2";
-                if (rank === 2) return "3";
-                return null;
-              };
-              const medal = getMedal(index);
+              // Trophy for the leader, medals for the podium — icons only once
+              // there are games to rank by (otherwise show plain rank numbers).
+              const PodiumIcon =
+                hasGames && index === 0
+                  ? Trophy
+                  : hasGames && index === 1
+                  ? Medal
+                  : hasGames && index === 2
+                  ? Award
+                  : null;
+              const podiumIconColor =
+                index === 0
+                  ? "text-primary"
+                  : index === 1
+                  ? "text-live"
+                  : "text-accent";
 
               // Court assignment (for court-weighted formats)
               const courtAssignment = showCourtAssignments
@@ -139,13 +142,20 @@ export function RotatingLeaderboard({
                   )}
                   <div className="flex items-center gap-3">
                     <motion.div
-                      className="font-display w-8 text-center text-xl font-semibold"
+                      className="font-display flex w-8 items-center justify-center text-xl font-semibold"
                       key={`rank-${index}`}
                       initial={{ scale: 1.5 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.3 }}
                     >
-                      {medal || index + 1}
+                      {PodiumIcon ? (
+                        <PodiumIcon
+                          className={cn("size-5", podiumIconColor)}
+                          aria-label={`Rank ${index + 1}`}
+                        />
+                      ) : (
+                        index + 1
+                      )}
                     </motion.div>
 
                     <motion.div
@@ -194,25 +204,34 @@ export function RotatingLeaderboard({
                         <span className="font-medium">
                           {standing.gamesWon}-{standing.gamesLost}
                         </span>
+                        {/* For win-based formats margin is the big number, so
+                            the subtitle carries win rate; court-weighted keeps
+                            margin here since court points are the big number. */}
                         {standing.gamesPlayed > 0 && (
                           <>
                             <span className="text-muted-foreground/50">•</span>
-                            <motion.span
-                              key={`diff-${standing.pointDifferential}`}
-                              initial={{ opacity: 0.5 }}
-                              animate={{ opacity: 1 }}
-                              className={cn(
-                                "font-medium",
-                                standing.pointDifferential > 0
-                                  ? "text-success"
-                                  : standing.pointDifferential < 0
-                                  ? "text-destructive"
-                                  : ""
-                              )}
-                            >
-                              {standing.pointDifferential > 0 ? "+" : ""}
-                              {standing.pointDifferential} margin
-                            </motion.span>
+                            {scoringType === "court_weighted" ? (
+                              <motion.span
+                                key={`diff-${standing.pointDifferential}`}
+                                initial={{ opacity: 0.5 }}
+                                animate={{ opacity: 1 }}
+                                className={cn(
+                                  "font-medium",
+                                  standing.pointDifferential > 0
+                                    ? "text-success"
+                                    : standing.pointDifferential < 0
+                                    ? "text-destructive"
+                                    : ""
+                                )}
+                              >
+                                {standing.pointDifferential > 0 ? "+" : ""}
+                                {standing.pointDifferential} margin
+                              </motion.span>
+                            ) : (
+                              <span className="font-medium">
+                                {standing.winPercentage}% wins
+                              </span>
+                            )}
                           </>
                         )}
                         {showCourtAssignments && courtAssignment && hasGames && (
@@ -228,27 +247,41 @@ export function RotatingLeaderboard({
 
                     <div className="shrink-0 text-right">
                       <motion.div
-                        className="font-display text-3xl font-semibold tabular-nums tracking-tight"
-                        key={`metric-${getPrimaryMetric(standing, scoringType)}`}
+                        className={cn(
+                          "font-display text-3xl font-semibold tabular-nums tracking-tight",
+                          scoringType === "court_weighted"
+                            ? ""
+                            : standing.pointDifferential > 0
+                            ? "text-success"
+                            : standing.pointDifferential < 0
+                            ? "text-destructive"
+                            : ""
+                        )}
+                        key={`metric-${
+                          scoringType === "court_weighted"
+                            ? standing.courtWeightedPoints
+                            : standing.pointDifferential
+                        }`}
                         initial={{ scale: 1.2 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       >
+                        {scoringType !== "court_weighted" &&
+                          standing.pointDifferential > 0 &&
+                          "+"}
                         <NumberTicker
                           value={
                             scoringType === "court_weighted"
                               ? standing.courtWeightedPoints
-                              : standing.winPercentage
+                              : standing.pointDifferential
                           }
                         />
                       </motion.div>
-                      {standing.gamesPlayed > 0 && (
-                        <div className="text-xs font-semibold text-muted-foreground">
-                          {scoringType === "court_weighted"
-                            ? "court pts"
-                            : "win rate"}
-                        </div>
-                      )}
+                      <div className="text-xs font-semibold text-muted-foreground">
+                        {scoringType === "court_weighted"
+                          ? "court pts"
+                          : "point margin"}
+                      </div>
                     </div>
                   </div>
                 </motion.div>

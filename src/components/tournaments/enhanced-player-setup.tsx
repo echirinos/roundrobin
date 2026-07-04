@@ -10,7 +10,9 @@ import {
   ClipboardList,
   LayoutGrid,
   LogIn,
+  Check,
   Minus,
+  Pencil,
   Play,
   Plus,
   Settings2,
@@ -181,6 +183,85 @@ function derivePairing(players: LocalPlayer[]): {
   return { teams, pool };
 }
 
+// A player name that turns into an inline editor on tap. Renaming is always
+// safe — it keeps the same player id — so it's offered even for players who
+// have already played and can't be removed.
+function EditableName({
+  name,
+  onRename,
+  className,
+}: {
+  name: string;
+  onRename?: (next: string) => void;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+
+  if (!onRename) {
+    return <span className={cn("truncate", className)}>{name}</span>;
+  }
+
+  const commit = () => {
+    const next = draft.trim();
+    if (next && next !== name) onRename(next);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <span className="flex min-w-0 flex-1 items-center gap-1">
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit();
+            } else if (event.key === "Escape") {
+              setDraft(name);
+              setEditing(false);
+            }
+          }}
+          onBlur={commit}
+          autoFocus
+          aria-label={`Rename ${name}`}
+          className="h-8 min-w-0 flex-1"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          // Commit on the button, but stop the input's blur from firing first.
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={commit}
+          aria-label="Save name"
+        >
+          <Check className="size-4" />
+        </Button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(name);
+        setEditing(true);
+      }}
+      className={cn(
+        "group inline-flex min-w-0 items-center gap-1 text-left",
+        className
+      )}
+      aria-label={`Edit ${name}`}
+    >
+      <span className="truncate">{name}</span>
+      <Pencil className="size-3 shrink-0 text-muted-foreground opacity-50 transition-opacity group-hover:opacity-100" />
+    </button>
+  );
+}
+
 /**
  * Canonical roster order for a set-partner event: every team's two players
  * adjacent and first, then the unpaired pool. This preserves the downstream
@@ -197,11 +278,13 @@ function TeamRow({
   team,
   checkIns,
   onRemove,
+  onRenamePlayer,
   locked = false,
 }: {
   team: RosterTeam;
   checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
+  onRenamePlayer?: (playerId: string, next: string) => void;
   /** Team has already played completed games — can't be removed mid-session. */
   locked?: boolean;
 }) {
@@ -226,9 +309,25 @@ function TeamRow({
           )}
           {locked && <Badge variant="outline">In play</Badge>}
         </div>
-        <p className="mt-2 truncate text-sm font-medium">
-          {team.player1.name} &amp; {team.player2.name}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-1 text-sm font-medium">
+          <EditableName
+            name={team.player1.name}
+            onRename={
+              onRenamePlayer
+                ? (next) => onRenamePlayer(team.player1.id, next)
+                : undefined
+            }
+          />
+          <span className="text-muted-foreground">&amp;</span>
+          <EditableName
+            name={team.player2.name}
+            onRename={
+              onRenamePlayer
+                ? (next) => onRenamePlayer(team.player2.id, next)
+                : undefined
+            }
+          />
+        </div>
       </div>
       {onRemove && (
         <Button
@@ -250,11 +349,13 @@ function PlayerRow({
   player,
   checkIns,
   onRemove,
+  onRename,
   locked = false,
 }: {
   player: LocalPlayer;
   checkIns: Record<string, PlayerCheckIn>;
   onRemove?: () => void;
+  onRename?: (next: string) => void;
   /** Player has already played completed games — can't be removed mid-session. */
   locked?: boolean;
 }) {
@@ -276,7 +377,11 @@ function PlayerRow({
         {checkIns[player.id] && (
           <CheckCircle2 className="size-4 shrink-0 text-success" />
         )}
-        <span className="truncate text-sm font-medium">{player.name}</span>
+        <EditableName
+          name={player.name}
+          onRename={onRename}
+          className="text-sm font-medium"
+        />
         {locked && <Badge variant="outline">In play</Badge>}
       </span>
       {onRemove && (
@@ -984,6 +1089,22 @@ export function EnhancedPlayerSetup({
     );
   };
 
+  // Rename in place. Safe even for players locked from removal — the id is
+  // unchanged, so existing games and standings still reference them. Keeps
+  // roster order (no re-pairing) so a rename doesn't reshuffle the list.
+  const renamePlayer = (id: string, next: string) => {
+    if (playerControlsDisabled) return;
+    const trimmed = next.trim();
+    if (!trimmed) return;
+
+    setDuplicatePlayerError(null);
+    onPlayersChange(
+      players.map((player) =>
+        player.id === id ? { ...player, name: trimmed } : player
+      )
+    );
+  };
+
   const poolCount = unpairedPool.length;
   const incompleteTeamAlert = isFixedPartners && poolCount > 0 && (
     <Alert>
@@ -1099,6 +1220,7 @@ export function EnhancedPlayerSetup({
                   team={team}
                   checkIns={checkIns}
                   locked={teamLocked}
+                  onRenamePlayer={renamePlayer}
                   onRemove={
                     teamLocked
                       ? undefined
@@ -1343,6 +1465,7 @@ export function EnhancedPlayerSetup({
                         player={player}
                         checkIns={checkIns}
                         locked={playerLocked}
+                        onRename={(next) => renamePlayer(player.id, next)}
                         onRemove={
                           playerLocked
                             ? undefined

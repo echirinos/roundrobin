@@ -76,6 +76,7 @@ export function RoundManager({
   const [previewGames, setPreviewGames] = useState<LocalRoundGame[] | null>(null);
   const [previewByePlayers, setPreviewByePlayers] = useState<LocalPlayer[]>([]);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+  const [showByePicker, setShowByePicker] = useState(false);
 
   const formatDefinition = FORMAT_DEFINITIONS[settings.format];
   const isRotating = isRotatingFormat(settings.format);
@@ -144,22 +145,46 @@ export function RoundManager({
       onGenerateRound(previewGames);
       setPreviewGames(null);
       setPreviewByePlayers([]);
+      setShowByePicker(false);
     }
   };
 
   const handleCancelPreview = () => {
     setPreviewGames(null);
     setPreviewByePlayers([]);
+    setShowByePicker(false);
   };
 
   const handleShufflePreview = () => {
     if (!previewGames) return;
 
+    setShowByePicker(false);
     try {
       generatePreviewRound();
     } catch (error) {
       console.error("Failed to shuffle round preview:", error);
     }
+  };
+
+  // Manually hand the bye to a chosen team: it takes the bench and the team
+  // currently sitting out steps into the court it vacated. A 1-for-1 swap, so
+  // court count and everyone else's matchups stay put.
+  const benchChosenTeam = (gameId: string, side: "team1" | "team2") => {
+    if (!previewGames || previewByePlayers.length < 2) return;
+
+    const incoming = previewByePlayers.slice(0, 2);
+    const restByes = previewByePlayers.slice(2);
+    const targetGame = previewGames.find((g) => g.id === gameId);
+    if (!targetGame) return;
+    const outgoing = targetGame[side];
+
+    setPreviewGames(
+      previewGames.map((g) =>
+        g.id === gameId ? { ...g, [side]: incoming } : g
+      )
+    );
+    setPreviewByePlayers([...outgoing, ...restByes]);
+    setShowByePicker(false);
   };
 
   const currentRoundScoredCount = currentRoundGames.filter(
@@ -320,16 +345,18 @@ export function RoundManager({
                     <div className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                       Court {game.courtNumber}
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <div className="truncate text-sm font-semibold">
-                        {game.team1[0].name} & {game.team1[1].name}
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="truncate text-sm font-semibold">
+                          {game.team1[0].name} & {game.team1[1].name}
+                        </div>
+                        <div className="truncate text-sm font-semibold">
+                          {game.team2[0].name} & {game.team2[1].name}
+                        </div>
                       </div>
-                      <div className="text-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
                         vs
-                      </div>
-                      <div className="truncate text-sm font-semibold">
-                        {game.team2[0].name} & {game.team2[1].name}
-                      </div>
+                      </span>
                     </div>
                   </motion.div>
                 ))}
@@ -338,18 +365,58 @@ export function RoundManager({
 
             {previewByePlayers.length > 0 ? (
               <div
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/30 p-3"
+                className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-3"
                 data-testid="preview-byes"
               >
-                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Armchair className="size-4 text-muted-foreground" />
-                  Sitting out
-                </span>
-                {previewByePlayers.map((p) => (
-                  <Badge key={p.id} variant="secondary" className="max-w-full">
-                    <span className="truncate">{p.name}</span>
-                  </Badge>
-                ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    <Armchair className="size-4 text-muted-foreground" />
+                    Sitting out
+                  </span>
+                  {previewByePlayers.map((p) => (
+                    <Badge key={p.id} variant="secondary" className="max-w-full">
+                      <span className="truncate">{p.name}</span>
+                    </Badge>
+                  ))}
+                  {previewByePlayers.length >= 2 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-8"
+                      onClick={() => setShowByePicker((v) => !v)}
+                    >
+                      {showByePicker ? "Close" : "Change who sits"}
+                    </Button>
+                  )}
+                </div>
+
+                {showByePicker && (
+                  <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                    <p className="text-xs text-muted-foreground">
+                      Tap a team to give them the bye — the team sitting out now
+                      takes their spot.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {previewGames.flatMap((game) =>
+                        (["team1", "team2"] as const).map((side) => (
+                          <Button
+                            key={`${game.id}-${side}`}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-auto max-w-full py-1.5"
+                            onClick={() => benchChosenTeam(game.id, side)}
+                          >
+                            <span className="truncate">
+                              {game[side][0].name} &amp; {game[side][1].name}
+                            </span>
+                          </Button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
