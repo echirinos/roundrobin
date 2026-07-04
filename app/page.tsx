@@ -772,7 +772,7 @@ export default function Home() {
                 Casual drop-in pickleball, one shared link
               </p>
               <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-normal text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
-                Run open play. Skip group texts.
+                Play more. Organize less.
               </h1>
               <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
                 Open play is casual pickleball where people show up and rotate
