@@ -3,6 +3,27 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.4.2] - 2026-07-04
+
+Building Set Teams is now tap-to-pair, and it reads your pasted team lists.
+
+Instead of typing partners two at a time, add everyone as individuals (or
+paste a list), then tap two players to pair them into a team — tap a team to
+break it up. Paste a numbered roster like "1. Emily & Gino" straight from your
+notes and it recognizes each line as a team, stripping the numbering and any
+stray formatting. The pairing controls appear on both the players step and the
+review step, so you can build teams no matter when you pick Set Teams.
+
+### Added
+- Tap-to-pair team builder for Set Teams: add a pool of players, tap two to
+  form a team, tap a team to split it back apart.
+- Paste-a-team-list import: a numbered or bulleted list of "Name & Name" lines
+  becomes teams in one step, tolerant of list markers and pasted formatting.
+
+### Changed
+- The court stepper is framed in teams for Set Teams play ("Up to 3 courts for
+  6 teams, 2 teams per court").
+
 ## [0.4.1] - 2026-07-04
 
 Live sessions now survive on a shared store, so spectator links keep working.
