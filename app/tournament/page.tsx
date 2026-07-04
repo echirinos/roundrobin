@@ -20,6 +20,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ShineBorder } from "@/components/ui/shine-border";
@@ -194,6 +202,7 @@ export default function TournamentPage() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [checkedInPlayerId, setCheckedInPlayerId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   // Bumped on reset so EnhancedPlayerSetup remounts and drops its lazy state.
   const [setupEpoch, setSetupEpoch] = useState(0);
   const setupTabRef = useRef<HTMLButtonElement>(null);
@@ -257,7 +266,12 @@ export default function TournamentPage() {
         setLastSyncedAt(record.updatedAt);
         setSyncStatus("live");
         setSyncError(null);
-        setActiveTab(record.snapshot.tournamentStarted ? "schedule" : "setup");
+        // Only steer the tab on an explicit load — the background poll also
+        // lands here every few seconds, and forcing the tab would yank a
+        // spectator off Standings/Players while they're reading it.
+        if (!options?.silent) {
+          setActiveTab(record.snapshot.tournamentStarted ? "schedule" : "setup");
+        }
 
         return true;
       } catch (error) {
@@ -614,25 +628,59 @@ export default function TournamentPage() {
     [isSpectator, standings]
   );
 
+  // Recover from an accidentally confirmed round: drop the latest round's
+  // games (and any scores entered on them) and step the round counter back.
+  const handleRemoveRound = useCallback(
+    (roundNumber: number) => {
+      if (isSpectator) return;
+
+      setState((prev) => {
+        // Only the latest round can be removed — deleting an earlier round
+        // would invalidate every round seeded after it.
+        if (roundNumber !== prev.currentRound || roundNumber < 1) return prev;
+
+        return {
+          ...prev,
+          games: prev.games.filter((game) => game.round !== roundNumber),
+          currentRound: roundNumber - 1,
+          // Undoing Round 1 usually means a roster or format mistake —
+          // reopen setup so those are editable again instead of stranding
+          // the session at "Round 0" with a locked roster.
+          tournamentStarted: roundNumber > 1 ? prev.tournamentStarted : false,
+        };
+      });
+      if (roundNumber === 1) {
+        setActiveTab("setup");
+      }
+      // Rank-change deltas against the deleted round's scores are meaningless.
+      setPreviousStandings([]);
+    },
+    [isSpectator]
+  );
+
   const handleResetTournament = useCallback(() => {
     if (isSpectator) return;
+    setShowResetConfirm(true);
+  }, [isSpectator]);
 
-    if (window.confirm("Reset tournament? All data will be lost.")) {
-      setState(createInitialState());
-      setPreviousStandings([]);
-      setSessionCode(null);
-      setSyncStatus("local");
-      setSyncError(null);
-      setLastSyncedAt(null);
-      setShowJoinPrompt(false);
-      setActiveTab("setup");
-      setSetupEpoch((epoch) => epoch + 1);
-      localStorage.removeItem(STORAGE_KEY);
-      if (sessionCode) {
-        localStorage.removeItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`);
-      }
-      localStorage.removeItem(SESSION_CODE_STORAGE_KEY);
+  const confirmResetTournament = useCallback(() => {
+    if (isSpectator) return;
+
+    setShowResetConfirm(false);
+    setState(createInitialState());
+    setPreviousStandings([]);
+    setSessionCode(null);
+    setSyncStatus("local");
+    setSyncError(null);
+    setLastSyncedAt(null);
+    setShowJoinPrompt(false);
+    setActiveTab("setup");
+    setSetupEpoch((epoch) => epoch + 1);
+    localStorage.removeItem(STORAGE_KEY);
+    if (sessionCode) {
+      localStorage.removeItem(`${CHECKIN_STORAGE_PREFIX}${sessionCode}`);
     }
+    localStorage.removeItem(SESSION_CODE_STORAGE_KEY);
   }, [isSpectator, sessionCode]);
 
   const handleJoinSession = useCallback(
@@ -1077,7 +1125,9 @@ export default function TournamentPage() {
                   currentRound={state.currentRound}
                   onUpdateGame={handleUpdateGame}
                   onAddRound={handleAddRound}
+                  onRemoveRound={handleRemoveRound}
                   readOnly={isSpectator}
+                  highlightPlayerId={checkedInPlayerId}
                 />
               )}
             </TabsContent>
@@ -1119,6 +1169,34 @@ export default function TournamentPage() {
           </p>
         </div>
       </main>
+
+      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset tournament?</DialogTitle>
+            <DialogDescription>
+              All players, rounds, and scores will be lost. This can&apos;t be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowResetConfirm(false)}
+              data-testid="reset-cancel"
+            >
+              Keep session
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmResetTournament}
+              data-testid="reset-confirm"
+            >
+              Reset everything
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
