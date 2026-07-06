@@ -134,7 +134,7 @@ function RoundGameScoreForm({
             className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
           >
             <label className="block text-center text-sm font-semibold">
-              <span className="truncate">
+              <span className="break-words">
                 {game.team1[0].name} & {game.team1[1].name}
               </span>
             </label>
@@ -162,7 +162,7 @@ function RoundGameScoreForm({
             className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
           >
             <label className="block text-center text-sm font-semibold">
-              <span className="truncate">
+              <span className="break-words">
                 {game.team2[0].name} & {game.team2[1].name}
               </span>
             </label>
@@ -285,7 +285,7 @@ function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewPr
           >
             <span
               className={cn(
-                "truncate text-sm font-semibold",
+                "min-w-0 break-words text-left text-sm font-semibold",
                 row.won ? "text-foreground" : "text-muted-foreground"
               )}
             >
@@ -423,7 +423,9 @@ export function GameCard({
                 team1Won && "text-success"
               )}
             >
-              <span className="truncate">
+              {/* Wrap instead of clipping: spectators on phones must be able
+                  to read both full names of a team. */}
+              <span className="min-w-0 break-words leading-snug">
                 {game.team1[0].name} & {game.team1[1].name}
               </span>
               <TeamMovementChip movement={team1Movement} />
@@ -447,7 +449,7 @@ export function GameCard({
                 team2Won && "text-success"
               )}
             >
-              <span className="truncate">
+              <span className="min-w-0 break-words leading-snug">
                 {game.team2[0].name} & {game.team2[1].name}
               </span>
               <TeamMovementChip movement={team2Movement} />
@@ -575,7 +577,7 @@ export function RoundGamesList({
             </span>
             {byePlayers.map((p) => (
               <Badge key={p.id} variant="secondary" className="max-w-full text-xs">
-                <span className="truncate">{p.name}</span>
+                <span className="break-words">{p.name}</span>
               </Badge>
             ))}
           </div>

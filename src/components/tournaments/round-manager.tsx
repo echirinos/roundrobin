@@ -41,7 +41,8 @@ import {
   type GeneratorContext,
 } from "@/src/lib/formats/rotating-generators";
 import {
-  createTeamsFromPlayers,
+  createTeamsFromRoster,
+  derivePartnerships,
   generateFixedRound,
 } from "@/src/lib/formats/fixed-generators";
 import {
@@ -83,6 +84,25 @@ export function RoundManager({
   const isFixedPartners =
     settings.partnerMode === "fixed" || isFixedPartnerFormat(settings.format);
 
+  // Roster-aware teams for fixed formats: a late arrival without a partner
+  // waits on the bench instead of blocking round generation.
+  const rosterTeams = useMemo(
+    () =>
+      isFixedPartners
+        ? createTeamsFromRoster(players)
+        : { teams: [], waitingPlayers: [] },
+    [isFixedPartners, players]
+  );
+  const waitingPlayers = rosterTeams.waitingPlayers;
+  // Unpaired players the organizer never explicitly linked. All but a trailing
+  // odd one (who waits) get auto-teamed in add order — surface that so the
+  // pairing is never a surprise (e.g. after breaking up a just-added team).
+  const autoPairedPlayers = useMemo(() => {
+    if (!isFixedPartners) return [];
+    const pool = derivePartnerships(players).pool;
+    return pool.slice(0, pool.length - waitingPlayers.length);
+  }, [isFixedPartners, players, waitingPlayers.length]);
+
   // Track used partnerships
   const usedPartnerships = useMemo(() => {
     const partnerships = new Set<string>();
@@ -103,7 +123,7 @@ export function RoundManager({
   const generatePreviewRound = () => {
     if (isFixedPartners) {
       const result = generateFixedRound({
-        teams: createTeamsFromPlayers(players),
+        teams: rosterTeams.teams,
         existingGames: games,
         currentRound: currentRound + 1,
         settings,
@@ -207,8 +227,10 @@ export function RoundManager({
     typeof settings.maxRounds === "number" &&
     settings.maxRounds > 0 &&
     currentRound >= settings.maxRounds;
+  // Fixed formats need two full teams to make a game; a lone unpaired late
+  // arrival waits on the bench and must NOT block the next round.
   const hasValidPlayerCount = isFixedPartners
-    ? players.length >= 4 && players.length % 2 === 0
+    ? rosterTeams.teams.length >= 2
     : players.length >= 4;
   const canGenerateNextRound =
     hasValidPlayerCount &&
@@ -280,10 +302,18 @@ export function RoundManager({
               Need at least 4 players to start.
             </p>
           )}
-          {isFixedPartners && players.length % 2 !== 0 && (
-            <p className="text-sm font-medium text-warning">
-              You have an odd number of players, so one person has no partner.
-              Add or remove one to make full teams.
+          {isFixedPartners && autoPairedPlayers.length >= 2 && (
+            <p className="text-sm font-medium text-muted-foreground">
+              {autoPairedPlayers.map((p) => p.name).join(", ")} aren&apos;t
+              paired, so they&apos;ll be teamed up automatically next round. Pair
+              them yourself in the Players tab to choose partners.
+            </p>
+          )}
+          {isFixedPartners && waitingPlayers.length > 0 && (
+            <p className="text-sm font-medium text-muted-foreground">
+              {waitingPlayers.map((p) => p.name).join(", ")} is waiting for a
+              partner and sits out until one joins. Rounds keep running — pair
+              them anytime in the Players tab.
             </p>
           )}
 
@@ -347,10 +377,10 @@ export function RoundManager({
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1 space-y-1">
-                        <div className="truncate text-sm font-semibold">
+                        <div className="break-words text-sm font-semibold leading-snug">
                           {game.team1[0].name} & {game.team1[1].name}
                         </div>
-                        <div className="truncate text-sm font-semibold">
+                        <div className="break-words text-sm font-semibold leading-snug">
                           {game.team2[0].name} & {game.team2[1].name}
                         </div>
                       </div>
@@ -363,7 +393,7 @@ export function RoundManager({
               </AnimatePresence>
             </div>
 
-            {previewByePlayers.length > 0 ? (
+            {previewByePlayers.length > 0 || waitingPlayers.length > 0 ? (
               <div
                 className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-3"
                 data-testid="preview-byes"
@@ -375,7 +405,12 @@ export function RoundManager({
                   </span>
                   {previewByePlayers.map((p) => (
                     <Badge key={p.id} variant="secondary" className="max-w-full">
-                      <span className="truncate">{p.name}</span>
+                      <span className="break-words">{p.name}</span>
+                    </Badge>
+                  ))}
+                  {waitingPlayers.map((p) => (
+                    <Badge key={p.id} variant="outline" className="max-w-full">
+                      <span className="break-words">{p.name} — needs a partner</span>
                     </Badge>
                   ))}
                   {previewByePlayers.length >= 2 && (
@@ -405,10 +440,10 @@ export function RoundManager({
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-auto max-w-full py-1.5"
+                            className="h-auto max-w-full py-1.5 text-left"
                             onClick={() => benchChosenTeam(game.id, side)}
                           >
-                            <span className="truncate">
+                            <span className="break-words">
                               {game[side][0].name} &amp; {game[side][1].name}
                             </span>
                           </Button>

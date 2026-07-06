@@ -49,6 +49,7 @@ import {
   createDefaultEventSettings,
 } from "@/src/types/formats";
 import { generateId } from "@/src/lib/formats/rotating-generators";
+import { derivePartnerships } from "@/src/lib/formats/fixed-generators";
 import { FormatSettingsForm } from "./format-settings-form";
 import { DuprLogin, DuprPlayerCard } from "@/src/components/dupr/dupr-login";
 import { DuprIdInput } from "@/src/components/dupr/dupr-search";
@@ -147,38 +148,23 @@ function preserveCommonSettings(
 
 /**
  * Split the roster into paired teams and the unpaired pool, using each
- * player's partnerId (a mutual reference). Order-independent and self-healing:
- * a dangling partnerId with no matching partner falls back to the pool.
+ * player's partnerId (a mutual reference). Delegates to the same pairing the
+ * round generators use, so the editor and the schedule always agree.
  */
 function derivePairing(players: LocalPlayer[]): {
   teams: Array<{ index: number; player1: LocalPlayer; player2: LocalPlayer }>;
   pool: LocalPlayer[];
 } {
-  const byId = new Map(players.map((p) => [p.id, p]));
-  const teams: Array<{
-    index: number;
-    player1: LocalPlayer;
-    player2: LocalPlayer;
-  }> = [];
-  const pool: LocalPlayer[] = [];
-  const consumed = new Set<string>();
+  const { pairs, pool } = derivePartnerships(players);
 
-  for (const player of players) {
-    if (consumed.has(player.id)) continue;
-
-    const partner = player.partnerId ? byId.get(player.partnerId) : undefined;
-    const mutual = partner && partner.partnerId === player.id;
-
-    if (partner && mutual) {
-      teams.push({ index: teams.length, player1: player, player2: partner });
-      consumed.add(player.id);
-      consumed.add(partner.id);
-    } else {
-      pool.push(player);
-    }
-  }
-
-  return { teams, pool };
+  return {
+    teams: pairs.map(([player1, player2], index) => ({
+      index,
+      player1,
+      player2,
+    })),
+    pool,
+  };
 }
 
 // A player name that turns into an inline editor on tap. Renaming is always
@@ -1094,10 +1080,16 @@ export function EnhancedPlayerSetup({
     <Alert>
       <Users />
       <AlertTitle>
-        {pluralize(poolCount, "player")} still need a partner
+        {poolCount === 1
+          ? "1 player still needs a partner"
+          : `${poolCount} players still need a partner`}
       </AlertTitle>
       <AlertDescription>
-        Tap two players below to pair them into a team.
+        {tournamentStarted
+          ? poolCount === 1
+            ? "Tap two players to pair them. Until they have a partner, they sit out — rounds keep running without them."
+            : "Tap two players to pair them. Anyone left unpaired is teamed up in the order they were added when the next round starts; an odd player out sits until someone else joins."
+          : "Tap two players below to pair them into a team."}
       </AlertDescription>
     </Alert>
   );

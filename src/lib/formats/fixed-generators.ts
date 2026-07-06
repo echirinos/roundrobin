@@ -125,6 +125,71 @@ export function createTeamsWithPartners(
   }));
 }
 
+/**
+ * Split a roster into mutual-partnerId pairs (in roster order) and the pool of
+ * players without a mutual partner. Self-healing: a dangling partnerId with no
+ * matching player falls back to the pool. Shared by the roster editor UI and
+ * team building so both always agree on who is paired.
+ */
+export function derivePartnerships(players: LocalPlayer[]): {
+  pairs: Array<[LocalPlayer, LocalPlayer]>;
+  pool: LocalPlayer[];
+} {
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const pairs: Array<[LocalPlayer, LocalPlayer]> = [];
+  const pool: LocalPlayer[] = [];
+  const consumed = new Set<string>();
+
+  for (const player of players) {
+    if (consumed.has(player.id)) continue;
+
+    const partner = player.partnerId ? byId.get(player.partnerId) : undefined;
+
+    if (
+      partner &&
+      partner !== player &&
+      partner.partnerId === player.id &&
+      !consumed.has(partner.id)
+    ) {
+      pairs.push([player, partner]);
+      consumed.add(player.id);
+      consumed.add(partner.id);
+    } else {
+      pool.push(player);
+    }
+  }
+
+  return { pairs, pool };
+}
+
+export interface RosterTeams {
+  teams: Team[];
+  /** Players who can't field a team this round — they wait until paired. */
+  waitingPlayers: LocalPlayer[];
+}
+
+/**
+ * Build fixed teams from a live roster, tolerating mid-session late arrivals.
+ * Mutual-partnerId pairs come first; leftover players (late arrivals the
+ * organizer didn't explicitly pair, or legacy rosters that predate partnerId)
+ * pair up adjacently in roster order; a trailing odd player waits for a
+ * partner instead of blocking round generation. Prior rounds are untouched —
+ * their games already carry their own player pairs.
+ */
+export function createTeamsFromRoster(players: LocalPlayer[]): RosterTeams {
+  const { pairs, pool } = derivePartnerships(players);
+  const partnerships = [...pairs];
+
+  for (let i = 0; i + 1 < pool.length; i += 2) {
+    partnerships.push([pool[i], pool[i + 1]]);
+  }
+
+  return {
+    teams: createTeamsWithPartners(partnerships),
+    waitingPlayers: pool.length % 2 === 1 ? [pool[pool.length - 1]] : [],
+  };
+}
+
 // ============================================
 // POOL PLAY GENERATOR
 // Round robin in pools + optional bracket

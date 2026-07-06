@@ -49,6 +49,8 @@ export {
 export {
   createTeamsFromPlayers,
   createTeamsWithPartners,
+  createTeamsFromRoster,
+  derivePartnerships,
   createPools,
   generatePoolPlayRound,
   generateShuffleRound,
@@ -61,6 +63,7 @@ export {
   advanceLoserToConsolation,
   calculatePoolStandings,
   type Team,
+  type RosterTeams,
   type Pool,
   type BracketMatch,
   type FixedGeneratorContext,

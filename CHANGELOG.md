@@ -3,6 +3,30 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.5.0] - 2026-07-05
+
+Late arrivals join set-partner sessions without breaking anything, and team
+names always read in full on phones.
+
+### Added
+- Late arrivals in set-partner formats (Set Partners, Team Gauntlet, League):
+  add players mid-session and rounds keep running. A lone late arrival waits on
+  the bench ("needs a partner") instead of blocking the next round — the round
+  control, preview, and roster editor all say so. Two unpaired late arrivals
+  are teamed up automatically in the order they were added (or tap-pair them
+  yourself). A freshly paired team joins the very next round with court
+  priority, and every already-played round, score, and record stays exactly as
+  it was.
+- New `sim-late-add` simulation (wired into `npm run sim`) asserting the
+  late-arrival guarantees: no blocking on odd rosters, played rounds untouched,
+  existing records unchanged, newcomers scheduled next round.
+
+### Fixed
+- Full team names on mobile: standings rows, match cards, the round preview,
+  and the score dialog wrap long names ("Bartholomew & Evangeline") instead of
+  cutting them off — for organizers and spectators alike. The standings metric
+  label reads "margin" so the name column has room to breathe on 390px screens.
+
 ## [0.4.8] - 2026-07-04
 
 Previous rounds collapse so the Matches list stays short.
