@@ -1,13 +1,13 @@
 {
   "name": "pickleball-round-robin",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sim": "tsx scripts/sim-gauntlet.ts && tsx scripts/sim-ladder-byes.ts"
+    "sim": "tsx scripts/sim-gauntlet.ts && tsx scripts/sim-ladder-byes.ts && tsx scripts/sim-late-add.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

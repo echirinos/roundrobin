@@ -177,7 +177,10 @@ export function RotatingLeaderboard({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="truncate font-semibold">
+                        {/* Wrap, never clip: fixed-team rows carry both names
+                            ("Christopher & Alexandra") and spectators on
+                            phones must be able to read them in full. */}
+                        <span className="min-w-0 break-words font-semibold leading-snug">
                           {standing.player.name}
                         </span>
                         {standing.player.duprRating && (
@@ -277,10 +280,11 @@ export function RotatingLeaderboard({
                           }
                         />
                       </motion.div>
+                      {/* "margin" (not "point margin") keeps this column
+                          narrow so long team names get the width to wrap at
+                          word boundaries on phones; the footer defines it. */}
                       <div className="text-xs font-semibold text-muted-foreground">
-                        {scoringType === "court_weighted"
-                          ? "court pts"
-                          : "point margin"}
+                        {scoringType === "court_weighted" ? "court pts" : "margin"}
                       </div>
                     </div>
                   </div>
@@ -396,10 +400,12 @@ export function CourtLeaderboard({
               {players.map((standing) => (
                 <div
                   key={standing.player.id}
-                  className="flex items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-secondary/40"
+                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/40"
                 >
-                  <span className="truncate">{standing.player.name}</span>
-                  <span className="font-data text-muted-foreground">
+                  <span className="min-w-0 flex-1 break-words">
+                    {standing.player.name}
+                  </span>
+                  <span className="font-data shrink-0 text-muted-foreground">
                     {standing.gamesWon}-{standing.gamesLost}
                   </span>
                 </div>

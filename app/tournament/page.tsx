@@ -51,7 +51,7 @@ import {
 import { calculateStandingsForFormat, getDefaultCourtWeights } from "@/src/lib/formats/scoring";
 import { generateRound, type GeneratorContext } from "@/src/lib/formats/rotating-generators";
 import {
-  createTeamsFromPlayers,
+  createTeamsFromRoster,
   generateFixedRound,
 } from "@/src/lib/formats/fixed-generators";
 import {
@@ -145,7 +145,9 @@ function generateGamesForRound({
 }): LocalRoundGame[] {
   if (shouldUseFixedTeams(settings)) {
     return generateFixedRound({
-      teams: createTeamsFromPlayers(players),
+      // Roster-aware teams: a late arrival without a partner simply waits —
+      // an odd headcount must never block the next round mid-session.
+      teams: createTeamsFromRoster(players).teams,
       existingGames: games,
       currentRound: nextRound,
       settings,
@@ -206,21 +208,18 @@ export default function TournamentPage() {
   const sessionStats = useMemo(() => getSessionStats(snapshot), [snapshot]);
   // Fixed-partner standings show one row per TEAM (like Pickleheads Rumble):
   // both partners share identical records, so one representative per pair
-  // carries the team name and the exact team record.
+  // carries the team name and the exact team record. Teams come from the same
+  // roster pairing the generators use, so the standings always mirror how the
+  // next round will actually be seeded; a late arrival still waiting for a
+  // partner shows as their own solo row.
   const standingsPlayers = useMemo(() => {
     if (!shouldUseFixedTeams(state.settings)) return state.players;
 
-    const teamRows: LocalPlayer[] = [];
-    for (let i = 0; i + 1 < state.players.length; i += 2) {
-      teamRows.push({
-        ...state.players[i],
-        name: `${state.players[i].name} & ${state.players[i + 1].name}`,
-      });
-    }
-    if (state.players.length % 2 === 1) {
-      teamRows.push(state.players[state.players.length - 1]);
-    }
-    return teamRows;
+    const { teams, waitingPlayers } = createTeamsFromRoster(state.players);
+    return [
+      ...teams.map((team) => ({ ...team.players[0], name: team.name })),
+      ...waitingPlayers,
+    ];
   }, [state.players, state.settings]);
   const shareUrl = useMemo(
     () => getShareUrl(origin, sessionCode),

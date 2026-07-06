@@ -89,6 +89,23 @@ export function EnhancedSchedule({
     return byRound;
   }, [games, isMovementFormat]);
 
+  // First round each player actually appears in a game. A late arrival added
+  // mid-session only "debuts" at the round they first play (or never, if still
+  // waiting for a partner), so we never mislabel them as having sat out rounds
+  // that happened before they joined.
+  const debutRoundByPlayer = useMemo(() => {
+    const debut = new Map<string, number>();
+    for (const game of games) {
+      for (const player of [...game.team1, ...game.team2]) {
+        const current = debut.get(player.id);
+        if (current === undefined || game.round < current) {
+          debut.set(player.id, game.round);
+        }
+      }
+    }
+    return debut;
+  }, [games]);
+
   // Get bye players for each round
   const getByePlayersForRound = (roundNumber: number): LocalPlayer[] => {
     const roundGames = gamesByRound[roundNumber] || [];
@@ -99,7 +116,13 @@ export function EnhancedSchedule({
       game.team2.forEach((p) => playingIds.add(p.id));
     });
 
-    return players.filter((p) => !playingIds.has(p.id));
+    return players.filter((p) => {
+      if (playingIds.has(p.id)) return false;
+      // Only count as "sitting out" once they've entered the session — a player
+      // who hasn't debuted by this round wasn't around to sit it out.
+      const debut = debutRoundByPlayer.get(p.id);
+      return debut !== undefined && debut <= roundNumber;
+    });
   };
 
   const handleGameClick = (game: LocalRoundGame) => {
