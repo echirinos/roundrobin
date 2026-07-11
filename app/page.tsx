@@ -140,9 +140,13 @@ function Reveal({
   const reduceMotion = useReducedMotion();
 
   return (
+    // Full `transform` strings stay hardware-accelerated (framer-motion's
+    // x/y shorthands run on the main thread and drop frames during page
+    // load), and entrances pair the rise with opacity — nothing should slide
+    // while fully visible.
     <motion.div
-      initial={reduceMotion ? false : { y: 18 }}
-      whileInView={reduceMotion ? undefined : { y: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, transform: "translateY(14px)" }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, transform: "translateY(0px)" }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
@@ -157,8 +161,8 @@ function CourtLanes() {
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { x: 18 }}
-      animate={reduceMotion ? undefined : { x: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, transform: "translateX(18px)" }}
+      animate={reduceMotion ? undefined : { opacity: 1, transform: "translateX(0px)" }}
       transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
       className="court-lanes"
       aria-hidden="true"
@@ -763,8 +767,8 @@ export default function Home() {
         <section className="yc-hero overflow-hidden border-b border-border/80">
           <div className="container mx-auto flex max-w-[88rem] flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
             <motion.div
-              initial={reduceMotion ? false : { y: 16 }}
-              animate={reduceMotion ? undefined : { y: 0 }}
+              initial={reduceMotion ? false : { opacity: 0, transform: "translateY(16px)" }}
+              animate={reduceMotion ? undefined : { opacity: 1, transform: "translateY(0px)" }}
               transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
               className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
             >
@@ -782,11 +786,13 @@ export default function Home() {
               <HeroAssurance />
             </motion.div>
 
-            <div className="order-3 relative mx-auto w-full max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
+            {/* Mobile is the primary device: the court is the poster moment and
+                must land right under the headline, not below the composer. */}
+            <div className="order-2 relative mx-auto w-full max-w-md sm:max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
               <CourtLanes />
             </div>
 
-            <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-2">
+            <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
               <SessionComposer />
 
               <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
@@ -890,8 +896,9 @@ export default function Home() {
           <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
             <Reveal className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <p className="section-kicker">Ready courtside</p>
-                <h2 className="mt-3 max-w-3xl font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
+                {/* No kicker here — after four labeled sections, the closing
+                    line lands harder standing alone. */}
+                <h2 className="max-w-3xl font-serif-editorial text-4xl font-medium tracking-normal text-foreground sm:text-6xl">
                   Start a session before warmups are over.
                 </h2>
               </div>
