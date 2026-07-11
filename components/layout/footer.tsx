@@ -81,9 +81,15 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} PlaySync. All rights reserved.
           </p>
-          <p className="text-sm text-muted-foreground">
-            No sign-up required to start a session.
-          </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/support" className="transition-colors hover:text-foreground">
+              Support
+            </Link>
+            <span className="hidden sm:inline">No sign-up required.</span>
+          </div>
         </div>
       </div>
     </footer>
