@@ -142,6 +142,88 @@ const demoMatchups = [
 // Deterministic rally pattern — Math.random would mismatch on hydration.
 const demoPointPattern = [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0] as const;
 
+// When a featured session code is configured (e.g. the weekly house open
+// play), the hero scorebug shows the real thing — genuinely live scores on
+// the homepage — and tapping it opens the session. Demo mode is the fallback
+// whenever nothing is live.
+const FEATURED_SESSION_CODE = process.env.NEXT_PUBLIC_FEATURED_SESSION_CODE ?? "";
+
+type FeaturedGame = {
+  sessionName: string;
+  court: string;
+  teams: [string, string];
+  score: [number, number];
+  code: string;
+};
+
+function firstNames(team: Array<{ name: string }>): string {
+  return team.map((player) => player.name.split(" ")[0]).join(" / ");
+}
+
+function useFeaturedSession(): FeaturedGame | null {
+  const [featured, setFeatured] = useState<FeaturedGame | null>(null);
+
+  useEffect(() => {
+    if (!FEATURED_SESSION_CODE) return;
+
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const response = await fetch(`/api/sessions/${FEATURED_SESSION_CODE}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error("not live");
+        const record = (await response.json()) as {
+          code: string;
+          snapshot: {
+            name: string;
+            currentRound: number;
+            games: Array<{
+              round: number;
+              courtNumber: number;
+              completed: boolean;
+              team1: Array<{ name: string }>;
+              team2: Array<{ name: string }>;
+              team1Score?: number;
+              team2Score?: number;
+            }>;
+          };
+        };
+        const liveGame = record.snapshot.games.find(
+          (game) => game.round === record.snapshot.currentRound && !game.completed,
+        );
+        if (cancelled) return;
+        if (!liveGame) {
+          setFeatured(null);
+          return;
+        }
+        setFeatured({
+          sessionName: record.snapshot.name,
+          court: `Court ${liveGame.courtNumber}`,
+          teams: [firstNames(liveGame.team1), firstNames(liveGame.team2)],
+          score: [liveGame.team1Score ?? 0, liveGame.team2Score ?? 0],
+          code: record.code,
+        });
+      } catch {
+        if (!cancelled) setFeatured(null);
+      }
+    }
+
+    void load();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  return featured;
+}
+
 function ScoreDigits({ value }: { value: number }) {
   const reduceMotion = useReducedMotion();
 
@@ -169,7 +251,12 @@ function PlayableScorebug() {
   const [finalFlash, setFinalFlash] = useState(false);
   const tickRef = useRef(0);
   const lastTouchRef = useRef(0);
+  const featured = useFeaturedSession();
   const match = demoMatchups[matchIndex % demoMatchups.length];
+  const isReal = featured !== null;
+  const displayCourt = isReal ? featured.court : match.court;
+  const displayTeams = isReal ? featured.teams : match.teams;
+  const displayScore: [number, number] = isReal ? featured.score : score;
 
   const addPoint = useCallback((side: 0 | 1, fromUser: boolean) => {
     if (fromUser) lastTouchRef.current = Date.now();
@@ -202,14 +289,15 @@ function PlayableScorebug() {
     return () => window.clearInterval(interval);
   }, [addPoint]);
 
-  const leadingSide = score[0] === score[1] ? -1 : score[0] > score[1] ? 0 : 1;
+  const leadingSide =
+    displayScore[0] === displayScore[1] ? -1 : displayScore[0] > displayScore[1] ? 0 : 1;
 
   return (
     <div className="relative z-10 w-full">
       <div className="scorebug-shell overflow-hidden rounded-2xl border border-white/15 bg-primary shadow-lg">
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-          <span className="font-data text-[11px] uppercase tracking-[0.18em] text-live-foreground/90">
-            {match.court}
+          <span className="truncate font-data text-[11px] uppercase tracking-[0.18em] text-live-foreground/90">
+            {isReal ? `${displayCourt} · ${featured.sessionName}` : displayCourt}
           </span>
           <span className="inline-flex items-center gap-1.5 font-data text-[11px] uppercase tracking-[0.18em] text-live">
             <span className="size-1.5 rounded-full bg-live" aria-hidden="true" />
@@ -219,13 +307,21 @@ function PlayableScorebug() {
 
         <div className="grid grid-cols-[1fr_auto_auto]">
           <div className="flex flex-col">
-            {match.teams.map((team, side) => (
+            {displayTeams.map((team, side) => (
               <motion.button
                 key={team}
                 type="button"
                 whileTap={{ scale: 0.97 }}
-                onClick={() => addPoint(side as 0 | 1, true)}
-                aria-label={`Add a point for ${team} (demo scoreboard)`}
+                onClick={() =>
+                  isReal
+                    ? window.location.assign(`/tournament?code=${featured.code}`)
+                    : addPoint(side as 0 | 1, true)
+                }
+                aria-label={
+                  isReal
+                    ? `Watch ${featured.sessionName} live`
+                    : `Add a point for ${team} (demo scoreboard)`
+                }
                 className={cn(
                   "flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
                   side === 0 ? "border-b border-white/10" : "",
@@ -241,7 +337,7 @@ function PlayableScorebug() {
                     leadingSide === side ? "text-live" : "text-primary-foreground/80",
                   )}
                 >
-                  <ScoreDigits value={score[side]} />
+                  <ScoreDigits value={displayScore[side]} />
                 </span>
               </motion.button>
             ))}
@@ -276,14 +372,25 @@ function PlayableScorebug() {
             className="flex items-center gap-2 bg-live px-4 py-2 font-data text-[11px] font-semibold uppercase tracking-[0.14em] text-live-foreground"
           >
             <span aria-hidden="true">▸</span>
-            <span className="truncate">Next up · {match.next}</span>
-            <span className="ml-auto shrink-0">{match.nextCourt}</span>
+            {isReal ? (
+              <>
+                <span className="truncate">Live now — tap to watch</span>
+                <span className="ml-auto shrink-0">{featured.code}</span>
+              </>
+            ) : (
+              <>
+                <span className="truncate">Next up · {match.next}</span>
+                <span className="ml-auto shrink-0">{match.nextCourt}</span>
+              </>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Live demo — tap a team to score. At 11, the next game calls itself.
+        {isReal
+          ? "A real session, live right now — tap the board to watch."
+          : "Live demo — tap a team to score. At 11, the next game calls itself."}
       </p>
     </div>
   );
