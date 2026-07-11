@@ -46,7 +46,7 @@ const sections = [
   {
     title: "Changes and contact",
     body: [
-      "If this policy changes, the date below changes with it. Questions or a request to remove something: email esteban.chirinos@gmail.com and include the session code if you have it.",
+      "If this policy changes, the date at the top of this page changes with it. Questions or a request to remove something: email esteban.chirinos@gmail.com and include the session code if you have it.",
     ],
   },
 ];
