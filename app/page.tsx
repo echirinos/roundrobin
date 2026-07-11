@@ -5,18 +5,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  ArrowRight,
-  CheckCircle2,
-  ClipboardList,
-  Link2,
-  MessageCircleOff,
-  QrCode,
-  RotateCcw,
-  ScanLine,
-  Smartphone,
-  Trophy,
-  Zap,
-} from "lucide-react";
+  IconArrowRight,
+  IconCheck,
+  IconLink,
+  IconPhone,
+  IconQr,
+  IconQuietChat,
+  IconRoster,
+  IconRotate,
+  IconScan,
+  IconSpark,
+  IconTrophy,
+} from "@/components/brand/icons";
 
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
@@ -113,17 +113,17 @@ const productProof = [
 
 const surfaceProof = [
   {
-    icon: ScanLine,
+    icon: IconScan,
     label: "QR scoreboard",
     value: "Everyone sees live scores",
   },
   {
-    icon: MessageCircleOff,
+    icon: IconQuietChat,
     label: "Fewer texts",
     value: "One feed for the group",
   },
   {
-    icon: Smartphone,
+    icon: IconPhone,
     label: "Phone browser",
     value: "Big taps, no install",
   },
@@ -470,7 +470,7 @@ function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
     return (
       <div className="pp-visual" aria-hidden="true">
         <div className="pp-link">
-          <Link2 className="size-3.5 text-live" />
+          <IconLink className="size-3.5 text-live" />
           <span className="pp-link-url">playsync.fun/live</span>
           <span className="pp-link-copy">Copy</span>
         </div>
@@ -489,13 +489,13 @@ function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
           {["A", "B", "C"].map((initial) => (
             <span key={initial} className="pp-avatar">
               {initial}
-              <CheckCircle2 className="pp-avatar-check size-3" />
+              <IconCheck className="pp-avatar-check size-3" />
             </span>
           ))}
           <span className="pp-avatar pp-avatar-more">+6</span>
         </div>
         <div className="pp-qr">
-          <QrCode className="size-6" />
+          <IconQr className="size-6" />
         </div>
       </div>
     );
@@ -507,12 +507,12 @@ function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
         <span className="pp-court">Court 1</span>
         <span className="pp-score">9&ndash;6</span>
         <span className="pp-final">
-          <Trophy className="size-3" />
+          <IconTrophy className="size-3" />
           Final
         </span>
       </div>
       <div className="pp-next">
-        <ArrowRight className="size-3.5 text-live" />
+        <IconArrowRight className="size-3.5 text-live" />
         Next up: Ellie &amp; Sam on Court 1
       </div>
     </div>
@@ -552,7 +552,7 @@ function SessionComposer() {
       <div className="composer-sync-line" aria-hidden="true" />
       <div className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
         <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
-          <ClipboardList className="size-4" />
+          <IconRoster className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -560,7 +560,7 @@ function SessionComposer() {
               Create tonight&apos;s live session in 30 seconds.
             </p>
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
-              <Zap className="size-3 text-live" />
+              <IconSpark className="size-3 text-live" />
               Courtside live
             </span>
           </div>
@@ -605,7 +605,7 @@ function SessionComposer() {
               data-analytics-mode="rotating"
             >
               Create live session
-              <ArrowRight className="size-4" />
+              <IconArrowRight className="size-4" />
             </Link>
           </Button>
           <Button
@@ -632,7 +632,7 @@ function SessionComposer() {
 function HeroAssurance() {
   return (
     <p className="hero-action-note mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-      <Smartphone className="size-3.5 text-live" />
+      <IconPhone className="size-3.5 text-live" />
       Works from any phone browser, no install
     </p>
   );
@@ -677,7 +677,7 @@ function LiveBoardPreview({ className }: { className?: string }) {
             </div>
             <div className="phone-score-button" aria-hidden="true">
               Post score and call next
-              <ArrowRight className="size-3.5" />
+              <IconArrowRight className="size-3.5" />
             </div>
           </div>
 
@@ -805,7 +805,7 @@ export default function Home() {
               <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 {proofPoints.map((point) => (
                   <span key={point} className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="size-3.5 text-live" />
+                    <IconCheck className="size-3.5 text-live" />
                     {point}
                   </span>
                 ))}
@@ -865,7 +865,7 @@ export default function Home() {
                       Tonight open play
                     </p>
                   </div>
-                  <RotateCcw className="size-5 text-muted-foreground" />
+                  <IconRotate className="size-5 text-muted-foreground" />
                 </div>
                 <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                   {[
@@ -919,7 +919,7 @@ export default function Home() {
                     data-analytics-mode="rotating"
                   >
                     Start session
-                    <ArrowRight className="size-4" />
+                    <IconArrowRight className="size-4" />
                   </Link>
                 </Button>
                 <Button

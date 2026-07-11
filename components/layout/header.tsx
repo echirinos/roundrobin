@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { IconArrowRight } from "@/components/brand/icons";
 import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -75,7 +75,7 @@ export function Header() {
             >
               <span className="hidden sm:inline">Create session</span>
               <span className="sm:hidden">Create</span>
-              <ArrowRight className="hidden size-3.5 sm:block" />
+              <IconArrowRight className="hidden size-3.5 sm:block" />
             </Link>
           </Button>
         </div>
