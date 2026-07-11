@@ -453,15 +453,40 @@ function CourtLanes() {
 }
 
 function MotionRail() {
+  const reduceMotion = useReducedMotion();
+
+  // One choreographed beat, not scattered reveals: the four events of a real
+  // session light up in order as the rail scrolls in — the night, replayed.
   return (
-    <div className="motion-rail" aria-label="Live session progress">
+    <motion.div
+      className="motion-rail"
+      aria-label="Live session progress"
+      initial={reduceMotion ? undefined : "idle"}
+      whileInView={reduceMotion ? undefined : "active"}
+      viewport={{ once: true, margin: "-100px" }}
+      variants={{
+        idle: {},
+        active: { transition: { staggerChildren: 0.42, delayChildren: 0.15 } },
+      }}
+    >
       {laneEvents.map((event, index) => (
-        <div key={event} className="motion-rail-step">
+        <motion.div
+          key={event}
+          className="motion-rail-step"
+          variants={{
+            idle: { opacity: 0.3, transform: "translateY(6px)" },
+            active: {
+              opacity: 1,
+              transform: "translateY(0px)",
+              transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+            },
+          }}
+        >
           <span className="motion-rail-index">0{index + 1}</span>
           <span>{event}</span>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
