@@ -171,9 +171,17 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong. Try again.";
 }
 
+const CANONICAL_SHARE_ORIGIN =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.fun";
+
 function getShareUrl(origin: string, code: string | null): string {
   if (!origin || !code) return "";
-  return `${origin}/tournament?code=${code}`;
+  // Shared links and QR codes must point at a host the whole group can
+  // resolve. window.location.origin leaks localhost, LAN IPs, www, and
+  // preview deployments into the QR — links others may not be able to open
+  // ("Safari cannot find the server"). Always share the canonical public
+  // origin; `origin` only gates rendering until the client has mounted.
+  return `${CANONICAL_SHARE_ORIGIN}/tournament?code=${code}`;
 }
 
 function formatSyncTime(value: string | null): string {

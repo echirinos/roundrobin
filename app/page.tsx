@@ -22,7 +22,7 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.fun";
 
 const softwareAppJsonLd = {
   "@context": "https://schema.org",
@@ -463,7 +463,7 @@ function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
       <div className="pp-visual" aria-hidden="true">
         <div className="pp-link">
           <Link2 className="size-3.5 text-live" />
-          <span className="pp-link-url">playsync.app/live</span>
+          <span className="pp-link-url">playsync.fun/live</span>
           <span className="pp-link-copy">Copy</span>
         </div>
         <div className="pp-chips">
