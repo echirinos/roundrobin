@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   CheckCircle2,
@@ -128,6 +129,166 @@ const surfaceProof = [
   },
 ];
 
+// The hero scorebug is a working demo, not a picture: tap a team to score,
+// the game closes out at 11, and the ticker calls the next matchup — the
+// product's whole promise in one interaction. It also plays itself slowly so
+// non-tappers still see it live (pausing while a visitor is playing with it).
+const demoMatchups = [
+  { court: "Court 2", teams: ["Ana / Ben", "Cara / Diego"], next: "Eli / Fran vs Gia / Hugo", nextCourt: "Court 3" },
+  { court: "Court 3", teams: ["Eli / Fran", "Gia / Hugo"], next: "Ivy / Noah vs Ana / Ben", nextCourt: "Court 1" },
+  { court: "Court 1", teams: ["Ivy / Noah", "Ana / Ben"], next: "Cara / Diego vs Eli / Fran", nextCourt: "Court 2" },
+] as const;
+
+// Deterministic rally pattern — Math.random would mismatch on hydration.
+const demoPointPattern = [0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0] as const;
+
+function ScoreDigits({ value }: { value: number }) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <span className="relative inline-flex h-[1.1em] items-baseline overflow-hidden">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={reduceMotion ? false : { transform: "translateY(0.9em)", opacity: 0 }}
+          animate={{ transform: "translateY(0em)", opacity: 1 }}
+          exit={reduceMotion ? { opacity: 0 } : { transform: "translateY(-0.9em)", opacity: 0 }}
+          transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+          className="inline-block"
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+function PlayableScorebug() {
+  const [matchIndex, setMatchIndex] = useState(0);
+  const [score, setScore] = useState<[number, number]>([6, 4]);
+  const [finalFlash, setFinalFlash] = useState(false);
+  const tickRef = useRef(0);
+  const lastTouchRef = useRef(0);
+  const match = demoMatchups[matchIndex % demoMatchups.length];
+
+  const addPoint = useCallback((side: 0 | 1, fromUser: boolean) => {
+    if (fromUser) lastTouchRef.current = Date.now();
+    setFinalFlash((flashing) => {
+      if (flashing) return flashing;
+      setScore((current) => {
+        const next: [number, number] =
+          side === 0 ? [current[0] + 1, current[1]] : [current[0], current[1] + 1];
+        if (Math.max(next[0], next[1]) >= 11) {
+          setFinalFlash(true);
+          window.setTimeout(() => {
+            setMatchIndex((index) => index + 1);
+            setScore([0, 0]);
+            setFinalFlash(false);
+          }, 1400);
+        }
+        return next;
+      });
+      return flashing;
+    });
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (Date.now() - lastTouchRef.current < 9000) return;
+      const side = demoPointPattern[tickRef.current++ % demoPointPattern.length] as 0 | 1;
+      addPoint(side, false);
+    }, 4200);
+    return () => window.clearInterval(interval);
+  }, [addPoint]);
+
+  const leadingSide = score[0] === score[1] ? -1 : score[0] > score[1] ? 0 : 1;
+
+  return (
+    <div className="relative z-10 w-full">
+      <div className="scorebug-shell overflow-hidden rounded-2xl border border-white/15 bg-primary shadow-lg">
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
+          <span className="font-data text-[11px] uppercase tracking-[0.18em] text-live-foreground/90">
+            {match.court}
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-data text-[11px] uppercase tracking-[0.18em] text-live">
+            <span className="size-1.5 rounded-full bg-live" aria-hidden="true" />
+            Live
+          </span>
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto_auto]">
+          <div className="flex flex-col">
+            {match.teams.map((team, side) => (
+              <motion.button
+                key={team}
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                onClick={() => addPoint(side as 0 | 1, true)}
+                aria-label={`Add a point for ${team} (demo scoreboard)`}
+                className={cn(
+                  "flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+                  side === 0 ? "border-b border-white/10" : "",
+                  leadingSide === side ? "bg-white/[0.06]" : "hover:bg-white/[0.04]",
+                )}
+              >
+                <span className="text-sm font-semibold uppercase tracking-wide text-primary-foreground">
+                  {team}
+                </span>
+                <span
+                  className={cn(
+                    "font-data text-4xl font-bold leading-none sm:text-5xl",
+                    leadingSide === side ? "text-live" : "text-primary-foreground/80",
+                  )}
+                >
+                  <ScoreDigits value={score[side]} />
+                </span>
+              </motion.button>
+            ))}
+          </div>
+          <div aria-hidden="true" />
+          <div className="flex w-20 flex-col items-center justify-center border-l border-white/10 px-3 text-center">
+            {finalFlash ? (
+              <span className="font-data text-sm font-bold uppercase tracking-[0.14em] text-live">
+                Final
+              </span>
+            ) : (
+              <span className="font-data text-[11px] font-semibold uppercase leading-4 tracking-[0.14em] text-primary-foreground/70">
+                Game
+                <br />
+                to
+                <br />
+                <span className="text-lg text-primary-foreground">11</span>
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2 overflow-hidden rounded-lg">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={matchIndex}
+            initial={{ transform: "translateY(100%)" }}
+            animate={{ transform: "translateY(0%)" }}
+            exit={{ transform: "translateY(-100%)" }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center gap-2 bg-live px-4 py-2 font-data text-[11px] font-semibold uppercase tracking-[0.14em] text-live-foreground"
+          >
+            <span aria-hidden="true">▸</span>
+            <span className="truncate">Next up · {match.next}</span>
+            <span className="ml-auto shrink-0">{match.nextCourt}</span>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        Live demo — tap a team to score. At 11, the next game calls itself.
+      </p>
+    </div>
+  );
+}
+
 function Reveal({
   children,
   className,
@@ -167,7 +328,7 @@ function CourtLanes() {
       className="court-lanes"
       aria-hidden="true"
     >
-      <svg viewBox="0 0 560 520" fill="none" className="court-lanes-svg">
+      <svg viewBox="40 76 488 368" fill="none" className="court-lanes-svg">
         <g className="pickleball-court">
           <rect
             x="52"
@@ -190,163 +351,6 @@ function CourtLanes() {
           <path d="M76 260H216M344 260H484" className="court-service-line" />
           <path d="M76 116H484M76 404H484M76 116V404M484 116V404" className="court-edge-line" />
           <path d="M280 116V404" className="court-net-dashes" />
-        </g>
-
-        <g className="court-score-bug">
-          <rect
-            x="50"
-            y="34"
-            width="384"
-            height="150"
-            rx="18"
-            className="score-bug-shell"
-          />
-          <rect
-            x="62"
-            y="48"
-            width="70"
-            height="122"
-            rx="12"
-            className="score-bug-live-panel"
-          />
-          <text x="78" y="68" className="score-bug-kicker">
-            Live
-          </text>
-          <text x="78" y="98" className="score-bug-clock">
-            C2
-          </text>
-          <motion.text
-            x="78"
-            y="123"
-            className="score-bug-subclock"
-            animate={reduceMotion ? undefined : { opacity: [1, 1, 0, 0, 1] }}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          >
-            Rally
-          </motion.text>
-          <motion.text
-            x="78"
-            y="123"
-            className="score-bug-subclock score-bug-subclock-final"
-            initial={reduceMotion ? { opacity: 0 } : undefined}
-            animate={reduceMotion ? undefined : { opacity: [0, 0, 1, 1, 0] }}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          >
-            Score
-          </motion.text>
-
-          <rect
-            x="144"
-            y="49"
-            width="204"
-            height="40"
-            rx="9"
-            className="score-row score-row-leading"
-          />
-          <rect
-            x="144"
-            y="95"
-            width="204"
-            height="40"
-            rx="9"
-            className="score-row"
-          />
-          <rect
-            x="356"
-            y="49"
-            width="60"
-            height="40"
-            rx="9"
-            className="score-cell score-cell-leading"
-          />
-          <rect
-            x="356"
-            y="95"
-            width="60"
-            height="40"
-            rx="9"
-            className="score-cell"
-          />
-
-          <text x="158" y="75" className="score-team-label">
-            Ana / Ben
-          </text>
-          <text x="158" y="121" className="score-team-label score-team-muted">
-            Cara / Diego
-          </text>
-          <motion.text
-            x="386"
-            y="81"
-            className="score-number score-number-leading"
-            animate={
-              reduceMotion
-                ? undefined
-                : { scale: [1, 1, 0.92, 0.92, 1], opacity: [1, 1, 0, 0, 1] }
-            }
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          >
-            8
-          </motion.text>
-          <motion.text
-            x="386"
-            y="81"
-            className="score-number score-number-leading score-number-final"
-            initial={reduceMotion ? { opacity: 0 } : undefined}
-            animate={
-              reduceMotion
-                ? undefined
-                : { scale: [0.92, 0.92, 1.14, 1, 0.92], opacity: [0, 0, 1, 1, 0] }
-            }
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          >
-            9
-          </motion.text>
-          <text x="386" y="127" className="score-number">
-            6
-          </text>
-          <motion.rect
-            x="144"
-            y="152"
-            width="104"
-            height="3"
-            rx="1.5"
-            className="score-sync-bar"
-            animate={reduceMotion ? undefined : { opacity: [0.25, 0.9, 0.25], width: [104, 150, 104] }}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          />
-          <motion.g
-            className="score-next-up"
-            initial={reduceMotion ? { opacity: 0 } : undefined}
-            animate={reduceMotion ? undefined : { opacity: [0, 0, 1, 1, 0] }}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.8, ease: "easeInOut", repeat: Infinity }
-            }
-          >
-            <rect x="272" y="145" width="144" height="20" rx="10" />
-            <text x="284" y="159">Next: Court 1</text>
-          </motion.g>
         </g>
 
         <motion.circle
@@ -786,10 +790,13 @@ export default function Home() {
               <HeroAssurance />
             </motion.div>
 
-            {/* Mobile is the primary device: the court is the poster moment and
-                must land right under the headline, not below the composer. */}
+            {/* Mobile is the primary device: the broadcast scorebug is the
+                poster moment — playable, with the court running underneath. */}
             <div className="order-2 relative mx-auto w-full max-w-md sm:max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
-              <CourtLanes />
+              <PlayableScorebug />
+              <div className="-mt-4 opacity-90">
+                <CourtLanes />
+              </div>
             </div>
 
             <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
