@@ -647,14 +647,10 @@
     background: oklch(from var(--court-teal) l c h / 0.1);
   }
 
-  .composer-chip:nth-child(2) {
-    border-color: oklch(from var(--court-peach) l c h / 0.34);
-    background: oklch(from var(--court-peach) l c h / 0.12);
-  }
-
+  .composer-chip:nth-child(2),
   .composer-chip:nth-child(3) {
-    border-color: oklch(from var(--court-violet) l c h / 0.28);
-    background: oklch(from var(--court-violet) l c h / 0.09);
+    border-color: oklch(from var(--court-teal) l c h / 0.34);
+    background: oklch(from var(--court-teal) l c h / 0.1);
   }
 
   .live-board {
@@ -1130,10 +1126,10 @@
   }
 
   .court-rally-arc {
-    stroke: oklch(from var(--court-violet) l c h / 0.58);
+    stroke: oklch(from var(--court-teal) l c h / 0.8);
     stroke-dasharray: 8 12;
     stroke-linecap: round;
-    stroke-width: 2;
+    stroke-width: 2.5;
   }
 
   .court-rally-trail {
@@ -1313,21 +1309,6 @@
     padding: 1rem;
     font-size: 0.9375rem;
     color: var(--primary-foreground);
-  }
-
-  .motion-rail-step:nth-child(2) .motion-rail-index {
-    border-color: oklch(from var(--court-peach) l c h / 0.46);
-    background: oklch(from var(--court-peach) l c h / 0.18);
-  }
-
-  .motion-rail-step:nth-child(3) .motion-rail-index {
-    border-color: oklch(from var(--court-violet) l c h / 0.44);
-    background: oklch(from var(--court-violet) l c h / 0.18);
-  }
-
-  .motion-rail-step:nth-child(4) .motion-rail-index {
-    border-color: oklch(from var(--court-mint) l c h / 0.48);
-    background: oklch(from var(--court-mint) l c h / 0.18);
   }
 
   .motion-rail-step:last-child {

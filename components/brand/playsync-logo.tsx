@@ -40,7 +40,6 @@ export function PlaySyncLogo({
           height={isSmall ? 32 : 36}
           sizes={isSmall ? "32px" : "36px"}
           className="brand-mark-image h-full w-full object-contain"
-          priority
         />
       </span>
       {showWordmark && (

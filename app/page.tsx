@@ -134,9 +134,9 @@ const surfaceProof = [
 // product's whole promise in one interaction. It also plays itself slowly so
 // non-tappers still see it live (pausing while a visitor is playing with it).
 const demoMatchups = [
-  { court: "Court 2", teams: ["Ana / Ben", "Cara / Diego"], next: "Eli / Fran vs Gia / Hugo", nextCourt: "Court 3" },
-  { court: "Court 3", teams: ["Eli / Fran", "Gia / Hugo"], next: "Ivy / Noah vs Ana / Ben", nextCourt: "Court 1" },
-  { court: "Court 1", teams: ["Ivy / Noah", "Ana / Ben"], next: "Cara / Diego vs Eli / Fran", nextCourt: "Court 2" },
+  { court: "Court 2", teams: ["Ana / Ben", "Cara / Diego"], next: "Eli/Fran vs Gia/Hugo", nextCourt: "Court 3" },
+  { court: "Court 3", teams: ["Eli / Fran", "Gia / Hugo"], next: "Ivy/Noah vs Ana/Ben", nextCourt: "Court 1" },
+  { court: "Court 1", teams: ["Ivy / Noah", "Ana / Ben"], next: "Cara/Diego vs Eli/Fran", nextCourt: "Court 2" },
 ] as const;
 
 // Deterministic rally pattern — Math.random would mismatch on hydration.
@@ -361,7 +361,7 @@ function PlayableScorebug() {
         </div>
       </div>
 
-      <div className="mt-2 overflow-hidden rounded-lg">
+      <div className="mt-2 h-9 overflow-hidden rounded-lg">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={matchIndex}
@@ -369,7 +369,7 @@ function PlayableScorebug() {
             animate={{ transform: "translateY(0%)" }}
             exit={{ transform: "translateY(-100%)" }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="flex items-center gap-2 bg-live px-4 py-2 font-data text-[11px] font-semibold uppercase tracking-[0.14em] text-live-foreground"
+            className="flex h-full items-center gap-2 bg-live px-4 font-data text-[11px] font-semibold uppercase tracking-[0.14em] text-live-foreground"
           >
             <span aria-hidden="true">▸</span>
             {isReal ? (
@@ -379,7 +379,7 @@ function PlayableScorebug() {
               </>
             ) : (
               <>
-                <span className="truncate">Next up · {match.next}</span>
+                <span className="truncate">Next · {match.next}</span>
                 <span className="ml-auto shrink-0">{match.nextCourt}</span>
               </>
             )}
@@ -388,9 +388,7 @@ function PlayableScorebug() {
       </div>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        {isReal
-          ? "A real session, live right now — tap the board to watch."
-          : "Live demo — tap a team to score. At 11, the next game calls itself."}
+        {isReal ? "A real session, live right now — tap to watch." : "Live demo — tap a team to score."}
       </p>
     </div>
   );
@@ -573,7 +571,7 @@ function MotionRail() {
       viewport={{ once: true, margin: "-100px" }}
       variants={{
         idle: {},
-        active: { transition: { staggerChildren: 0.42, delayChildren: 0.15 } },
+        active: { transition: { staggerChildren: 0.55, delayChildren: 0.2 } },
       }}
     >
       {laneEvents.map((event, index) => (
@@ -585,7 +583,7 @@ function MotionRail() {
             active: {
               opacity: 1,
               transform: "translateY(0px)",
-              transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+              transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
             },
           }}
         >
@@ -604,7 +602,7 @@ function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
         <div className="pp-link">
           <IconLink className="size-3.5 text-live" />
           <span className="pp-link-url">playsync.fun/live</span>
-          <span className="pp-link-copy">Copy</span>
+          <span className="pp-link-copy">Ready</span>
         </div>
         <div className="pp-chips">
           <span>9 players</span>
@@ -711,7 +709,7 @@ function SessionComposer() {
           {[
             ["Players", "9"],
             ["Courts", "2"],
-            ["Mode", "Open play"],
+            ["Mode", "Rotate"],
           ].map(([label, value]) => (
             <div
               key={label}
@@ -909,7 +907,7 @@ export default function Home() {
               className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
             >
               <p className="hero-eyebrow">
-                Casual drop-in pickleball, one shared link
+                Casual drop-in pickleball, one shared link
               </p>
               <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-[-0.012em] text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
                 Play more. Organize less<span className="text-live">.</span>
@@ -999,17 +997,17 @@ export default function Home() {
                   </div>
                   <IconRotate className="size-5 text-muted-foreground" />
                 </div>
-                <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <div className="grid grid-cols-3 divide-x divide-border">
                   {[
                     ["People", "9"],
                     ["Courts", "2"],
                     ["Mode", "Rotate"],
                   ].map(([label, value]) => (
-                    <div key={label} className="p-4 sm:p-5">
+                    <div key={label} className="p-3 sm:p-5">
                       <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                         {label}
                       </p>
-                      <p className="mt-3 font-data text-3xl font-semibold">
+                      <p className="mt-3 font-data text-2xl font-semibold sm:text-3xl">
                         {value}
                       </p>
                     </div>
