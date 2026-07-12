@@ -966,7 +966,7 @@ export default function Home() {
         </section>
 
         <section className="section-clean border-b border-border">
-          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
+          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
             <Reveal>
               <p className="section-kicker">The shared feed</p>
               <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-[-0.008em] text-foreground sm:text-6xl">

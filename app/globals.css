@@ -848,10 +848,11 @@
 
   .phone-next-head h3 {
     margin-top: 0.35rem;
-    font-size: 2.3rem;
+    font-size: 2.1rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 0.9;
+    white-space: nowrap;
   }
 
   .phone-score-stack {
@@ -904,8 +905,10 @@
     background:
       linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.04) c h), var(--primary));
     color: var(--primary-foreground);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 800;
+    padding-inline: 0.9rem;
+    white-space: nowrap;
   }
 
   .phone-qr-card {
