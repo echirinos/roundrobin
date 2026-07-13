@@ -1128,6 +1128,79 @@
     stroke-width: 1.6;
   }
 
+  /* Broadcast-frame court: lives inside the dark scorebug shell in BOTH
+     themes, so it reads as one panel — mint lines, teal kitchen, the ball
+     answering the score above it. */
+  .bframe-court-wrap {
+    display: block;
+    border-top: 1px solid rgb(255 255 255 / 0.1);
+    padding: 0.55rem 0.7rem 0.65rem;
+  }
+
+  .bframe-surface {
+    fill: oklch(from var(--primary) calc(l + 0.045) c h);
+  }
+
+  .bframe-line {
+    stroke: rgb(255 255 255 / 0.3);
+    stroke-width: 1.5;
+  }
+
+  .bframe-line-strong {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.42);
+    stroke-width: 2;
+  }
+
+  .bframe-kitchen {
+    fill: oklch(from var(--court-teal) l c h / 0.14);
+  }
+
+  .bframe-net {
+    stroke: oklch(from var(--court-mint) l c h / 0.85);
+    stroke-width: 2.5;
+    stroke-dasharray: 3 5;
+    stroke-linecap: round;
+  }
+
+  .bframe-ball {
+    fill: var(--accent);
+    stroke: rgb(255 255 255 / 0.3);
+    stroke-width: 1.5;
+  }
+
+  /* Dark theme flips the scorebug shell to cream, so the court flips with
+     it: ink lines on a shaded cream field, kitchen a touch stronger. */
+  .dark .bframe-surface {
+    fill: oklch(from var(--primary) calc(l - 0.06) c h);
+  }
+
+  .dark .bframe-line {
+    stroke: oklch(from var(--primary-foreground) l c h / 0.4);
+  }
+
+  .dark .bframe-line-strong {
+    stroke: oklch(from var(--primary-foreground) l c h / 0.55);
+  }
+
+  .dark .bframe-kitchen {
+    fill: oklch(from var(--court-teal) l c h / 0.22);
+  }
+
+  .dark .bframe-net {
+    stroke: oklch(from var(--court-teal) calc(l - 0.18) c h / 0.95);
+  }
+
+  .dark .bframe-ball {
+    stroke: oklch(from var(--primary-foreground) l c h / 0.35);
+  }
+
+  .bframe-ring {
+    fill: none;
+    stroke: var(--live);
+    stroke-width: 2.5;
+  }
+
   .court-rally-arc {
     stroke: oklch(from var(--court-teal) l c h / 0.8);
     stroke-dasharray: 8 12;

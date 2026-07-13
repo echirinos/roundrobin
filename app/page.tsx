@@ -245,10 +245,61 @@ function ScoreDigits({ value }: { value: number }) {
   );
 }
 
+
+// The court is part of the broadcast frame, not a separate illustration:
+// a flat, honest top-down diagram (real pickleball proportions — kitchen,
+// service boxes, center line) whose ball answers the scorebug. Score a
+// point and the rally ends on the other side with an impact ring.
+function CourtDiagram({ pulse }: { pulse: { side: 0 | 1; count: number } }) {
+  const reduceMotion = useReducedMotion();
+  // Landing spots inside each service box (left court / right court).
+  const landing = pulse.side === 0 ? { x: 320, y: 74 } : { x: 120, y: 126 };
+
+  return (
+    <div className="bframe-court-wrap" aria-hidden="true">
+      <svg viewBox="0 0 440 200" fill="none" className="h-auto w-full">
+        {/* surface + boundary */}
+        <rect x="8" y="8" width="424" height="184" rx="10" className="bframe-surface" />
+        <rect x="28" y="24" width="384" height="152" rx="4" className="bframe-line-strong" />
+        {/* kitchen (non-volley zone) spans net ± 7ft of a 44ft court */}
+        <rect x="159" y="24" width="61" height="152" className="bframe-kitchen" />
+        <rect x="220" y="24" width="61" height="152" className="bframe-kitchen" />
+        <path d="M159 24V176M281 24V176" className="bframe-line" />
+        {/* center lines split the service courts */}
+        <path d="M28 100H159M281 100H420M412 24V176" className="bframe-line" />
+        {/* net */}
+        <path d="M220 16V184" className="bframe-net" />
+        {/* rally ball + impact ring, keyed to the scorebug */}
+        {!reduceMotion && (
+          <AnimatePresence>
+            <motion.circle
+              key={`ring-${pulse.count}`}
+              cx={landing.x}
+              cy={landing.y}
+              className="bframe-ring"
+              initial={{ r: 5, opacity: 0.55 }}
+              animate={{ r: 26, opacity: 0 }}
+              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </AnimatePresence>
+        )}
+        <motion.circle
+          r="7"
+          className="bframe-ball"
+          initial={false}
+          animate={reduceMotion ? { cx: 220, cy: 100 } : { cx: landing.x, cy: landing.y }}
+          transition={{ type: "spring", duration: 0.7, bounce: 0.18 }}
+        />
+      </svg>
+    </div>
+  );
+}
+
 function PlayableScorebug() {
   const [matchIndex, setMatchIndex] = useState(0);
   const [score, setScore] = useState<[number, number]>([6, 4]);
   const [finalFlash, setFinalFlash] = useState(false);
+  const [pulse, setPulse] = useState<{ side: 0 | 1; count: number }>({ side: 0, count: 0 });
   const tickRef = useRef(0);
   const lastTouchRef = useRef(0);
   const featured = useFeaturedSession();
@@ -260,6 +311,7 @@ function PlayableScorebug() {
 
   const addPoint = useCallback((side: 0 | 1, fromUser: boolean) => {
     if (fromUser) lastTouchRef.current = Date.now();
+    setPulse((current) => ({ side, count: current.count + 1 }));
     setFinalFlash((flashing) => {
       if (flashing) return flashing;
       setScore((current) => {
@@ -359,9 +411,10 @@ function PlayableScorebug() {
             )}
           </div>
         </div>
-      </div>
 
-      <div className="mt-2 h-9 overflow-hidden rounded-lg">
+        <CourtDiagram pulse={pulse} />
+
+        <div className="h-9 overflow-hidden border-t border-white/10">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={matchIndex}
@@ -385,6 +438,7 @@ function PlayableScorebug() {
             )}
           </motion.div>
         </AnimatePresence>
+        </div>
       </div>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
@@ -418,141 +472,6 @@ function Reveal({
       className={className}
     >
       {children}
-    </motion.div>
-  );
-}
-
-function CourtLanes() {
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      initial={reduceMotion ? false : { opacity: 0, transform: "translateX(18px)" }}
-      animate={reduceMotion ? undefined : { opacity: 1, transform: "translateX(0px)" }}
-      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1], delay: 0.14 }}
-      className="court-lanes"
-      aria-hidden="true"
-    >
-      <svg viewBox="40 76 488 368" fill="none" className="court-lanes-svg">
-        <g className="pickleball-court">
-          <rect
-            x="52"
-            y="88"
-            width="456"
-            height="344"
-            rx="18"
-            className="court-surface"
-          />
-          <rect
-            x="76"
-            y="116"
-            width="408"
-            height="288"
-            rx="10"
-            className="court-boundary"
-          />
-          <path d="M280 116V404" className="court-net" />
-          <path d="M216 116V404M344 116V404" className="court-kitchen" />
-          <path d="M76 260H216M344 260H484" className="court-service-line" />
-          <path d="M76 116H484M76 404H484M76 116V404M484 116V404" className="court-edge-line" />
-          <path d="M280 116V404" className="court-net-dashes" />
-        </g>
-
-        <motion.circle
-          cx="134"
-          cy="312"
-          r="10"
-          className="court-impact-ring"
-          animate={reduceMotion ? undefined : { r: [8, 34, 8], opacity: [0, 0.42, 0] }}
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 1.9, ease: "easeOut", repeat: Infinity, repeatDelay: 1.9 }
-          }
-        />
-        <motion.circle
-          cx="462"
-          cy="206"
-          r="10"
-          className="court-impact-ring court-impact-ring-alt"
-          animate={reduceMotion ? undefined : { r: [8, 34, 8], opacity: [0, 0.36, 0] }}
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 1.9, ease: "easeOut", repeat: Infinity, repeatDelay: 1.9, delay: 0.95 }
-          }
-        />
-
-        <motion.path
-          d="M104 312C158 196 230 180 280 255C331 331 408 324 462 206"
-          className="court-rally-arc"
-          pathLength={1}
-          initial={reduceMotion ? false : { pathLength: 0.35, opacity: 0.45 }}
-          animate={
-            reduceMotion
-              ? undefined
-              : { pathLength: [0.35, 1, 0.35], opacity: [0.36, 0.78, 0.36] }
-          }
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
-          }
-        />
-        <motion.path
-          d="M98 320C159 204 230 182 280 256C329 330 408 322 466 198"
-          className="court-rally-trail"
-          pathLength={1}
-          initial={reduceMotion ? false : { pathLength: 0.2, opacity: 0 }}
-          animate={
-            reduceMotion
-              ? undefined
-              : { pathLength: [0.18, 0.72, 0.18], opacity: [0, 0.32, 0] }
-          }
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
-          }
-        />
-        <motion.circle
-          r="14"
-          className="court-ball-glow"
-          initial={{ cx: 104, cy: 312 }}
-          animate={
-            reduceMotion
-              ? undefined
-              : {
-                  cx: [104, 166, 230, 280, 342, 408, 462, 408, 342, 280, 230, 166, 104],
-                  cy: [312, 218, 198, 255, 326, 314, 206, 314, 326, 255, 198, 218, 312],
-                  opacity: [0.12, 0.28, 0.12],
-                }
-          }
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
-          }
-        />
-        <motion.circle
-          r="9"
-          className="court-rally-ball"
-          initial={{ cx: 104, cy: 312 }}
-          animate={
-            reduceMotion
-              ? undefined
-              : {
-                  cx: [104, 166, 230, 280, 342, 408, 462, 408, 342, 280, 230, 166, 104],
-                  cy: [312, 218, 198, 255, 326, 314, 206, 314, 326, 255, 198, 218, 312],
-                }
-          }
-          transition={
-            reduceMotion
-              ? undefined
-              : { duration: 3.8, ease: "easeInOut", repeat: Infinity }
-          }
-        />
-      </svg>
     </motion.div>
   );
 }
@@ -924,9 +843,6 @@ export default function Home() {
                 poster moment — playable, with the court running underneath. */}
             <div className="order-2 relative mx-auto w-full max-w-md sm:max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
               <PlayableScorebug />
-              <div className="-mt-4 opacity-90">
-                <CourtLanes />
-              </div>
             </div>
 
             <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
