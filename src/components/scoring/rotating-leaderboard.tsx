@@ -74,13 +74,11 @@ export function RotatingLeaderboard({
   return (
     <div className="flex flex-col gap-4">
       <Card className="overflow-hidden">
+        {/* No metric badge up here: it looked tappable, and "Point margin"
+            beside "Standings" read as the ranking rule (it isn't — the footer
+            explains the real order). */}
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle>Standings</CardTitle>
-            <Badge variant="outline" className="text-xs">
-              {scoringType === "court_weighted" ? "Court points" : "Point margin"}
-            </Badge>
-          </div>
+          <CardTitle>Standings</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
           <AnimatePresence mode="popLayout">
@@ -310,115 +308,6 @@ export function RotatingLeaderboard({
   );
 }
 
-// Compact version for sidebars
-interface CompactLeaderboardProps {
-  standings: LocalStanding[];
-  scoringType: ScoringType;
-  limit?: number;
-}
-
-export function CompactLeaderboard({
-  standings,
-  scoringType,
-  limit = 5,
-}: CompactLeaderboardProps) {
-  const displayStandings = standings.slice(0, limit);
-
-  return (
-    <div className="flex flex-col gap-1">
-      {displayStandings.map((standing, index) => (
-        <div
-          key={standing.player.id}
-          className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/40"
-        >
-          <span className="w-5 text-center font-display font-semibold text-muted-foreground">
-            {index + 1}
-          </span>
-          <span className="flex-1 truncate">{standing.player.name}</span>
-          <span className="font-data font-semibold">
-            {scoringType === "court_weighted"
-              ? standing.courtWeightedPoints
-              : `${standing.winPercentage}%`}
-          </span>
-        </div>
-      ))}
-      {standings.length > limit && (
-        <p className="text-xs text-muted-foreground text-center pt-1">
-          +{standings.length - limit} more
-        </p>
-      )}
-    </div>
-  );
-}
-
-// Court-specific leaderboard (for King of Court style formats)
-interface CourtLeaderboardProps {
-  standings: LocalStanding[];
-  numberOfCourts: number;
-}
-
-export function CourtLeaderboard({
-  standings,
-  numberOfCourts,
-}: CourtLeaderboardProps) {
-  // Group players by court
-  const courtGroups = useMemo(() => {
-    const groups = new Map<number, LocalStanding[]>();
-
-    for (let court = 1; court <= numberOfCourts; court++) {
-      groups.set(court, []);
-    }
-
-    // Assign 4 players per court based on rank
-    standings.forEach((standing, index) => {
-      const court = Math.min(Math.floor(index / 4) + 1, numberOfCourts);
-      groups.get(court)?.push(standing);
-    });
-
-    return groups;
-  }, [standings, numberOfCourts]);
-
-  return (
-    <div className="flex flex-col gap-4">
-      {Array.from(courtGroups.entries()).map(([courtNumber, players]) => (
-        <Card key={courtNumber}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-sm">
-                {courtNumber === 1 ? "King Court" : `Court ${courtNumber}`}
-              </CardTitle>
-              <Badge
-                variant={courtNumber === 1 ? "default" : "outline"}
-                className="text-xs"
-              >
-                {numberOfCourts - courtNumber + 1}x points
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-1">
-              {players.map((standing) => (
-                <div
-                  key={standing.player.id}
-                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-sm hover:bg-secondary/40"
-                >
-                  <span className="min-w-0 flex-1 break-words">
-                    {standing.player.name}
-                  </span>
-                  <span className="font-data shrink-0 text-muted-foreground">
-                    {standing.gamesWon}-{standing.gamesLost}
-                  </span>
-                </div>
-              ))}
-              {players.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  No players assigned
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
+// CompactLeaderboard and CourtLeaderboard used to live here. Both were
+// removed: nothing rendered Compact, and Court duplicated the main list
+// (which already shows per-row court badges) as a confusing second board.

@@ -18,14 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ShineBorder } from "@/components/ui/shine-border";
@@ -40,10 +33,7 @@ import {
 } from "@/src/types/formats";
 import { EnhancedPlayerSetup } from "@/src/components/tournaments/enhanced-player-setup";
 import { EnhancedSchedule } from "@/src/components/tournaments/enhanced-schedule";
-import {
-  CourtLeaderboard,
-  RotatingLeaderboard,
-} from "@/src/components/scoring/rotating-leaderboard";
+import { RotatingLeaderboard } from "@/src/components/scoring/rotating-leaderboard";
 import {
   SessionShareSheet,
   type LiveSyncStatus,
@@ -83,7 +73,7 @@ interface TournamentState {
 
 const createInitialState = (): TournamentState => ({
   id: Math.random().toString(36).substring(2, 9),
-  name: "New Tournament",
+  name: "New session",
   players: [],
   games: [],
   settings: createDefaultEventSettings("popcorn"),
@@ -99,18 +89,43 @@ function buildSnapshot(state: TournamentState): LiveTournamentSnapshot {
   };
 }
 
+// Formats that still exist in FORMAT_DEFINITIONS (so started sessions and
+// spectator snapshots keep rendering) but are no longer offered by the wizard.
+// mixed_madness promises gender-balanced teams and the roster never collects
+// gender — an UNSTARTED restored draft carrying it would show the wizard with
+// no format card selected while still letting the user start it.
+const WIZARD_HIDDEN_FORMATS = new Set<EventSettings["format"]>(["mixed_madness"]);
+
 // Restored state (remote snapshot or localStorage) can carry formats this
 // bundle doesn't know — newer publisher, downgraded client, corrupted storage.
 // Normalize so every downstream FORMAT_DEFINITIONS lookup is safe.
-function normalizeSettings(settings: EventSettings): EventSettings {
-  return FORMAT_DEFINITIONS[settings?.format]
-    ? settings
-    : { ...settings, format: "popcorn" as const };
+function normalizeSettings(
+  settings: EventSettings,
+  tournamentStarted = true
+): EventSettings {
+  if (!FORMAT_DEFINITIONS[settings?.format]) {
+    return { ...settings, format: "popcorn" as const };
+  }
+  if (!tournamentStarted && WIZARD_HIDDEN_FORMATS.has(settings.format)) {
+    // Rebuild from popcorn defaults rather than only swapping the format
+    // name — the hidden format's scoringType/formatOptions must not leak
+    // into a format they don't belong to. Court/points choices survive.
+    return {
+      ...createDefaultEventSettings("popcorn"),
+      numberOfCourts: settings.numberOfCourts,
+      pointsToWin: settings.pointsToWin,
+      winBy: settings.winBy,
+    };
+  }
+  return settings;
 }
 
 function stateFromSnapshot(snapshot: LiveTournamentSnapshot): TournamentState {
   return {
     ...snapshot,
+    // Spectators mirror the organizer's session verbatim — only truly unknown
+    // formats get coerced here. The wizard-hidden coercion is for the
+    // organizer's own drafts (they have a wizard; spectators don't).
     settings: normalizeSettings(snapshot.settings),
   };
 }
@@ -184,9 +199,8 @@ function getShareUrl(origin: string, code: string | null): string {
   return `${CANONICAL_SHARE_ORIGIN}/tournament?code=${code}`;
 }
 
-function formatSyncTime(value: string | null): string {
-  if (!value) return "Not live yet";
-
+// Callers guard on lastSyncedAt before rendering, so no null branch.
+function formatSyncTime(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -354,7 +368,13 @@ export default function TournamentPage() {
           const parsed = JSON.parse(saved) as TournamentState;
           setState({
             ...parsed,
-            settings: normalizeSettings(parsed.settings),
+            // Boolean(): legacy storage can lack the flag; undefined must be
+            // treated as "not started" here (like everywhere else), not as
+            // started via the parameter default.
+            settings: normalizeSettings(
+              parsed.settings,
+              Boolean(parsed.tournamentStarted)
+            ),
           });
           setActiveTab(parsed.tournamentStarted ? "schedule" : "setup");
         } catch (error) {
@@ -436,12 +456,14 @@ export default function TournamentPage() {
 
         if (response.status === 403) {
           throw new Error(
-            "This code belongs to another organizer's session. Reset to publish under a new code."
+            "This code belongs to another organizer's session. Reset to share under a new code."
           );
         }
 
         if (!response.ok) {
-          throw new Error("Unable to publish this live session.");
+          throw new Error(
+            "Couldn't share this session — check your connection and try again."
+          );
         }
 
         const record = (await response.json()) as LiveSessionRecord & {
@@ -611,6 +633,7 @@ export default function TournamentPage() {
         // would invalidate every round seeded after it.
         if (roundNumber !== prev.currentRound || roundNumber < 1) return prev;
 
+        const reopensSetup = roundNumber === 1;
         return {
           ...prev,
           games: prev.games.filter((game) => game.round !== roundNumber),
@@ -618,11 +641,21 @@ export default function TournamentPage() {
           // Undoing Round 1 usually means a roster or format mistake —
           // reopen setup so those are editable again instead of stranding
           // the session at "Round 0" with a locked roster.
-          tournamentStarted: roundNumber > 1 ? prev.tournamentStarted : false,
+          tournamentStarted: reopensSetup ? false : prev.tournamentStarted,
+          // Re-entering the wizard re-applies the hidden-format coercion —
+          // a legacy started mixed_madness session must not reopen with a
+          // format the wizard can no longer display.
+          settings: reopensSetup
+            ? normalizeSettings(prev.settings, false)
+            : prev.settings,
         };
       });
       if (roundNumber === 1) {
         setActiveTab("setup");
+        // A stale sharing error must not survive into the wizard — with no
+        // session code the Share button is hidden there, so an error telling
+        // the user to retry would point at a control that no longer exists.
+        setSyncError(null);
       }
       // Rank-change deltas against the deleted round's scores are meaningless.
       setPreviousStandings([]);
@@ -719,11 +752,13 @@ export default function TournamentPage() {
       tone: "text-accent",
     },
     {
-      label: "Done",
-      value: sessionStats.completionPercent,
+      // Cumulative count, not a percentage: "100% done" after round 1 read
+      // like the whole event was over. "Scored" (not "played") matches the
+      // Matches header — it's score entry that increments this.
+      label: "Games scored",
+      value: sessionStats.completedGames,
       icon: Activity,
       tone: "text-success",
-      suffix: "%",
     },
   ];
 
@@ -801,7 +836,11 @@ export default function TournamentPage() {
                 Setup
               </Badge>
             )}
-            {!isJoinMode && (
+            {/* During setup there is nothing to share yet — hiding the share
+                control keeps the wizard to one job. It appears once the first
+                round starts (or immediately for restored/published sessions). */}
+            {!isJoinMode &&
+              (state.tournamentStarted || isSpectator || Boolean(sessionCode)) && (
               <SessionShareSheet
                 code={sessionCode}
                 shareUrl={shareUrl}
@@ -824,7 +863,7 @@ export default function TournamentPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleResetTournament}
-                aria-label="Reset tournament"
+                aria-label="Reset session"
                 className="min-h-11 min-w-11 text-destructive hover:text-destructive sm:min-h-9 sm:min-w-0"
               >
                 <RotateCcw />
@@ -909,12 +948,20 @@ export default function TournamentPage() {
                     </Badge>
                     <Badge variant="outline">{formatDefinition.name}</Badge>
                   </div>
+                  {/* Spectators on an unstarted session get watcher copy —
+                      "add names and start the round" is an organizer's job. */}
                   <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-                    {state.tournamentStarted ? state.name : "Create round robin"}
+                    {state.tournamentStarted
+                      ? state.name
+                      : isSpectator
+                      ? "Waiting for the organizer"
+                      : "Create round robin"}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                     {state.tournamentStarted
                       ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
+                      : isSpectator
+                      ? "Matchups and scores will appear here once the session starts."
                       : "Add names, keep the defaults, and start the first round from your phone."}
                   </p>
                 </div>
@@ -936,9 +983,12 @@ export default function TournamentPage() {
                         className="rounded-lg border border-border/70 bg-background/65 p-3 text-center shadow-sm backdrop-blur"
                       >
                         <StatIcon className={`mx-auto size-4 ${item.tone}`} />
+                        {/* No mount count-up: these numbers are authoritative
+                            ("3 players" under an "8 players" subtitle read as a
+                            bug). Value CHANGES still animate — the games-played
+                            tile ticks up on every saved score. */}
                         <div className="font-display mt-1 text-2xl font-semibold tracking-tight">
-                          <NumberTicker value={item.value} startValue={0} />
-                          {item.suffix}
+                          <NumberTicker value={item.value} />
                         </div>
                         <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                           {item.label}
@@ -955,17 +1005,21 @@ export default function TournamentPage() {
                     {sessionStats.statusLabel}
                   </span>
                   <span className="font-data font-semibold">
-                    {sessionStats.completedGames}/{sessionStats.totalGames || 0} games
+                    {sessionStats.progressLabel}
                   </span>
                 </div>
-                <Progress value={sessionStats.completionPercent} className="mt-2" />
+                <Progress value={sessionStats.progressPercent} className="mt-2" />
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>
+                    {/* Only point at the Share button when it's actually
+                        rendered (started sessions). */}
                     {sessionCode
                       ? `Code ${sessionCode}`
-                      : "Publish to create a spectator code"}
+                      : state.tournamentStarted
+                      ? "Tap Share to get a join code and QR"
+                      : ""}
                   </span>
-                  <span>Last sync: {formatSyncTime(lastSyncedAt)}</span>
+                  {lastSyncedAt && <span>Updated {formatSyncTime(lastSyncedAt)}</span>}
                 </div>
               </div>
 
@@ -1000,25 +1054,30 @@ export default function TournamentPage() {
             onValueChange={(value) => setActiveTab(value as TournamentTab)}
             className="flex flex-col gap-4"
           >
-            <TabsList className="sticky top-(--app-header-h) z-40 grid h-12 w-full grid-cols-3 shadow-lg shadow-background/20">
-              <TabsTrigger ref={setupTabRef} value="setup" className="text-sm">
-                {state.tournamentStarted ? "Players" : "Setup"}
-              </TabsTrigger>
-              <TabsTrigger
-                value="schedule"
-                disabled={!state.tournamentStarted}
-                className="text-sm"
-              >
-                Matches
-              </TabsTrigger>
-              <TabsTrigger
-                value="standings"
-                disabled={!state.tournamentStarted}
-                className="text-sm"
-              >
-                Standings
-              </TabsTrigger>
-            </TabsList>
+            {/* The wizard is a single guided flow — showing a tab bar with two
+                disabled tabs during it just adds chrome to ignore. Tabs appear
+                when there's more than one place to be (post-start/spectator). */}
+            {(state.tournamentStarted || isSpectator) && (
+              <TabsList className="sticky top-(--app-header-h) z-40 grid h-12 w-full grid-cols-3 shadow-lg shadow-background/20">
+                <TabsTrigger ref={setupTabRef} value="setup" className="text-sm">
+                  {state.tournamentStarted ? "Players" : "Setup"}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="schedule"
+                  disabled={!state.tournamentStarted}
+                  className="text-sm"
+                >
+                  Matches
+                </TabsTrigger>
+                <TabsTrigger
+                  value="standings"
+                  disabled={!state.tournamentStarted}
+                  className="text-sm"
+                >
+                  Standings
+                </TabsTrigger>
+              </TabsList>
+            )}
 
             <TabsContent value="setup" className="mt-0">
               <EnhancedPlayerSetup
@@ -1053,32 +1112,22 @@ export default function TournamentPage() {
             </TabsContent>
 
             <TabsContent value="standings" className="mt-0">
-              {state.tournamentStarted &&
-                (state.settings.scoringType === "court_weighted" &&
-                state.settings.numberOfCourts > 1 ? (
-                  <div className="flex flex-col gap-4">
-                    <RotatingLeaderboard
-                      players={standingsPlayers}
-                      games={state.games}
-                      scoringType={state.settings.scoringType}
-                      numberOfCourts={state.settings.numberOfCourts}
-                      previousStandings={previousStandings}
-                      showCourtAssignments
-                    />
-                    <CourtLeaderboard
-                      standings={standings}
-                      numberOfCourts={state.settings.numberOfCourts}
-                    />
-                  </div>
-                ) : (
-                  <RotatingLeaderboard
-                    players={standingsPlayers}
-                    games={state.games}
-                    scoringType={state.settings.scoringType}
-                    numberOfCourts={state.settings.numberOfCourts}
-                    previousStandings={previousStandings}
-                  />
-                ))}
+              {/* One leaderboard, always. The per-row "Court N" badges cover
+                  what the old second court-grouped list repeated below it —
+                  two stacked leaderboards made it unclear which one ranked you. */}
+              {state.tournamentStarted && (
+                <RotatingLeaderboard
+                  players={standingsPlayers}
+                  games={state.games}
+                  scoringType={state.settings.scoringType}
+                  numberOfCourts={state.settings.numberOfCourts}
+                  previousStandings={previousStandings}
+                  showCourtAssignments={
+                    state.settings.scoringType === "court_weighted" &&
+                    state.settings.numberOfCourts > 1
+                  }
+                />
+              )}
             </TabsContent>
           </Tabs>
         )}
@@ -1090,33 +1139,17 @@ export default function TournamentPage() {
         </div>
       </main>
 
-      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Reset tournament?</DialogTitle>
-            <DialogDescription>
-              All players, rounds, and scores will be lost. This can&apos;t be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowResetConfirm(false)}
-              data-testid="reset-cancel"
-            >
-              Keep session
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmResetTournament}
-              data-testid="reset-confirm"
-            >
-              Reset everything
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reset this session?"
+        description="All players, rounds, and scores will be lost. This can't be undone."
+        confirmLabel="Reset everything"
+        cancelLabel="Keep session"
+        onConfirm={confirmResetTournament}
+        confirmTestId="reset-confirm"
+        cancelTestId="reset-cancel"
+      />
     </div>
   );
 }

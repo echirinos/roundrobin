@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowUp, Check, ChevronDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,9 @@ interface RoundGameScoreEntryProps {
   onClose: () => void;
   onSave: (gameId: string, team1Score: number, team2Score: number) => void;
   courtWeight?: number;
+  /** Session game rules — enables the gentle "unusual score" heads-up. */
+  pointsToWin?: number;
+  winBy?: number;
 }
 
 export function RoundGameScoreEntry({
@@ -35,6 +38,8 @@ export function RoundGameScoreEntry({
   onClose,
   onSave,
   courtWeight,
+  pointsToWin,
+  winBy,
 }: RoundGameScoreEntryProps) {
   if (!game) return null;
 
@@ -47,6 +52,8 @@ export function RoundGameScoreEntry({
           onClose={onClose}
           onSave={onSave}
           courtWeight={courtWeight}
+          pointsToWin={pointsToWin}
+          winBy={winBy}
         />
       </DialogContent>
     </Dialog>
@@ -58,6 +65,8 @@ interface RoundGameScoreFormProps {
   onClose: () => void;
   onSave: (gameId: string, team1Score: number, team2Score: number) => void;
   courtWeight?: number;
+  pointsToWin?: number;
+  winBy?: number;
 }
 
 function RoundGameScoreForm({
@@ -65,6 +74,8 @@ function RoundGameScoreForm({
   onClose,
   onSave,
   courtWeight,
+  pointsToWin,
+  winBy,
 }: RoundGameScoreFormProps) {
   const [score1, setScore1] = useState(game.team1Score?.toString() ?? "");
   const [score2, setScore2] = useState(game.team2Score?.toString() ?? "");
@@ -95,6 +106,36 @@ function RoundGameScoreForm({
       closeTimer.current = setTimeout(onClose, reduceMotion ? 1100 : 1900);
     }
   };
+
+  // Gentle nudge, never a block: open-play games do end early or at odd
+  // scores, but a silently-saved 11-10 under "win by 2" looks like a bug.
+  // Ties (diff 0 < winBy) get the same nudge — they're the most unusual
+  // score of all, and they still save (the standings engine supports them).
+  // Overshoots are flagged too: past points-to-win a real game ends the
+  // moment the lead hits win-by, so 12-5 or 111-4 is almost surely a typo
+  // while overtime scores like 12-10 pass.
+  const s1Num = parseInt(score1);
+  const s2Num = parseInt(score2);
+  const bothEntered = !isNaN(s1Num) && !isNaN(s2Num);
+  const scoreDiff = Math.abs(s1Num - s2Num);
+  const scoreMax = Math.max(s1Num, s2Num);
+  const isUnusualScore =
+    bothEntered &&
+    typeof pointsToWin === "number" &&
+    typeof winBy === "number" &&
+    (scoreMax < pointsToWin ||
+      scoreDiff < winBy ||
+      (scoreMax > pointsToWin && scoreDiff !== winBy));
+
+  const presetTarget = pointsToWin ?? 11;
+  const presetWinBy = winBy ?? 2;
+  const quickScorePresets = [
+    ...new Set(
+      [0, 5, 7, presetTarget - presetWinBy].filter(
+        (loser) => loser >= 0 && presetTarget - loser >= presetWinBy
+      )
+    ),
+  ].map((loser): [number, number] => [presetTarget, loser]);
 
   if (saved) {
     return (
@@ -155,6 +196,23 @@ function RoundGameScoreForm({
             <span className="h-px w-12 bg-border" />
             vs
             <span className="h-px w-12 bg-border" />
+            {/* Quick scores fill the top team as the winner; this flips them
+                in one tap when the bottom team actually won. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setScore1(score2);
+                setScore2(score1);
+              }}
+              disabled={!score1 && !score2}
+              className="h-8 gap-1 px-2 text-xs font-semibold normal-case tracking-normal text-muted-foreground"
+              aria-label="Swap the two scores"
+            >
+              <ArrowUpDown className="size-3.5" />
+              Swap
+            </Button>
           </div>
 
           <motion.div
@@ -179,33 +237,42 @@ function RoundGameScoreForm({
           </motion.div>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-border/70 pt-4">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Quick scores
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              [11, 0],
-              [11, 5],
-              [11, 7],
-              [11, 9],
-            ].map(([s1, s2]) => (
-              <TextureButton
-                key={`${s1}-${s2}`}
-                type="button"
-                variant="minimal"
-                size="sm"
-                onClick={() => {
-                  setScore1(s1.toString());
-                  setScore2(s2.toString());
-                }}
-                className="text-xs"
-              >
-                {s1}-{s2}
-              </TextureButton>
-            ))}
+        {/* Presets follow the session's rules — hardcoded 11s would trip the
+            unusual-score nudge on the app's own suggestions when the organizer
+            plays to 15 or 21, and every preset respects win-by. For 11/2 this
+            yields the classic 11-0/5/7/9. Contradictory rules (win-by larger
+            than points-to-win) produce no valid presets — hide the section
+            rather than render an empty header. */}
+        {quickScorePresets.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-border/70 pt-4">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Quick scores
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {quickScorePresets.map(([s1, s2]) => (
+                <TextureButton
+                  key={`${s1}-${s2}`}
+                  type="button"
+                  variant="minimal"
+                  size="sm"
+                  onClick={() => {
+                    setScore1(s1.toString());
+                    setScore2(s2.toString());
+                  }}
+                  className="text-xs"
+                >
+                  {s1}-{s2}
+                </TextureButton>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+        {isUnusualScore && (
+          <p className="text-center text-xs font-medium text-warning">
+            Heads up: a game to {pointsToWin}, win by {winBy} wouldn&apos;t
+            usually end {s1Num}-{s2Num}. Double-check it — you can still save.
+          </p>
+        )}
       </div>
       <DialogFooter className="flex-col gap-2 sm:flex-row">
         <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
@@ -220,7 +287,7 @@ function RoundGameScoreForm({
           shimmerColor="var(--live)"
           className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
-          Save Score
+          Save score
         </ShimmerButton>
       </DialogFooter>
     </>
@@ -297,7 +364,10 @@ function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewPr
                 row.won ? "text-success" : "text-muted-foreground"
               )}
             >
-              <NumberTicker value={row.score} startValue={reduceMotion ? row.score : 0} />
+              {/* No count-up here: this view CONFIRMS what was saved, and a
+                  mid-animation "7–7" under "Felix & Carla take it" read like
+                  the app saved the wrong score. The check pulse is the beat. */}
+              <NumberTicker value={row.score} />
             </span>
           </div>
         ))}
@@ -471,7 +541,9 @@ export function GameCard({
           <Badge variant={game.completed ? "secondary" : "outline"}>
             {game.completed ? "Final" : readOnly ? "Not played yet" : "Score"}
           </Badge>
-          {!game.completed && (
+          {/* Spectators can't tap — showing "Tap to enter" on their disabled
+              cards contradicted the spectator-mode banner one card above. */}
+          {!game.completed && !readOnly && (
             <span className="text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground sm:hidden">
               Tap to enter
             </span>
@@ -630,139 +702,5 @@ export function RoundGamesList({
   );
 }
 
-// Multi-game score entry (for formats like Double Header)
-interface MultiGameScoreEntryProps {
-  games: LocalRoundGame[];
-  open: boolean;
-  onClose: () => void;
-  onSave: (scores: Array<{ gameId: string; team1Score: number; team2Score: number }>) => void;
-}
-
-export function MultiGameScoreEntry({
-  games,
-  open,
-  onClose,
-  onSave,
-}: MultiGameScoreEntryProps) {
-  if (games.length === 0) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-[95vw] sm:max-w-lg">
-        <MultiGameScoreForm
-          key={games.map((game) => game.id).join("-")}
-          games={games}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-interface MultiGameScoreFormProps {
-  games: LocalRoundGame[];
-  onClose: () => void;
-  onSave: (scores: Array<{ gameId: string; team1Score: number; team2Score: number }>) => void;
-}
-
-function MultiGameScoreForm({
-  games,
-  onClose,
-  onSave,
-}: MultiGameScoreFormProps) {
-  const [scores, setScores] = useState<Array<{ team1: string; team2: string }>>(
-    () =>
-      games.map((game) => ({
-        team1: game.team1Score?.toString() ?? "",
-        team2: game.team2Score?.toString() ?? "",
-      }))
-  );
-
-  const handleSave = () => {
-    const validScores = scores.map((score, index) => ({
-      gameId: games[index].id,
-      team1Score: parseInt(score.team1) || 0,
-      team2Score: parseInt(score.team2) || 0,
-    }));
-
-    const allValid = validScores.every(
-      (score) => !isNaN(score.team1Score) && !isNaN(score.team2Score)
-    );
-
-    if (allValid) {
-      onSave(validScores);
-      onClose();
-    }
-  };
-
-  const firstGame = games[0];
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle className="font-display text-left">
-          Enter scores ({games.length} games)
-        </DialogTitle>
-        <p className="text-sm text-muted-foreground">
-          {firstGame.team1[0].name} & {firstGame.team1[1].name} vs{" "}
-          {firstGame.team2[0].name} & {firstGame.team2[1].name}
-        </p>
-      </DialogHeader>
-      <div className="flex flex-col gap-3 py-2">
-        {games.map((game, idx) => (
-          <div
-            key={game.id}
-            className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2 rounded-lg border border-border/70 bg-background/60 p-3 sm:gap-3"
-          >
-            <div className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
-              Game {idx + 1}
-            </div>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={scores[idx]?.team1 ?? ""}
-              onChange={(e) => {
-                const newScores = [...scores];
-                newScores[idx] = { ...newScores[idx], team1: e.target.value };
-                setScores(newScores);
-              }}
-              placeholder="0"
-              className="font-display h-12 text-center text-2xl font-semibold"
-            />
-            <span className="text-muted-foreground">-</span>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min="0"
-              value={scores[idx]?.team2 ?? ""}
-              onChange={(e) => {
-                const newScores = [...scores];
-                newScores[idx] = { ...newScores[idx], team2: e.target.value };
-                setScores(newScores);
-              }}
-              placeholder="0"
-              className="font-display h-12 text-center text-2xl font-semibold"
-            />
-          </div>
-        ))}
-      </div>
-      <DialogFooter className="flex-col gap-2 sm:flex-row">
-        <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-          Cancel
-        </Button>
-        <ShimmerButton
-          type="button"
-          onClick={handleSave}
-          borderRadius="0.5rem"
-          background="linear-gradient(135deg, var(--primary), var(--accent))"
-          shimmerColor="var(--live)"
-          className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground sm:w-auto"
-        >
-          Save All Scores
-        </ShimmerButton>
-      </DialogFooter>
-    </>
-  );
-}
+// MultiGameScoreEntry used to live here; it lost its last importer when the
+// unused barrel files were deleted and was removed with them.

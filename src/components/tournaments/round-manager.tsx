@@ -6,14 +6,7 @@ import { Armchair, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
@@ -27,13 +20,16 @@ function describeScoring(scoringType: ScoringType): string {
   switch (scoringType) {
     case "court_weighted":
       return "Scoring: higher courts are worth more — a win on Court 1 earns bonus points.";
-    case "points":
-      return "Scoring: ranked by how many points you win by.";
+    // "points" deliberately falls through to the default: sortStandings has
+    // no dedicated points branch — it ranks by wins like the default. Copy
+    // claiming margin-ranking here would be confidently wrong.
     case "games_won":
       return "Scoring: ranked by total games won.";
     case "win_percentage":
     default:
-      return "Scoring: ranked by the share of games you win.";
+      // Matches sortStandings: wins first, win RATE only breaks ties. Saying
+      // "share of games you win" here contradicted the standings footer.
+      return "Scoring: ranked by wins — win rate breaks ties.";
   }
 }
 import {
@@ -78,9 +74,11 @@ export function RoundManager({
   const [previewByePlayers, setPreviewByePlayers] = useState<LocalPlayer[]>([]);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showByePicker, setShowByePicker] = useState(false);
+  // The generator legitimately returns zero games once a format exhausts its
+  // matchups (e.g. Team League after every pairing has played). An empty-but-
+  // truthy preview used to hide every control with no way back.
+  const [emptyDrawNotice, setEmptyDrawNotice] = useState(false);
 
-  const formatDefinition = FORMAT_DEFINITIONS[settings.format];
-  const isRotating = isRotatingFormat(settings.format);
   const isFixedPartners =
     settings.partnerMode === "fixed" || isFixedPartnerFormat(settings.format);
 
@@ -121,6 +119,8 @@ export function RoundManager({
   const hasGamesInProgress = currentRoundGames.some((g) => !g.completed);
 
   const generatePreviewRound = () => {
+    setEmptyDrawNotice(false);
+
     if (isFixedPartners) {
       const result = generateFixedRound({
         teams: rosterTeams.teams,
@@ -128,6 +128,12 @@ export function RoundManager({
         currentRound: currentRound + 1,
         settings,
       });
+      if (result.games.length === 0) {
+        setPreviewGames(null);
+        setPreviewByePlayers([]);
+        setEmptyDrawNotice(true);
+        return;
+      }
       setPreviewGames(result.games);
       setPreviewByePlayers(result.byeTeams.flatMap((team) => team.players));
       return;
@@ -144,6 +150,12 @@ export function RoundManager({
 
     const result = generateRound(context);
 
+    if (result.games.length === 0) {
+      setPreviewGames(null);
+      setPreviewByePlayers([]);
+      setEmptyDrawNotice(true);
+      return;
+    }
     setPreviewGames(result.games);
     setPreviewByePlayers(result.byePlayers);
   };
@@ -237,32 +249,47 @@ export function RoundManager({
     !hasReachedRoundLimit &&
     (currentRound === 0 || currentRoundComplete || canAddBeforeComplete);
 
+  // The card leads with what the organizer should do NEXT. While games are
+  // unscored, the job is scoring (the big button used to push "Generate Round
+  // 2" even then, steering people to skip scores); once the round is fully
+  // scored, starting the next round becomes the one big action.
+  const roundTitle =
+    currentRound === 0
+      ? "Start your first round"
+      : currentRoundComplete
+      ? `Round ${currentRound} is in the books`
+      : `Round ${currentRound} in progress`;
+  const roundHint =
+    currentRound === 0
+      ? `${players.length} players ready — matchups are drawn for you.`
+      : currentRoundComplete
+      ? "All scores are in. Nice one."
+      : "Tap a court card below to enter scores.";
+  const showPrimaryGenerate =
+    currentRound === 0 || (currentRoundComplete && !hasReachedRoundLimit);
+  const showEarlyGenerate =
+    !showPrimaryGenerate &&
+    hasGamesInProgress &&
+    canAddBeforeComplete &&
+    !hasReachedRoundLimit;
+
   return (
     <div className="flex flex-col gap-4">
       <Card className="overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Round control</CardTitle>
-            <Badge variant={currentRoundComplete ? "default" : "secondary"}>
-              Round {currentRound || "Not Started"}
-            </Badge>
+            <CardTitle className="text-base">{roundTitle}</CardTitle>
+            {currentRound > 0 && (
+              <Badge variant={currentRoundComplete ? "default" : "secondary"}>
+                {currentRoundScoredCount}/{currentRoundGames.length} scored
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="rounded-lg border border-border/70 bg-background/55 p-3 text-sm text-muted-foreground">
-            {currentRound === 0 ? (
-              <p>Ready to generate first round with {players.length} players.</p>
-            ) : currentRoundComplete ? (
-              <p>Round {currentRound} complete. Ready for next round.</p>
-            ) : (
-              <p>
-                Round {currentRound} in progress: {currentRoundGames.filter((g) => g.completed).length}/
-                {currentRoundGames.length} games completed
-              </p>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground">{roundHint}</p>
 
-          {!previewGames && (
+          {!previewGames && showPrimaryGenerate && (
             <ShimmerButton
               type="button"
               onClick={handleGenerateRound}
@@ -273,14 +300,37 @@ export function RoundManager({
               className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isGenerating
-                ? "Generating..."
-                : hasReachedRoundLimit
-                ? `All ${settings.maxRounds} rounds generated`
-                : currentRound === 0
-                ? `Generate Round 1 (${formatDefinition.name})`
-                : `Generate Round ${currentRound + 1}`}
+                ? "Drawing matchups..."
+                : `Start Round ${currentRound + 1}`}
             </ShimmerButton>
           )}
+
+          {/* Ghost styling on purpose: this escape hatch must never look more
+              important than the real task (scoring the courts below). */}
+          {!previewGames && showEarlyGenerate && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleGenerateRound}
+              disabled={disabled || !canGenerateNextRound || isGenerating}
+              className="w-full text-muted-foreground"
+            >
+              {isGenerating
+                ? "Drawing matchups..."
+                : `Start Round ${currentRound + 1} without waiting`}
+            </Button>
+          )}
+
+          {!previewGames &&
+            !showPrimaryGenerate &&
+            !showEarlyGenerate &&
+            hasGamesInProgress &&
+            !hasReachedRoundLimit && (
+              <p className="text-sm font-medium text-muted-foreground">
+                Score all games to unlock Round {currentRound + 1}.
+              </p>
+            )}
 
           {!previewGames && currentRound >= 1 && onRemoveRound && (
             <Button
@@ -295,6 +345,13 @@ export function RoundManager({
               <Undo2 />
               Undo Round {currentRound} & redraw matchups
             </Button>
+          )}
+
+          {emptyDrawNotice && (
+            <p className="text-sm font-medium text-muted-foreground">
+              No new matchups left to draw — this format has played every
+              combination it can with the current roster.
+            </p>
           )}
 
           {players.length < 4 && (
@@ -317,16 +374,11 @@ export function RoundManager({
             </p>
           )}
 
-          {hasGamesInProgress && (
-            <p className="text-sm font-medium text-warning">
-              {canAddBeforeComplete
-                ? `Round ${currentRound} still has pending scores. You can still add another casual round.`
-                : `Complete all games in Round ${currentRound} before generating the next round.`}
-            </p>
-          )}
           {hasReachedRoundLimit && (
             <p className="text-sm font-medium text-muted-foreground">
-              Planned {settings.maxRounds} rounds are already generated.
+              {currentRoundComplete
+                ? `All ${settings.maxRounds} planned rounds are done.`
+                : `All ${settings.maxRounds} planned rounds are drawn — score the last games to wrap up.`}
             </p>
           )}
         </CardContent>
@@ -468,7 +520,7 @@ export function RoundManager({
                 shimmerColor="var(--live)"
                 className="h-11 flex-1 px-5 text-sm font-semibold text-primary-foreground"
               >
-                Confirm Round
+                Confirm Round {currentRound + 1}
               </ShimmerButton>
               <Button variant="outline" onClick={handleCancelPreview}>
                 Cancel
@@ -478,58 +530,58 @@ export function RoundManager({
         </Card>
       )}
 
-      <Dialog open={showUndoConfirm} onOpenChange={setShowUndoConfirm}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Undo Round {currentRound}?</DialogTitle>
-            <DialogDescription>
-              {currentRoundScoredCount > 0
-                ? `Round ${currentRound}'s matchups and its ${currentRoundScoredCount} entered ${
-                    currentRoundScoredCount === 1 ? "score" : "scores"
-                  } will be deleted. Earlier rounds keep their results.`
-                : `Round ${currentRound}'s matchups will be discarded. You can generate a fresh round right after.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowUndoConfirm(false)}
-              data-testid="undo-round-cancel"
-            >
-              Keep round
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmUndoRound}
-              data-testid="undo-round-confirm"
-            >
-              Undo round
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Card className="bg-card/70">
-        <CardContent className="pt-4">
-          <div className="mb-2 flex items-center gap-2">
-            <h4 className="font-display text-sm font-semibold">
-              {formatDefinition.name}
-            </h4>
-            <Badge variant="outline" className="text-xs">
-              {isRotating ? "Rotating Partners" : "Fixed Teams"}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground">{formatDefinition.description}</p>
-          <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
-            <span>{describeScoring(settings.scoringType)}</span>
-            <span>
-              {settings.numberOfCourts}{" "}
-              {settings.numberOfCourts === 1 ? "court" : "courts"}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      <ConfirmDialog
+        open={showUndoConfirm}
+        onOpenChange={setShowUndoConfirm}
+        title={`Undo Round ${currentRound}?`}
+        description={
+          currentRoundScoredCount > 0
+            ? `Round ${currentRound}'s matchups and its ${currentRoundScoredCount} entered ${
+                currentRoundScoredCount === 1 ? "score" : "scores"
+              } will be deleted. Earlier rounds keep their results.`
+            : `Round ${currentRound}'s matchups will be discarded. You can generate a fresh round right after.`
+        }
+        confirmLabel="Undo round"
+        cancelLabel="Keep round"
+        onConfirm={handleConfirmUndoRound}
+        confirmTestId="undo-round-confirm"
+        cancelTestId="undo-round-cancel"
+      />
     </div>
+  );
+}
+
+// Compact "how this session works" reference. Lives at the BOTTOM of the
+// Matches tab (see EnhancedSchedule) so it never competes with round control
+// or the live games for prime screen space.
+export function FormatSummaryCard({ settings }: { settings: EventSettings }) {
+  const formatDefinition =
+    FORMAT_DEFINITIONS[settings.format] ?? FORMAT_DEFINITIONS.popcorn;
+  const isRotating = isRotatingFormat(settings.format);
+
+  return (
+    <Card className="bg-card/70">
+      <CardContent className="pt-4">
+        <div className="mb-2 flex items-center gap-2">
+          <h4 className="font-display text-sm font-semibold">
+            {formatDefinition.name}
+          </h4>
+          <Badge variant="outline" className="text-xs">
+            {isRotating ? "Rotating partners" : "Set teams"}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {formatDefinition.description}
+        </p>
+        <div className="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
+          <span>{describeScoring(settings.scoringType)}</span>
+          <span>
+            {settings.numberOfCourts}{" "}
+            {settings.numberOfCourts === 1 ? "court" : "courts"}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

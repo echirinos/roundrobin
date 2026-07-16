@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import { RoundGameScoreEntry, RoundGamesList } from "@/src/components/scoring/round-game-score-entry";
-import { RoundManager } from "./round-manager";
+import { FormatSummaryCard, RoundManager } from "./round-manager";
 import { getDefaultCourtWeights } from "@/src/lib/formats/scoring";
 import { Eye } from "lucide-react";
 
@@ -147,19 +147,17 @@ export function EnhancedSchedule({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The hero above already carries live progress — one quiet line here
+          is enough. (This panel used to restate the same count three ways.) */}
       <div className="premium-panel flex flex-col justify-between gap-3 rounded-lg p-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-display text-xl font-semibold tracking-tight">
             Matches
           </h2>
           <p className="text-sm text-muted-foreground">
-            {completedGames} of {totalGames} games completed
-            {settings.numberOfCourts > 1 && ` • ${settings.numberOfCourts} courts`}
+            {completedGames} of {totalGames} games scored
+            {settings.numberOfCourts > 1 && ` on ${settings.numberOfCourts} courts`}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <span className="data-chip">{completedGames}/{totalGames} scored</span>
-          <span className="data-chip">{settings.numberOfCourts} courts</span>
         </div>
       </div>
 
@@ -206,17 +204,20 @@ export function EnhancedSchedule({
         />
       ))}
 
-      {/* No rounds yet */}
-      {rounds.length === 0 && (
+      {/* No rounds yet. Organizers already see the big "Start Round 1" button
+          right above, so only spectators need an explanation here. */}
+      {rounds.length === 0 && readOnly && (
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-sm text-muted-foreground">
-              No matches yet. Tap &ldquo;Generate Round 1&rdquo; in the Round
-              control card above to make the first round.
+              Waiting for the organizer to start the first round. Matchups will
+              show up here live.
             </p>
           </CardContent>
         </Card>
       )}
+
+      <FormatSummaryCard settings={settings} />
 
       {/* Score Entry Dialog */}
       <RoundGameScoreEntry
@@ -232,6 +233,8 @@ export function EnhancedSchedule({
             ? courtWeights[selectedGame.courtNumber]
             : undefined
         }
+        pointsToWin={settings.pointsToWin}
+        winBy={settings.winBy}
       />
     </div>
   );
