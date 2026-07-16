@@ -26,7 +26,7 @@ The app includes two analytics layers:
 Set these in Vercel Project Settings -> Environment Variables:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://playsync.app
+NEXT_PUBLIC_SITE_URL=https://playsync.fun
 NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS=1
 NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=phc_your_project_token
 NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
