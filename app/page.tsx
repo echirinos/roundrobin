@@ -23,7 +23,7 @@ import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.fun";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://playsync.fun").replace(/\/+$/, "");
 
 const softwareAppJsonLd = {
   "@context": "https://schema.org",

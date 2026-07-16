@@ -172,7 +172,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 const CANONICAL_SHARE_ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.fun";
+  (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://playsync.fun").replace(/\/+$/, "");
 
 function getShareUrl(origin: string, code: string | null): string {
   if (!origin || !code) return "";
