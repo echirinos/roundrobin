@@ -9,6 +9,7 @@ import {
   type EventFormat,
   type EventSettings,
   type FormatOptions,
+  type ScoringType,
   getGamesPerRoundRange,
   supportsCourtWeighting,
 } from "@/src/types/formats";
@@ -68,7 +69,7 @@ function NumericSettingInput({
   fallback,
   ariaLabel,
   disabled,
-  className,
+  className = "h-11 w-24",
   mode = "integer",
 }: NumericSettingInputProps) {
   const [draftValue, setDraftValue] = useState<string | null>(null);
@@ -133,6 +134,48 @@ function NumericSettingInput({
   );
 }
 
+// Shared field scaffold so every Advanced control reads the same way:
+// sentence-case label, optional muted hint, control, optional helper line.
+function SettingField({
+  label,
+  hint,
+  helper,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  helper?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-medium">
+        {label}
+        {hint && (
+          <span className="ml-1 font-normal text-muted-foreground">
+            ({hint})
+          </span>
+        )}
+      </label>
+      {children}
+      {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
+    </div>
+  );
+}
+
+// Native <select> styled to match the app's inputs — native pickers are the
+// friendliest control on phones, they just shouldn't look unstyled.
+const SELECT_CLASS =
+  "h-11 w-full rounded-lg border border-border/70 bg-background/60 px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+const SCORING_SUMMARY: Record<ScoringType, string> = {
+  win_percentage: "ranked by wins (win rate breaks ties)",
+  // sortStandings has no dedicated points branch — it ranks by wins.
+  points: "ranked by wins (win rate breaks ties)",
+  games_won: "ranked by games won",
+  court_weighted: "higher courts worth more points",
+};
+
 export function FormatSettingsForm({
   format,
   settings,
@@ -161,55 +204,26 @@ export function FormatSettingsForm({
     });
   };
 
-  // Calculate recommended number of courts
-  const recommendedCourts = Math.floor(playerCount / 4);
-  const maxCourts = Math.max(1, Math.floor(playerCount / 4));
   const uniquePartnerRoundLimit = Math.max(1, playerCount - 1);
   const roundRobinTargetRounds =
     settings.maxRounds ?? Math.min(7, uniquePartnerRoundLimit);
 
   return (
-    <div className="space-y-4">
-      {/* Basic Settings */}
+    <div className="flex flex-col gap-4">
+      {/* Basic settings. Court count is deliberately NOT here — the review
+          step's stepper right above this form owns it, and having it twice
+          meant the two controls could disagree on screen. */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Game Settings</CardTitle>
+          <CardTitle className="text-base">Game rules</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Number of Courts */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Courts in play
-              <span className="text-muted-foreground font-normal ml-1">
-                (max {maxCourts} for {playerCount} players)
-              </span>
-            </label>
-            <NumericSettingInput
-              ariaLabel="Courts in play"
-              min={1}
-              max={maxCourts}
-              fallback={1}
-              value={settings.numberOfCourts}
-              onValueChange={(value) => updateSetting("numberOfCourts", value)}
-              disabled={disabled}
-              className="w-24"
-            />
-            {settings.numberOfCourts !== recommendedCourts && recommendedCourts > 0 && (
-              <p className="text-xs text-amber-600">
-                Recommended: {recommendedCourts} courts for optimal player rotation
-              </p>
-            )}
-          </div>
-
-          {/* Games Per Round (if variable) */}
+        <CardContent className="flex flex-col gap-4">
+          {/* Games per round (if variable) */}
           {minGames !== maxGames && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Games Per Round
-                <span className="text-muted-foreground font-normal ml-1">
-                  ({minGames}-{maxGames})
-                </span>
-              </label>
+            <SettingField
+              label="Games per round"
+              hint={`${minGames}-${maxGames}`}
+            >
               <NumericSettingInput
                 ariaLabel="Games per round"
                 min={minGames}
@@ -218,19 +232,16 @@ export function FormatSettingsForm({
                 value={settings.gamesPerRound}
                 onValueChange={(value) => updateSetting("gamesPerRound", value)}
                 disabled={disabled}
-                className="w-24"
               />
-            </div>
+            </SettingField>
           )}
 
           {format === "round_robin" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Rounds to schedule
-                <span className="text-muted-foreground font-normal ml-1">
-                  (unique partners first)
-                </span>
-              </label>
+            <SettingField
+              label="Rounds to schedule"
+              hint="unique partners first"
+              helper={`With everyone playing each round, up to ${uniquePartnerRoundLimit} rounds can use a new partner before repeats.`}
+            >
               <NumericSettingInput
                 ariaLabel="Rounds to schedule"
                 min={1}
@@ -239,43 +250,33 @@ export function FormatSettingsForm({
                 value={roundRobinTargetRounds}
                 onValueChange={(value) => updateSetting("maxRounds", value)}
                 disabled={disabled}
-                className="w-24"
               />
-              <p className="text-xs text-muted-foreground">
-                With everyone playing each round, up to {uniquePartnerRoundLimit}{" "}
-                rounds can use a new partner before repeats.
-              </p>
-            </div>
+            </SettingField>
           )}
 
-          {/* Points to Win */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Points to Win</label>
+          <div className="grid grid-cols-2 gap-4">
+            <SettingField label="Points to win">
               <NumericSettingInput
-                ariaLabel="Points to Win"
+                ariaLabel="Points to win"
                 min={1}
                 max={21}
                 fallback={11}
                 value={settings.pointsToWin}
                 onValueChange={(value) => updateSetting("pointsToWin", value)}
                 disabled={disabled}
-                className="w-24"
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Win By</label>
+            </SettingField>
+            <SettingField label="Win by">
               <NumericSettingInput
-                ariaLabel="Win By"
+                ariaLabel="Win by"
                 min={1}
-                max={5}
+                max={Math.min(5, settings.pointsToWin)}
                 fallback={2}
                 value={settings.winBy}
                 onValueChange={(value) => updateSetting("winBy", value)}
                 disabled={disabled}
-                className="w-24"
               />
-            </div>
+            </SettingField>
           </div>
         </CardContent>
       </Card>
@@ -288,11 +289,11 @@ export function FormatSettingsForm({
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Court Optimizer</CardTitle>
+              <CardTitle className="text-base">Court optimizer</CardTitle>
               <Badge variant="outline" className="text-xs">Optional</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
@@ -310,7 +311,7 @@ export function FormatSettingsForm({
             </label>
 
             {settings.courtOptimizer.enabled && (
-              <div className="space-y-1 pl-6">
+              <div className="flex flex-col gap-1 pl-6">
                 <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
                   <input
                     type="checkbox"
@@ -348,18 +349,19 @@ export function FormatSettingsForm({
         </Card>
       )}
 
-      {/* Summary */}
+      {/* Summary — one readable sentence, no raw setting values. */}
       <Card className="bg-muted/50">
         <CardContent className="pt-4">
-          <h4 className="text-sm font-medium mb-2">Settings Summary</h4>
-          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-            <div>Format: {definition.name}</div>
-            <div>Courts: {settings.numberOfCourts}</div>
-            <div>Games/Round: {settings.gamesPerRound}</div>
-            <div>Play to {settings.pointsToWin}, win by {settings.winBy}</div>
-            <div>Scoring: {settings.scoringType.replace("_", " ")}</div>
-            <div>Partners: {settings.partnerMode}</div>
-          </div>
+          <h4 className="mb-1 text-sm font-medium">Your setup</h4>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {definition.name} on {settings.numberOfCourts}{" "}
+            {settings.numberOfCourts === 1 ? "court" : "courts"} with{" "}
+            {settings.partnerMode === "fixed"
+              ? "set teams"
+              : "rotating partners"}
+            . Games to {settings.pointsToWin}, win by {settings.winBy};{" "}
+            {SCORING_SUMMARY[settings.scoringType]}.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -377,27 +379,24 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Pool Play Settings</CardTitle>
+            <CardTitle className="text-base">Pool play options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Number of Pools</label>
+              <SettingField label="Number of pools">
                 <NumericSettingInput
-                  ariaLabel="Number of Pools"
+                  ariaLabel="Number of pools"
                   min={2}
                   max={8}
                   fallback={2}
                   value={settings.formatOptions.poolCount ?? 2}
                   onValueChange={(value) => updateFormatOption("poolCount", value)}
                   disabled={disabled}
-                  className="w-24"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Advance from Pool</label>
+              </SettingField>
+              <SettingField label="Advance from pool">
                 <NumericSettingInput
-                  ariaLabel="Advance from Pool"
+                  ariaLabel="Advance from pool"
                   min={1}
                   max={4}
                   fallback={2}
@@ -406,24 +405,23 @@ function renderFormatSpecificSettings(
                     updateFormatOption("advanceFromPool", value)
                   }
                   disabled={disabled}
-                  className="w-24"
                 />
-              </div>
+              </SettingField>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Playoff Format</label>
+            <SettingField label="Playoff format">
               <select
+                aria-label="Playoff format"
                 value={settings.formatOptions.playoffFormat ?? "single_elimination"}
                 onChange={(e) =>
                   updateFormatOption("playoffFormat", e.target.value as "single_elimination" | "double_elimination")
                 }
                 disabled={disabled}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                className={SELECT_CLASS}
               >
-                <option value="single_elimination">Single Elimination</option>
-                <option value="double_elimination">Double Elimination</option>
+                <option value="single_elimination">Single elimination</option>
+                <option value="double_elimination">Double elimination</option>
               </select>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
@@ -432,9 +430,9 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Bracket Settings</CardTitle>
+            <CardTitle className="text-base">Bracket options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
               <input
                 type="checkbox"
@@ -463,24 +461,24 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Mixed Madness Settings</CardTitle>
+            <CardTitle className="text-base">Mixed Madness options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Gender Balance Mode</label>
+          <CardContent className="flex flex-col gap-4">
+            <SettingField label="Gender balance">
               <select
+                aria-label="Gender balance"
                 value={settings.formatOptions.genderBalanceMode ?? "strict"}
                 onChange={(e) =>
                   updateFormatOption("genderBalanceMode", e.target.value as "strict" | "flexible" | "none")
                 }
                 disabled={disabled}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                className={SELECT_CLASS}
               >
                 <option value="strict">Strict (all teams must be mixed)</option>
                 <option value="flexible">Flexible (try to balance, allow same-gender if needed)</option>
                 <option value="none">None (no gender requirements)</option>
               </select>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
@@ -489,21 +487,21 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Scramble Settings</CardTitle>
+            <CardTitle className="text-base">Scramble options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Players Per Court Group</label>
+          <CardContent className="flex flex-col gap-4">
+            <SettingField label="Players per court group">
               <select
+                aria-label="Players per court group"
                 value={settings.formatOptions.playersPerGroup ?? 4}
                 onChange={(e) => updateFormatOption("playersPerGroup", parseInt(e.target.value))}
                 disabled={disabled}
-                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                className={SELECT_CLASS}
               >
                 <option value={4}>4 players (no rotation within group)</option>
                 <option value={5}>5 players (1 sits out per game)</option>
               </select>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
@@ -512,14 +510,16 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Cream of the Crop Settings</CardTitle>
+            <CardTitle className="text-base">Cream of the Crop options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Sorting Rounds</label>
+              <SettingField
+                label="Sorting rounds"
+                helper="Random rounds to sort players by skill"
+              >
                 <NumericSettingInput
-                  ariaLabel="Sorting Rounds"
+                  ariaLabel="Sorting rounds"
                   min={1}
                   max={5}
                   fallback={3}
@@ -528,16 +528,11 @@ function renderFormatSpecificSettings(
                     updateFormatOption("sortingRounds", value)
                   }
                   disabled={disabled}
-                  className="w-24"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Random rounds to sort players by skill
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Competition Rounds</label>
+              </SettingField>
+              <SettingField label="Competition rounds" helper="Rounds after players are assigned to courts">
                 <NumericSettingInput
-                  ariaLabel="Competition Rounds"
+                  ariaLabel="Competition rounds"
                   min={1}
                   max={10}
                   fallback={5}
@@ -546,12 +541,8 @@ function renderFormatSpecificSettings(
                     updateFormatOption("competitionRounds", value)
                   }
                   disabled={disabled}
-                  className="w-24"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Rounds after players are assigned to courts
-                </p>
-              </div>
+              </SettingField>
             </div>
           </CardContent>
         </Card>
@@ -561,13 +552,12 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Double Header Settings</CardTitle>
+            <CardTitle className="text-base">Double Header options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Games Per Partnership</label>
+          <CardContent className="flex flex-col gap-4">
+            <SettingField label="Games per partnership" helper="Number of games before partners rotate">
               <NumericSettingInput
-                ariaLabel="Games Per Partnership"
+                ariaLabel="Games per partnership"
                 min={2}
                 max={4}
                 fallback={2}
@@ -576,12 +566,8 @@ function renderFormatSpecificSettings(
                   updateFormatOption("gamesPerPartnership", value)
                 }
                 disabled={disabled}
-                className="w-24"
               />
-              <p className="text-xs text-muted-foreground">
-                Number of games before partners rotate
-              </p>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
@@ -592,14 +578,13 @@ function renderFormatSpecificSettings(
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">
-              {format === "king_of_court" ? "King of Court" : "Claim the Throne"} Settings
+              {format === "king_of_court" ? "King of the Court" : "Claim the Throne"} options
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">King Court Bonus</label>
+          <CardContent className="flex flex-col gap-4">
+            <SettingField label="King court bonus" helper="Point multiplier for wins on the king court">
               <NumericSettingInput
-                ariaLabel="King Court Bonus"
+                ariaLabel="King court bonus"
                 min={1}
                 max={3}
                 step={0.1}
@@ -610,12 +595,8 @@ function renderFormatSpecificSettings(
                   updateFormatOption("kingCourtBonus", value)
                 }
                 disabled={disabled}
-                className="w-24"
               />
-              <p className="text-xs text-muted-foreground">
-                Point multiplier for wins on the king court
-              </p>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
@@ -624,14 +605,13 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Up & Down the River Settings</CardTitle>
+            <CardTitle className="text-base">Up & Down the River options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Players Moving Up</label>
+              <SettingField label="Players moving up">
                 <NumericSettingInput
-                  ariaLabel="Players Moving Up"
+                  ariaLabel="Players moving up"
                   min={1}
                   max={2}
                   fallback={2}
@@ -640,13 +620,11 @@ function renderFormatSpecificSettings(
                     updateFormatOption("playersMovingUp", value)
                   }
                   disabled={disabled}
-                  className="w-24"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Players Moving Down</label>
+              </SettingField>
+              <SettingField label="Players moving down">
                 <NumericSettingInput
-                  ariaLabel="Players Moving Down"
+                  ariaLabel="Players moving down"
                   min={1}
                   max={2}
                   fallback={2}
@@ -655,9 +633,8 @@ function renderFormatSpecificSettings(
                     updateFormatOption("playersMovingDown", value)
                   }
                   disabled={disabled}
-                  className="w-24"
                 />
-              </div>
+              </SettingField>
             </div>
           </CardContent>
         </Card>
@@ -667,13 +644,12 @@ function renderFormatSpecificSettings(
       return (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">MiLP Settings</CardTitle>
+            <CardTitle className="text-base">Team League options</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Matches Per Opponent</label>
+          <CardContent className="flex flex-col gap-4">
+            <SettingField label="Matches per opponent" helper="How many times each team plays every other team">
               <NumericSettingInput
-                ariaLabel="Matches Per Opponent"
+                ariaLabel="Matches per opponent"
                 min={1}
                 max={3}
                 fallback={1}
@@ -682,12 +658,8 @@ function renderFormatSpecificSettings(
                   updateFormatOption("matchesPerOpponent", value)
                 }
                 disabled={disabled}
-                className="w-24"
               />
-              <p className="text-xs text-muted-foreground">
-                How many times each team plays every other team
-              </p>
-            </div>
+            </SettingField>
           </CardContent>
         </Card>
       );
