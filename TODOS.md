@@ -4,11 +4,11 @@
 
 ### Revision check on snapshot sync (stale-writer protection)
 
-**What:** Add a monotonic revision counter to the live-session snapshot; the PUT handler rejects writes whose revision isn't greater than the stored one (compare-and-set), and the client surfaces/reconciles the conflict instead of silently overwriting. Store check-ins in a separate Redis key from the organizer snapshot so a check-in write and a score write never touch the same blob.
+**What:** Add a monotonic revision counter to the live-session snapshot; the PUT handler rejects writes whose revision isn't greater than the stored one (compare-and-set), and the client surfaces/reconciles the conflict instead of silently overwriting.
 
-**Why:** Sync is last-writer-wins over full snapshots on a now-shared store. Two races exist: (1) a spectator check-in POST and an organizer score PUT that both read the same record can clobber each other; (2) two debounced organizer pushes can land out of order. Both are currently **transient and self-healing** — the organizer's localStorage is authoritative, and its 5-second poll + re-push restores the true state within ~5s — but a spectator can briefly see a reverted score, and a permanent loss is possible in the narrow window where the organizer closes the tab within ~5s of a race.
+**Why:** Sync is last-writer-wins over full snapshots on a shared store. The remaining race: two debounced organizer pushes (e.g. from two open organizer tabs) can land out of order. It is **transient and self-healing** — the organizer's localStorage is authoritative and the next state change re-pushes the full snapshot (700ms debounce) — but a spectator can briefly see a reverted score, and a permanent loss is possible if the last-writing tab closes before another change triggers a re-push. (The original check-in-vs-score race is gone: player check-in was removed in v0.4.7, and organizers don't poll — only spectators do.)
 
-**Context:** Confirmed by Codex adversarial review during the v0.4.1 ship. Until this lands, treat "one organizer tab at a time" as a soft constraint. Touch points: `src/lib/live-session-store.ts` (split check-ins from snapshot; CAS write), `app/api/sessions/[code]/route.ts` (409 on stale revision), push effect + poll in `app/tournament/page.tsx`.
+**Context:** Confirmed by Codex adversarial review during the v0.4.1 ship; rescoped 2026-07-16 after the check-in removal. Until this lands, treat "one organizer tab at a time" as a soft constraint. Touch points: `src/lib/live-session-store.ts` (CAS write), `app/api/sessions/[code]/route.ts` (409 on stale revision), debounced push effect in `app/tournament/page.tsx`.
 
 **Effort:** M
 **Priority:** P1

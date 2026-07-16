@@ -34,12 +34,12 @@ const faqs = [
   {
     question: "How are standings ranked?",
     answer:
-      "Wins first, then win rate, then head-to-head between tied players, then point margin. The standings screen spells out the exact order for your format at the bottom.",
+      "Most formats rank by wins first, then win rate, then head-to-head between tied players, then point margin — court-climbing formats count court points first. The standings screen spells out the exact order for your format at the bottom.",
   },
   {
     question: "The live page stopped updating.",
     answer:
-      "The organizer's phone pushes updates whenever it has signal; scores save on the phone even offline and sync automatically when the connection returns. If a spectator page looks stale, pull to refresh or reopen the link.",
+      "The organizer's phone pushes updates whenever it has signal; scores save on the phone even offline, and the next score entered (or Update now on the share screen) pushes everything once the connection returns. If a spectator page looks stale, pull to refresh or reopen the link.",
   },
 ];
 

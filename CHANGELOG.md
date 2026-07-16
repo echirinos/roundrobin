@@ -11,8 +11,9 @@ screen is now the thing you should actually do next.
 ### Changed
 - Sharing speaks one language. The header button is always **Share**; the
   sheet is "Share your session" with **Start sharing** / **Update now**, and
-  the status reads "Live · Updated 2:09 PM" or "Not shared yet". The words
-  "publish", "sync", and "go live" are gone from the app and the support page.
+  the status reads "Live · Updated 2:09 PM" or "Not shared yet". The old
+  "publish" / "sync" / "go live" mix is gone from the sharing buttons and the
+  support page's instructions.
   Spectators get their own sheet ("Session code — share it so others can
   follow too").
 - The hero stats tell the truth. The old "100% DONE" tile (which read like the
@@ -79,7 +80,7 @@ screen is now the thing you should actually do next.
   consistent now.
 
 ### Removed
-- ~900 lines of dead code: the pre-wizard format selector, two unused
+- ~600 lines of dead code: the pre-wizard format selector, two unused
   leaderboard variants, the unused multi-game score dialog, format-category
   helpers, and two unused barrel files.
 
