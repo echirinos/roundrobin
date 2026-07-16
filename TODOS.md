@@ -54,31 +54,45 @@
 
 ## UI Polish
 
+### Sit-out toggle for players who leave mid-session
+
+**What:** A per-player "sitting out" toggle in the roster editor. Benched players are excluded from new round generation but keep their games and standings. For set-teams formats, benching one player benches the team.
+
+**Why:** "Somebody went home early" is the most common mid-session event at open play, and today there is no path: players with saved scores can't be removed (standings need them), so the generator keeps drawing them into rounds they won't play. Found by the 2026-07-16 fresh-eyes QA pass.
+
+**Context:** Touch points: `LocalPlayer` gains an optional `sittingOut` flag (snapshot validator doesn't check player fields, so sync is safe), filter before `generateGamesForRound` in `app/tournament/page.tsx` and before preview generation in `round-manager.tsx`, toggle UI in `enhanced-player-setup.tsx`'s roster editor. Careful with the adjacent-pair roster invariant for fixed-team formats.
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
+### Re-expose Mixed Madness once the roster collects gender
+
+**What:** `mixed_madness` was removed from the wizard's format list (2026-07-16) because it promises gender-balanced teams while manual player entry never asks for gender (only DUPR imports carry it, and DUPR is config-gated off). The generator and settings survive; re-add the format to `ROTATING_MORE_FORMATS` when gender capture exists.
+
+**Effort:** S (re-adding) — the gender capture UI is the real work
+**Priority:** P3
+**Depends on:** Roster gender capture or DUPR enablement
+
 ### Unify the court-movement chip treatments
 
 **What:** One shared MovementBadge component instead of two visual treatments (GameCard's uppercase pill vs YouAreUpCard's sentence-case Badge) for the same up/down concept on the same screen.
 
 **Why:** Two adjacent renderings of the same state read as inconsistency; a shared component also keeps the movement semantics (`lower court = up`) in one place.
 
-**Context:** Design + maintainability findings from the v0.4.0 ship review. Also a candidate home for a `courtMovement(current, previous)` helper currently duplicated in `round-game-score-entry.tsx` and `you-are-up-card.tsx`.
-
-**Effort:** S
-**Priority:** P3
-**Depends on:** None
-
-### Extract a shared ConfirmDialog
-
-**What:** One ConfirmDialog component (title, description, cancel/confirm labels, destructive styling, testid prefix) used by both the reset and undo-round confirmations.
-
-**Why:** Two ~25-line near-identical dialog blocks shipped in v0.4.0; a third destructive action would make it three.
-
-**Context:** Maintainability finding from the v0.4.0 ship review (`app/tournament/page.tsx` reset dialog, `round-manager.tsx` undo dialog).
+**Context:** Design + maintainability findings from the v0.4.0 ship review. NOTE (2026-07-16): `you-are-up-card.tsx` no longer exists (removed with check-in in v0.4.7), so only GameCard's `TeamMovementChip` remains — this may now be moot; verify before working it.
 
 **Effort:** S
 **Priority:** P3
 **Depends on:** None
 
 ## Completed
+
+### Extract a shared ConfirmDialog
+
+**What:** One ConfirmDialog component (title, description, cancel/confirm labels, destructive styling, testids) used by both the reset and undo-round confirmations.
+
+**Completed:** v0.6.0 (2026-07-16). `components/ui/confirm-dialog.tsx`, used by `app/tournament/page.tsx` (reset) and `round-manager.tsx` (undo round).
 
 ### Organizer write-token for the sessions API
 

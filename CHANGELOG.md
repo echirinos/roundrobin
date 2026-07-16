@@ -3,6 +3,86 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.6.0] - 2026-07-16
+
+The app says one thing, one way, everywhere — and the biggest button on every
+screen is now the thing you should actually do next.
+
+### Changed
+- Sharing speaks one language. The header button is always **Share**; the
+  sheet is "Share your session" with **Start sharing** / **Update now**, and
+  the status reads "Live · Updated 2:09 PM" or "Not shared yet". The words
+  "publish", "sync", and "go live" are gone from the app and the support page.
+  Spectators get their own sheet ("Session code — share it so others can
+  follow too").
+- The hero stats tell the truth. The old "100% DONE" tile (which read like the
+  event was over after one round) is now a **Games scored** counter that ticks
+  up with every save, and the progress bar tracks the current round ("1/2
+  games this round") — identically in the hero and the share sheet, so they
+  can never disagree.
+- Round control matches your actual next step. While games are unscored:
+  "Round 2 in progress — tap a court card below to enter scores", with a quiet
+  "start early" link for casual formats. Once everything's in: "Round 2 is in
+  the books" and one big **Start Round 3**. Buttons say "Start", not
+  "Generate", and the format explainer moved to the bottom of Matches instead
+  of sitting above your live games.
+- The setup wizard is all wizard. No disabled tab bar, no Share button, and no
+  mutating labels until a session actually exists; the gate steps keep stable
+  buttons ("Next: pick a format", "Start Round 1") while the progress row
+  explains what's missing.
+- Advanced settings look like the rest of the app: the duplicate "Courts in
+  play" field is gone (the stepper above owns it), labels are sentence-case,
+  dropdowns are styled and screen-reader labeled, "Win by" can't exceed
+  "Points to win", and the summary is one readable sentence instead of raw
+  values like "Scoring: win percentage".
+- One standings list. Court-weighted sessions no longer stack a second
+  court-grouped leaderboard under the first — court badges live on each row.
+- Every ranking explanation now matches the actual math (wins first, win rate
+  breaks ties) — format cards, round control, review summary, standings
+  footer, and the support page all agree.
+- Format picker: ranking chips in plain words ("Ranked by wins", "Climb the
+  courts"), sharper descriptions, and Mixed Madness is no longer offered — it
+  promised gender-balanced teams the roster never collects. Old drafts
+  carrying it reopen as Popcorn.
+- Spectators are never told to do organizer things: read-only game cards drop
+  "Tap to enter", an unstarted session shows "Waiting for the organizer", and
+  the roster tab explains who can edit.
+
+### Added
+- **Swap** button in the score dialog — quick scores fill the top team as the
+  winner; one tap flips them when the bottom team won.
+- Unusual-score heads-up: a score that ends early (9-5), too close (11-10),
+  tied (10-10), or overshoots the rules (15-4 in an 11/2 game) gets a gentle
+  warning before saving. Nothing is ever blocked — early-ended and tied games
+  still count, as they always have.
+- Quick-score presets follow your session's rules (a game to 15, win by 2
+  offers 15-0/5/7/13, not hardcoded 11s) and hide when the rules leave no
+  valid preset.
+- When a format has played every possible matchup, the round card now says so
+  ("No new matchups left to draw") instead of freezing with no buttons.
+
+### Fixed
+- Final planned round no longer shows the contradiction "Score all games to
+  unlock Round 4" next to "All 3 planned rounds are done."
+- The score confirmation shows the real final score instantly — the count-up
+  animation used to display a wrong score (even a phantom tie) for its first
+  two seconds. Header stat tiles no longer count up from zero on reload
+  either.
+- Share links: setup docs pointed new deployments at a dead domain
+  (playsync.app) that made QR codes fail with "server can't be found" — all
+  references now use playsync.fun, and the live share flow was verified
+  end-to-end. A live shared session no longer claims "Not shared yet" before
+  its first update, and a stale sharing error can't strand you in the wizard
+  pointing at a hidden button.
+- Reset and undo confirmations, tournament/session wording, "6-character
+  code", and the standings tiebreak description on the support page are all
+  consistent now.
+
+### Removed
+- ~900 lines of dead code: the pre-wizard format selector, two unused
+  leaderboard variants, the unused multi-game score dialog, format-category
+  helpers, and two unused barrel files.
+
 ## [0.5.0] - 2026-07-05
 
 Late arrivals join set-partner sessions without breaking anything, and team
