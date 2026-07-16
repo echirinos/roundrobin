@@ -273,6 +273,16 @@ export function SessionShareSheet({
                   <SessionQrCode value={shareUrl} />
                 </motion.div>
 
+                {/* Scan-failure escape hatch: some phones can't open the QR
+                    (filtered DNS, old scans) — always show a typeable path. */}
+                <p className="text-center text-xs text-muted-foreground">
+                  QR not scanning? Go to{" "}
+                  <span className="font-medium text-foreground">
+                    playsync.fun
+                  </span>
+                  , tap Join, and enter the code above.
+                </p>
+
                 <div className="flex flex-col gap-2">
                   <Button
                     variant="outline"
