@@ -431,22 +431,6 @@ export const FORMAT_DEFINITIONS: Record<EventFormat, FormatDefinition> = {
 // HELPER FUNCTIONS
 // ============================================
 
-export function getFormatsByCategory(category: 'rotating' | 'fixed' | 'traditional'): FormatDefinition[] {
-  return Object.values(FORMAT_DEFINITIONS).filter(f => f.category === category);
-}
-
-export function getRotatingFormats(): FormatDefinition[] {
-  return getFormatsByCategory('rotating');
-}
-
-export function getFixedFormats(): FormatDefinition[] {
-  return getFormatsByCategory('fixed');
-}
-
-export function getTraditionalFormats(): FormatDefinition[] {
-  return getFormatsByCategory('traditional');
-}
-
 export function isRotatingFormat(format: EventFormat): boolean {
   return FORMAT_DEFINITIONS[format]?.partnerMode === 'rotating';
 }
@@ -563,27 +547,6 @@ function createDefaultFormatOptions(format: EventFormat): FormatOptions {
   }
 }
 
-// ============================================
-// FORMAT CATEGORIES FOR UI
-// ============================================
-
-export const FORMAT_CATEGORIES = [
-  {
-    id: 'rotating',
-    name: 'Rotating Partners',
-    description: 'Partners change each game for variety and social mixing',
-    formats: getRotatingFormats().map(f => f.id),
-  },
-  {
-    id: 'fixed',
-    name: 'Fixed Partners',
-    description: 'Teams stay together throughout the event',
-    formats: getFixedFormats().map(f => f.id),
-  },
-  {
-    id: 'traditional',
-    name: 'Traditional',
-    description: 'Classic tournament formats',
-    formats: getTraditionalFormats().map(f => f.id),
-  },
-] as const;
+// FORMAT_CATEGORIES and the category-getter helpers used to live here for the
+// old format-selector UI; both were deleted when the wizard's inline picker
+// replaced it and nothing else consumed them.
