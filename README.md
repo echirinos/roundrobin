@@ -57,9 +57,10 @@ npm run sim
 `scripts/sim-late-add.ts` via the pinned `tsx` dev dependency): Team Gauntlet
 seeding stays in lockstep with the standings tab, winners never rank below a
 team they just beat, back-to-back rematches don't happen, ladder-format byes
-rotate fairly, and late arrivals join set-partner sessions without touching
-already-played rounds. It exits non-zero on any failed assertion, so it is
-CI-ready as-is.
+rotate fairly, organizer-benched teams (Team Gauntlet manual byes) never leak
+into a draw and regain court priority the next round, and late arrivals join
+set-partner sessions without touching already-played rounds. It exits
+non-zero on any failed assertion, so it is CI-ready as-is.
 
 ## Project Docs
 
