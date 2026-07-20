@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Armchair, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
-import { cn } from "@/lib/utils";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings, ScoringType } from "@/src/types/formats";
 
@@ -40,6 +39,8 @@ import {
   createTeamsFromRoster,
   derivePartnerships,
   generateFixedRound,
+  getMaxManualByes,
+  type Team,
 } from "@/src/lib/formats/fixed-generators";
 import {
   FORMAT_DEFINITIONS,
@@ -54,8 +55,9 @@ interface RoundManagerProps {
   settings: EventSettings;
   currentRound: number;
   onGenerateRound: (games: LocalRoundGame[]) => void;
-  onShuffleRound?: (roundNumber: number) => void;
   onRemoveRound?: (roundNumber: number) => void;
+  /** Round 0 only: reopen the setup wizard before any round is confirmed. */
+  onBackToSetup?: () => void;
   disabled?: boolean;
 }
 
@@ -67,6 +69,7 @@ export function RoundManager({
   currentRound,
   onGenerateRound,
   onRemoveRound,
+  onBackToSetup,
   disabled = false,
 }: RoundManagerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -74,6 +77,13 @@ export function RoundManager({
   const [previewByePlayers, setPreviewByePlayers] = useState<LocalPlayer[]>([]);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showByePicker, setShowByePicker] = useState(false);
+  // Team Gauntlet: teams the organizer benched for the previewed round. The
+  // draw regenerates around them, so this lives outside previewGames.
+  const [manualByeTeamIds, setManualByeTeamIds] = useState<string[]>([]);
+  // Bye teams from the last fixed-format draw, benched-first. Lets the gauntlet
+  // preview tell the organizer's picks apart from byes the draw forced (odd
+  // team count / courts full).
+  const [previewByeTeams, setPreviewByeTeams] = useState<Team[]>([]);
   // The generator legitimately returns zero games once a format exhausts its
   // matchups (e.g. Team League after every pairing has played). An empty-but-
   // truthy preview used to hide every control with no way back.
@@ -81,6 +91,7 @@ export function RoundManager({
 
   const isFixedPartners =
     settings.partnerMode === "fixed" || isFixedPartnerFormat(settings.format);
+  const isGauntlet = settings.format === "team_gauntlet";
 
   // Roster-aware teams for fixed formats: a late arrival without a partner
   // waits on the bench instead of blocking round generation.
@@ -118,8 +129,28 @@ export function RoundManager({
   const currentRoundComplete = currentRoundGames.length > 0 && currentRoundGames.every((g) => g.completed);
   const hasGamesInProgress = currentRoundGames.some((g) => !g.completed);
 
-  const generatePreviewRound = () => {
+  // A double-tap on Confirm lands both clicks in the same tick, before React
+  // clears previewGames — the second commit would duplicate the round with
+  // IDENTICAL game ids (scoring one card then completes both copies). State
+  // can't guard this synchronously; a ref can.
+  const confirmedRef = useRef(false);
+
+  // Every way out of a preview clears the same state; one helper so no exit
+  // path can leave stale bench picks or picker UI behind.
+  const resetPreview = ({ emptyDraw = false } = {}) => {
+    setPreviewGames(null);
+    setPreviewByePlayers([]);
+    setPreviewByeTeams([]);
+    setShowByePicker(false);
+    setManualByeTeamIds([]);
+    setEmptyDrawNotice(emptyDraw);
+  };
+
+  // byeIds is passed explicitly (not read from state) so a bench toggle can
+  // regenerate in the same tick it updates the selection.
+  const generatePreviewRound = (byeIds: string[]) => {
     setEmptyDrawNotice(false);
+    confirmedRef.current = false;
 
     if (isFixedPartners) {
       const result = generateFixedRound({
@@ -127,15 +158,15 @@ export function RoundManager({
         existingGames: games,
         currentRound: currentRound + 1,
         settings,
+        manualByeTeamIds: isGauntlet ? byeIds : undefined,
       });
       if (result.games.length === 0) {
-        setPreviewGames(null);
-        setPreviewByePlayers([]);
-        setEmptyDrawNotice(true);
+        resetPreview({ emptyDraw: true });
         return;
       }
       setPreviewGames(result.games);
       setPreviewByePlayers(result.byeTeams.flatMap((team) => team.players));
+      setPreviewByeTeams(result.byeTeams);
       return;
     }
 
@@ -151,20 +182,21 @@ export function RoundManager({
     const result = generateRound(context);
 
     if (result.games.length === 0) {
-      setPreviewGames(null);
-      setPreviewByePlayers([]);
-      setEmptyDrawNotice(true);
+      resetPreview({ emptyDraw: true });
       return;
     }
     setPreviewGames(result.games);
     setPreviewByePlayers(result.byePlayers);
+    setPreviewByeTeams([]);
   };
 
   const handleGenerateRound = () => {
     setIsGenerating(true);
 
+    // Benching is a per-round call — every fresh preview starts automatic.
+    setManualByeTeamIds([]);
     try {
-      generatePreviewRound();
+      generatePreviewRound([]);
     } catch (error) {
       console.error("Failed to generate round:", error);
     }
@@ -173,18 +205,16 @@ export function RoundManager({
   };
 
   const handleConfirmRound = () => {
+    if (confirmedRef.current) return;
     if (previewGames && previewGames.length > 0) {
+      confirmedRef.current = true;
       onGenerateRound(previewGames);
-      setPreviewGames(null);
-      setPreviewByePlayers([]);
-      setShowByePicker(false);
+      resetPreview();
     }
   };
 
   const handleCancelPreview = () => {
-    setPreviewGames(null);
-    setPreviewByePlayers([]);
-    setShowByePicker(false);
+    resetPreview();
   };
 
   const handleShufflePreview = () => {
@@ -192,11 +222,75 @@ export function RoundManager({
 
     setShowByePicker(false);
     try {
-      generatePreviewRound();
+      generatePreviewRound(manualByeTeamIds);
     } catch (error) {
       console.error("Failed to shuffle round preview:", error);
     }
   };
+
+  // Shared with the generator so a pick the UI allows can never be a silent
+  // no-op in the draw.
+  const maxManualByes = getMaxManualByes(rosterTeams.teams.length);
+
+  // Gauntlet bye picker: toggle a team on/off the bench and redraw the round
+  // around the new selection immediately.
+  const toggleManualBye = (teamId: string) => {
+    const next = manualByeTeamIds.includes(teamId)
+      ? manualByeTeamIds.filter((id) => id !== teamId)
+      : [...manualByeTeamIds, teamId];
+    if (next.length > maxManualByes) return;
+
+    setManualByeTeamIds(next);
+    try {
+      generatePreviewRound(next);
+    } catch (error) {
+      console.error("Failed to redraw round with benched teams:", error);
+    }
+  };
+
+  const clearManualByes = () => {
+    setManualByeTeamIds([]);
+    try {
+      generatePreviewRound([]);
+    } catch (error) {
+      console.error("Failed to redraw round after clearing bench:", error);
+    }
+  };
+
+  // Team Gauntlet seeds from results: correcting a score below an open
+  // preview silently invalidates the draw on screen. Redraw (keeping the
+  // organizer's bench picks) whenever the games list changes under an open
+  // gauntlet preview. Other formats don't seed from records, so their
+  // previews stay put.
+  const lastGamesRef = useRef(games);
+  useEffect(() => {
+    const gamesChanged = lastGamesRef.current !== games;
+    lastGamesRef.current = games;
+    if (!gamesChanged || !isGauntlet || !previewGames) return;
+    try {
+      generatePreviewRound(manualByeTeamIds);
+    } catch (error) {
+      console.error("Failed to redraw preview after score change:", error);
+    }
+    // Intentionally games-only: the ref gate makes re-runs no-ops, and the
+    // other values are read from the same render that saw games change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [games]);
+
+  // Players on the bench because the ORGANIZER chose it — highlighted so
+  // they're distinguishable from byes the draw forced on its own.
+  const manualByePlayerIds = new Set(
+    rosterTeams.teams
+      .filter((t) => manualByeTeamIds.includes(t.id))
+      .flatMap((t) => t.players.map((p) => p.id))
+  );
+  // Draw-forced byes that appeared ON TOP of the organizer's picks (odd team
+  // count or courts full). Only worth explaining when both kinds coexist —
+  // auto-only byes are the familiar default.
+  const forcedExtraByeTeams =
+    isGauntlet && manualByeTeamIds.length > 0
+      ? previewByeTeams.filter((t) => !manualByeTeamIds.includes(t.id))
+      : [];
 
   // Manually hand the bye to a chosen team: it takes the bench and the team
   // currently sitting out steps into the court it vacated. A 1-for-1 swap, so
@@ -227,8 +321,7 @@ export function RoundManager({
     setShowUndoConfirm(false);
     // Defensive: the undo button only renders when no preview is open, but a
     // stale preview after removal would commit games seeded from a dead round.
-    setPreviewGames(null);
-    setPreviewByePlayers([]);
+    resetPreview();
     onRemoveRound?.(currentRound);
   };
 
@@ -249,6 +342,21 @@ export function RoundManager({
     !hasReachedRoundLimit &&
     (currentRound === 0 || currentRoundComplete || canAddBeforeComplete);
 
+  // Fresh-from-wizard sessions arrive here at round 0 with no games: draw the
+  // Round 1 preview immediately so the wizard's "Start Round 1" flows straight
+  // into the review card (bye picker included) without an extra tap. Runs at
+  // most once per mount; a canceled preview stays canceled.
+  const autoPreviewedRef = useRef(false);
+  useEffect(() => {
+    if (autoPreviewedRef.current || disabled) return;
+    if (currentRound !== 0 || games.length > 0 || previewGames) return;
+    if (!canGenerateNextRound) return;
+    autoPreviewedRef.current = true;
+    handleGenerateRound();
+    // handleGenerateRound isn't memoized; the guards above make re-runs no-ops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRound, games.length, disabled, canGenerateNextRound]);
+
   // The card leads with what the organizer should do NEXT. While games are
   // unscored, the job is scoring (the big button used to push "Generate Round
   // 2" even then, steering people to skip scores); once the round is fully
@@ -259,9 +367,18 @@ export function RoundManager({
       : currentRoundComplete
       ? `Round ${currentRound} is in the books`
       : `Round ${currentRound} in progress`;
+  // Whether the preview actually renders a "Choose who sits" control — the
+  // hint must never point at a control that isn't there.
+  const canChooseSitters = isGauntlet
+    ? maxManualByes > 0
+    : previewByePlayers.length >= 2;
   const roundHint =
     currentRound === 0
-      ? `${players.length} players ready — matchups are drawn for you.`
+      ? previewGames
+        ? canChooseSitters
+          ? "Check the matchups below — change who sits, then confirm."
+          : "Check the matchups below, then confirm to go live."
+        : `${players.length} players ready — matchups are drawn for you.`
       : currentRoundComplete
       ? "All scores are in. Nice one."
       : "Tap a court card below to enter scores.";
@@ -331,6 +448,24 @@ export function RoundManager({
                 Score all games to unlock Round {currentRound + 1}.
               </p>
             )}
+
+          {/* Round 0 = nothing committed yet, so going back to setup is
+              lossless. Without this, a wrong format spotted in the first
+              draw could only be fixed via destructive Reset. */}
+          {currentRound === 0 && onBackToSetup && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onBackToSetup}
+              disabled={disabled}
+              className="w-full text-muted-foreground"
+              data-testid="back-to-setup"
+            >
+              <Undo2 />
+              Back to setup — edit players or format
+            </Button>
+          )}
 
           {!previewGames && currentRound >= 1 && onRemoveRound && (
             <Button
@@ -445,18 +580,32 @@ export function RoundManager({
               </AnimatePresence>
             </div>
 
-            {previewByePlayers.length > 0 || waitingPlayers.length > 0 ? (
+            {previewByePlayers.length > 0 ||
+            waitingPlayers.length > 0 ||
+            (isGauntlet && maxManualByes > 0) ? (
               <div
                 className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/30 p-3"
                 data-testid="preview-byes"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="flex items-center gap-1.5 text-sm font-semibold">
-                    <Armchair className="size-4 text-muted-foreground" />
-                    Sitting out
-                  </span>
+                  {previewByePlayers.length > 0 || waitingPlayers.length > 0 ? (
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                      <Armchair className="size-4 text-muted-foreground" />
+                      Sitting out
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Everyone plays this round — no byes.
+                    </span>
+                  )}
                   {previewByePlayers.map((p) => (
-                    <Badge key={p.id} variant="secondary" className="max-w-full">
+                    <Badge
+                      key={p.id}
+                      variant={
+                        manualByePlayerIds.has(p.id) ? "default" : "secondary"
+                      }
+                      className="max-w-full"
+                    >
                       <span className="break-words">{p.name}</span>
                     </Badge>
                   ))}
@@ -465,20 +614,79 @@ export function RoundManager({
                       <span className="break-words">{p.name} — needs a partner</span>
                     </Badge>
                   ))}
-                  {previewByePlayers.length >= 2 && (
+                  {(isGauntlet
+                    ? maxManualByes > 0
+                    : previewByePlayers.length >= 2) && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="ml-auto h-8"
                       onClick={() => setShowByePicker((v) => !v)}
+                      data-testid="toggle-bye-picker"
                     >
-                      {showByePicker ? "Close" : "Change who sits"}
+                      {showByePicker ? "Close" : "Choose who sits"}
                     </Button>
                   )}
                 </div>
 
-                {showByePicker && (
+                {forcedExtraByeTeams.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {/* Always "sit": a team name reads as two people. */}
+                    {forcedExtraByeTeams.map((t) => t.name).join(" and ")} also
+                    sit this round —{" "}
+                    {rosterTeams.teams.length - manualByeTeamIds.length}{" "}
+                    teams can&apos;t all play on {settings.numberOfCourts}{" "}
+                    {settings.numberOfCourts === 1 ? "court" : "courts"}.
+                  </p>
+                )}
+
+                {showByePicker && isGauntlet && (
+                  <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                    <p className="text-xs text-muted-foreground">
+                      Bench up to{" "}
+                      {maxManualByes === 1 ? "one team" : "two teams"} for this
+                      round — the matchups redraw around them. Tap again to put
+                      a team back in.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {rosterTeams.teams.map((team) => {
+                        const benched = manualByeTeamIds.includes(team.id);
+                        const atCap =
+                          !benched &&
+                          manualByeTeamIds.length >= maxManualByes;
+                        return (
+                          <Button
+                            key={team.id}
+                            type="button"
+                            variant={benched ? "default" : "outline"}
+                            size="sm"
+                            disabled={atCap}
+                            aria-pressed={benched}
+                            className="h-auto max-w-full py-1.5 text-left"
+                            onClick={() => toggleManualBye(team.id)}
+                          >
+                            {benched && <Armchair className="size-3.5" />}
+                            <span className="break-words">{team.name}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    {manualByeTeamIds.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start text-muted-foreground"
+                        onClick={clearManualByes}
+                      >
+                        Clear — let the app decide
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {showByePicker && !isGauntlet && (
                   <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
                     <p className="text-xs text-muted-foreground">
                       Tap a team to give them the bye — the team sitting out now
@@ -579,99 +787,6 @@ export function FormatSummaryCard({ settings }: { settings: EventSettings }) {
             {settings.numberOfCourts}{" "}
             {settings.numberOfCourts === 1 ? "court" : "courts"}
           </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Summary component for completed rounds
-interface RoundSummaryProps {
-  games: LocalRoundGame[];
-  roundNumber: number;
-}
-
-export function RoundSummary({ games, roundNumber }: RoundSummaryProps) {
-  const roundGames = games.filter((g) => g.round === roundNumber);
-  const completedGames = roundGames.filter((g) => g.completed);
-
-  if (roundGames.length === 0) return null;
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Round {roundNumber}</CardTitle>
-          <Badge variant={completedGames.length === roundGames.length ? "default" : "secondary"}>
-            {completedGames.length}/{roundGames.length} Complete
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-2">
-          {roundGames.map((game) => (
-            <div
-              key={game.id}
-              className={cn(
-                "rounded-lg border p-2",
-                game.completed
-                  ? "border-border/60 bg-background/55"
-                  : "border-dashed border-border/80"
-              )}
-            >
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex-1">
-                  <span
-                    className={
-                      game.completed && (game.team1Score ?? 0) > (game.team2Score ?? 0)
-                        ? "font-medium text-success"
-                        : ""
-                    }
-                  >
-                    {game.team1[0].name} & {game.team1[1].name}
-                  </span>
-                </div>
-                {game.completed ? (
-                  <div className="font-data flex items-center gap-2">
-                    <span
-                      className={
-                        (game.team1Score ?? 0) > (game.team2Score ?? 0)
-                          ? "font-bold text-success"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {game.team1Score}
-                    </span>
-                    <span className="text-muted-foreground">-</span>
-                    <span
-                      className={
-                        (game.team2Score ?? 0) > (game.team1Score ?? 0)
-                          ? "font-bold text-success"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {game.team2Score}
-                    </span>
-                  </div>
-                ) : (
-                  <Badge variant="outline" className="text-xs">
-                    Pending
-                  </Badge>
-                )}
-                <div className="flex-1 text-right">
-                  <span
-                    className={
-                      game.completed && (game.team2Score ?? 0) > (game.team1Score ?? 0)
-                        ? "font-medium text-success"
-                        : ""
-                    }
-                  >
-                    {game.team2[0].name} & {game.team2[1].name}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </CardContent>
     </Card>
