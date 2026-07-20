@@ -39,11 +39,7 @@ import {
   type LiveSyncStatus,
 } from "@/src/components/tournaments/session-share-sheet";
 import { calculateStandingsForFormat, getDefaultCourtWeights } from "@/src/lib/formats/scoring";
-import { generateRound, type GeneratorContext } from "@/src/lib/formats/rotating-generators";
-import {
-  createTeamsFromRoster,
-  generateFixedRound,
-} from "@/src/lib/formats/fixed-generators";
+import { createTeamsFromRoster } from "@/src/lib/formats/fixed-generators";
 import {
   getSessionStats,
   normalizeSessionCode,
@@ -130,55 +126,8 @@ function stateFromSnapshot(snapshot: LiveTournamentSnapshot): TournamentState {
   };
 }
 
-function buildUsedPartnerships(games: LocalRoundGame[]): Set<string> {
-  const partnerships = new Set<string>();
-
-  for (const game of games) {
-    partnerships.add(game.team1.map((player) => player.id).sort().join("-"));
-    partnerships.add(game.team2.map((player) => player.id).sort().join("-"));
-  }
-
-  return partnerships;
-}
-
 function shouldUseFixedTeams(settings: EventSettings): boolean {
   return settings.partnerMode === "fixed" || isFixedPartnerFormat(settings.format);
-}
-
-function generateGamesForRound({
-  players,
-  games,
-  standings,
-  settings,
-  nextRound,
-}: {
-  players: LocalPlayer[];
-  games: LocalRoundGame[];
-  standings: LocalStanding[];
-  settings: EventSettings;
-  nextRound: number;
-}): LocalRoundGame[] {
-  if (shouldUseFixedTeams(settings)) {
-    return generateFixedRound({
-      // Roster-aware teams: a late arrival without a partner simply waits —
-      // an odd headcount must never block the next round mid-session.
-      teams: createTeamsFromRoster(players).teams,
-      existingGames: games,
-      currentRound: nextRound,
-      settings,
-    }).games;
-  }
-
-  const context: GeneratorContext = {
-    players,
-    existingGames: games,
-    standings,
-    currentRound: nextRound,
-    settings,
-    usedPartnerships: buildUsedPartnerships(games),
-  };
-
-  return generateRound(context).games;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -541,10 +490,23 @@ export default function TournamentPage() {
     (players: LocalPlayer[]) => {
       if (isSpectator) return;
 
-      setState((prev) => ({
-        ...prev,
-        players,
-      }));
+      setState((prev) => {
+        if (!prev.tournamentStarted) {
+          return { ...prev, players };
+        }
+        // Mid-session arrivals get stamped with the first round they can
+        // appear in, so bye rows can tell "sitting out" from "hadn't arrived
+        // yet". Players the session already knows keep their stamp.
+        const knownIds = new Set(prev.players.map((p) => p.id));
+        return {
+          ...prev,
+          players: players.map((p) =>
+            knownIds.has(p.id) || p.joinedRound !== undefined
+              ? p
+              : { ...p, joinedRound: prev.currentRound + 1 }
+          ),
+        };
+      });
     },
     [isSpectator]
   );
@@ -568,26 +530,20 @@ export default function TournamentPage() {
   const handleStartTournament = useCallback(() => {
     if (isSpectator) return;
 
-    try {
-      const games = generateGamesForRound({
-        players: state.players,
-        games: [],
-        standings: [],
-        settings: state.settings,
-        nextRound: 1,
-      });
-      setPreviousStandings([]);
-      setState((prev) => ({
-        ...prev,
-        games,
-        currentRound: 1,
-        tournamentStarted: true,
-      }));
-      setActiveTab("schedule");
-    } catch (error) {
-      console.error("Failed to generate first round:", error);
-    }
-  }, [isSpectator, state.players, state.settings]);
+    // Round 1 is no longer drawn here. The session opens at round 0 and
+    // RoundManager immediately draws the Round 1 preview, so the first round
+    // gets the same review card (bye picker included) as every later round.
+    setPreviousStandings([]);
+    setState((prev) => ({
+      ...prev,
+      // Everyone present at the start is a round-1 player — stamp it so bye
+      // rows can tell "sitting out round 1" from "hadn't arrived yet".
+      players: prev.players.map((p) => ({ ...p, joinedRound: 1 })),
+      currentRound: 0,
+      tournamentStarted: true,
+    }));
+    setActiveTab("schedule");
+  }, [isSpectator]);
 
   const handleUpdateGame = useCallback(
     (gameId: string, team1Score: number, team2Score: number) => {
@@ -613,11 +569,20 @@ export default function TournamentPage() {
 
       setPreviousStandings(standings);
 
-      setState((prev) => ({
-        ...prev,
-        games: [...prev.games, ...newGames],
-        currentRound: prev.currentRound + 1,
-      }));
+      setState((prev) => {
+        // Idempotency backstop: a double-fired confirm must not append the
+        // same preview twice — duplicate game ids make one scored card
+        // complete both copies, and the round counter runs ahead for good.
+        const existingIds = new Set(prev.games.map((g) => g.id));
+        const freshGames = newGames.filter((g) => !existingIds.has(g.id));
+        if (freshGames.length === 0) return prev;
+
+        return {
+          ...prev,
+          games: [...prev.games, ...freshGames],
+          currentRound: prev.currentRound + 1,
+        };
+      });
     },
     [isSpectator, standings]
   );
@@ -637,6 +602,14 @@ export default function TournamentPage() {
         return {
           ...prev,
           games: prev.games.filter((game) => game.round !== roundNumber),
+          // A player added during the undone round was stamped for the NEXT
+          // round; after the undo, the redrawn round IS that round. Clamp so
+          // their bye rows don't hide them from a round they're part of.
+          players: prev.players.map((p) =>
+            p.joinedRound !== undefined && p.joinedRound > roundNumber
+              ? { ...p, joinedRound: roundNumber }
+              : p
+          ),
           currentRound: roundNumber - 1,
           // Undoing Round 1 usually means a roster or format mistake —
           // reopen setup so those are editable again instead of stranding
@@ -662,6 +635,27 @@ export default function TournamentPage() {
     },
     [isSpectator]
   );
+
+  // Round 0 escape hatch: the first draw is under review and nothing is
+  // committed, so reopening setup is lossless. Without this, a wrong format
+  // spotted in the draw could only be fixed by destructive Reset.
+  const handleBackToSetup = useCallback(() => {
+    if (isSpectator) return;
+
+    setState((prev) => {
+      if (!prev.tournamentStarted || prev.currentRound !== 0) return prev;
+      return {
+        ...prev,
+        tournamentStarted: false,
+        // Same coercion as the undo-round-1 path: never reopen the wizard on
+        // a format it can't display.
+        settings: normalizeSettings(prev.settings, false),
+      };
+    });
+    setActiveTab("setup");
+    setSyncError(null);
+    setPreviousStandings([]);
+  }, [isSpectator]);
 
   const handleResetTournament = useCallback(() => {
     if (isSpectator) return;
@@ -747,7 +741,12 @@ export default function TournamentPage() {
     },
     {
       label: "Round",
-      value: state.currentRound || 0,
+      // Round 0 = started, first draw under review. The header badge says
+      // "Round 1 draw" but is hidden on mobile — this tile is the only round
+      // indicator at 390px, and "0" there reads as a bug.
+      value: state.tournamentStarted
+        ? Math.max(1, state.currentRound)
+        : state.currentRound || 0,
       icon: Trophy,
       tone: "text-accent",
     },
@@ -829,7 +828,10 @@ export default function TournamentPage() {
               </Badge>
             ) : state.tournamentStarted ? (
               <Badge variant="secondary" className="hidden sm:inline-flex">
-                Round {state.currentRound}
+                {/* Round 0 = started but the first draw is still under review. */}
+                {state.currentRound > 0
+                  ? `Round ${state.currentRound}`
+                  : "Round 1 draw"}
               </Badge>
             ) : (
               <Badge variant="secondary" className="hidden sm:inline-flex">
@@ -1106,6 +1108,7 @@ export default function TournamentPage() {
                   onUpdateGame={handleUpdateGame}
                   onAddRound={handleAddRound}
                   onRemoveRound={handleRemoveRound}
+                  onBackToSetup={handleBackToSetup}
                   readOnly={isSpectator}
                 />
               )}
