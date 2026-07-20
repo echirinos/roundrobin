@@ -6,6 +6,7 @@
 import {
   generateTeamGauntletRound,
   createTeamsFromPlayers,
+  getMaxManualByes,
   type Team,
 } from '../src/lib/formats/fixed-generators';
 import { calculateStandingsForFormat } from '../src/lib/formats/scoring';
@@ -267,16 +268,128 @@ runScenario({ name: 'D: 6 teams / 3 courts, TIE in R1 court 2', numTeams: 6, num
 runScenario({ name: 'E: 6 teams / 2 courts, R2 court 1 left INCOMPLETE', numTeams: 6, numberOfCourts: 2, rounds: 5, incomplete: { 2: 1 } });
 
 // ---------------------------------------------------------------
+// Scenario F: manual byes (organizer-benched teams).
+// Direct generator checks — the bench must never leak into a draw, benched
+// teams list first, the cap is shared with the UI via getMaxManualByes, and
+// a benched team's lagging gamesPlayed earns it court priority next round.
+// ---------------------------------------------------------------
+const manualByeFailures: string[] = [];
+
+function runManualByeChecks() {
+  console.log('='.repeat(78));
+  console.log('SCENARIO: F: manual byes (bench 1/2, caps, stale ids, next-round priority)');
+  console.log('='.repeat(78));
+
+  const check = (label: string, cond: boolean) => {
+    console.log(`  ${cond ? 'ok  ' : 'FAIL'} ${label}`);
+    if (!cond) manualByeFailures.push(label);
+  };
+  const makeTeams = (n: number): Team[] =>
+    createTeamsFromPlayers(makePlayers(n * 2) as any);
+  const settingsFor = (courts: number): any => ({
+    numberOfCourts: courts,
+    format: 'team_gauntlet',
+    formatOptions: {},
+  });
+  const teamIdsInGames = (games: LocalRoundGame[], teams: Team[]): Set<string> => {
+    const byFirstPlayer = new Map(teams.map((t) => [t.players[0].id, t.id]));
+    const ids = new Set<string>();
+    for (const g of games) {
+      for (const key of [g.team1[0].id, g.team2[0].id]) {
+        const teamId = byFirstPlayer.get(key);
+        if (teamId) ids.add(teamId);
+      }
+    }
+    return ids;
+  };
+
+  // Bench 1 of 6 on 3 courts: 5 candidates -> 2 games + 1 forced extra bye.
+  {
+    const teams = makeTeams(6);
+    const r = generateTeamGauntletRound({
+      teams, existingGames: [], currentRound: 1, settings: settingsFor(3),
+      manualByeTeamIds: [teams[2].id],
+    } as any);
+    const playing = teamIdsInGames(r.games as any, teams);
+    check('bench 1/6: benched team in no game', !playing.has(teams[2].id));
+    check('bench 1/6: 2 games drawn from 5 candidates', r.games.length === 2);
+    check('bench 1/6: benched team listed FIRST in byeTeams', r.byeTeams[0]?.id === teams[2].id);
+    check('bench 1/6: exactly 1 forced extra bye (odd candidates)', r.byeTeams.length === 2);
+  }
+
+  // Bench 2 of 6 on 3 courts: all 4 remaining play, no extra byes.
+  {
+    const teams = makeTeams(6);
+    const r = generateTeamGauntletRound({
+      teams, existingGames: [], currentRound: 1, settings: settingsFor(3),
+      manualByeTeamIds: [teams[0].id, teams[5].id],
+    } as any);
+    const playing = teamIdsInGames(r.games as any, teams);
+    check('bench 2/6: neither benched team plays', !playing.has(teams[0].id) && !playing.has(teams[5].id));
+    check('bench 2/6: 2 games, 2 byes, no extras', r.games.length === 2 && r.byeTeams.length === 2);
+  }
+
+  // Cap parity with the UI: over-cap ids beyond getMaxManualByes are dropped.
+  {
+    const teams = makeTeams(3);
+    check('cap: getMaxManualByes(3) === 1', getMaxManualByes(3) === 1);
+    check('cap: getMaxManualByes(2) === 0', getMaxManualByes(2) === 0);
+    const r = generateTeamGauntletRound({
+      teams, existingGames: [], currentRound: 1, settings: settingsFor(3),
+      manualByeTeamIds: [teams[0].id, teams[1].id], // over cap for 3 teams
+    } as any);
+    const playing = teamIdsInGames(r.games as any, teams);
+    check('cap: 3 teams benching 2 keeps a playable game', r.games.length === 1);
+    check('cap: first requested team honored, second dropped', !playing.has(teams[0].id) && playing.has(teams[1].id));
+  }
+
+  // Stale team id (removed mid-session) is ignored, real pick still honored.
+  {
+    const teams = makeTeams(6);
+    const r = generateTeamGauntletRound({
+      teams, existingGames: [], currentRound: 1, settings: settingsFor(3),
+      manualByeTeamIds: ['ghost-team-id', teams[3].id],
+    } as any);
+    const playing = teamIdsInGames(r.games as any, teams);
+    check('stale id: ignored without wedging the draw', r.games.length === 2);
+    check('stale id: real pick still benched', !playing.has(teams[3].id));
+  }
+
+  // Next round: the benched team's lagging gamesPlayed grants court priority.
+  {
+    const teams = makeTeams(5); // 5 teams / 2 courts: someone sits every round
+    const r1 = generateTeamGauntletRound({
+      teams, existingGames: [], currentRound: 1, settings: settingsFor(2),
+      manualByeTeamIds: [teams[0].id],
+    } as any);
+    const played: LocalRoundGame[] = (r1.games as any).map((g: any) => ({
+      ...g, team1Score: 11, team2Score: 5, completed: true,
+    }));
+    const r2 = generateTeamGauntletRound({
+      teams, existingGames: played as any, currentRound: 2, settings: settingsFor(2),
+    } as any);
+    const playing2 = teamIdsInGames(r2.games as any, teams);
+    check('next round: previously benched team plays', playing2.has(teams[0].id));
+    check('next round: bye goes to a team that already played', !r2.byeTeams.some((t: Team) => t.id === teams[0].id));
+  }
+
+  console.log('');
+}
+
+runManualByeChecks();
+
+// ---------------------------------------------------------------
 // Assertion summary — any failure is a regression.
 // ---------------------------------------------------------------
 const allFailures = [
   ...orderingFailures.map((f) => `ordering: ${f}`),
   ...rematchFailures.map((f) => `rematch: ${f}`),
   ...parityFailures.map((f) => `parity: ${f}`),
+  ...manualByeFailures.map((f) => `manual-bye: ${f}`),
 ];
 if (allFailures.length) {
   console.log(`\n${allFailures.length} ASSERTION FAILURE(S):`);
   allFailures.forEach((f) => console.log('  FAIL ' + f));
   process.exit(1);
 }
-console.log('\nAll gauntlet scenarios PASS (ordering, rematch-avoidance, standings parity)');
+console.log('\nAll gauntlet scenarios PASS (ordering, rematch-avoidance, standings parity, manual byes)');
