@@ -46,6 +46,11 @@ export interface FixedGeneratorContext {
   bracket?: BracketMatch[];
   currentRound: number;
   settings: EventSettings;
+  /**
+   * Teams the organizer benched for this round (Team Gauntlet). Capped at two;
+   * they sit out regardless of fairness order and the draw pairs around them.
+   */
+  manualByeTeamIds?: string[];
 }
 
 export interface GeneratedFixedRound {
@@ -359,6 +364,16 @@ export function generateShuffleRound(ctx: FixedGeneratorContext): GeneratedFixed
 // teams seeded by record, winners draw harder opponents
 // ============================================
 
+// Organizer bench cap: at most two teams, and never so many that fewer than
+// two teams remain to make a game. Single source of truth for the generator
+// and the RoundManager bye picker — if these drift, a pick the UI allows
+// becomes a silent no-op in the draw.
+export const MAX_MANUAL_BYE_TEAMS = 2;
+
+export function getMaxManualByes(teamCount: number): number {
+  return Math.max(0, Math.min(MAX_MANUAL_BYE_TEAMS, teamCount - 2));
+}
+
 interface TeamRecord {
   team: Team;
   gamesPlayed: number;
@@ -431,6 +446,18 @@ export function generateTeamGauntletRound(ctx: FixedGeneratorContext): Generated
   const numberOfCourts = settings.numberOfCourts;
   const records = calculateTeamRecords(teams, existingGames);
 
+  // Organizer-benched teams sit out before any fairness math. Extra ids are
+  // ignored, not errors, so a stale selection (e.g. a team removed
+  // mid-session) can't wedge the draw.
+  const maxManualByes = getMaxManualByes(teams.length);
+  const manualByeIds = new Set(
+    (ctx.manualByeTeamIds ?? [])
+      .filter(id => teams.some(t => t.id === id))
+      .slice(0, maxManualByes)
+  );
+  const forcedByeTeams = teams.filter(t => manualByeIds.has(t.id));
+  const candidates = teams.filter(t => !manualByeIds.has(t.id));
+
   // Mirror sortStandings (scoring.ts) exactly — wins, win %, head-to-head,
   // point differential, points for — so the standings tab always predicts
   // next round's seeding. Full ties keep stable roster order, like the tab.
@@ -459,15 +486,18 @@ export function generateTeamGauntletRound(ctx: FixedGeneratorContext): Generated
 
   // Teams with the fewest games get priority when courts are short (fair byes);
   // within a fairness tier, standings decide who plays — winners keep playing.
-  const byFairness = [...teams].sort((a, b) => {
+  // Only non-benched teams compete for court slots.
+  const byFairness = [...candidates].sort((a, b) => {
     const playedDelta =
       records.get(a.id)!.gamesPlayed - records.get(b.id)!.gamesPlayed;
     return playedDelta !== 0 ? playedDelta : bySeed(a, b);
   });
 
-  const capacity = Math.min(numberOfCourts, Math.floor(teams.length / 2)) * 2;
+  const capacity = Math.min(numberOfCourts, Math.floor(candidates.length / 2)) * 2;
   const playing = byFairness.slice(0, capacity);
-  const byeTeams = byFairness.slice(capacity);
+  // Benched teams first so the UI lists the organizer's picks before any
+  // court-capacity byes.
+  const byeTeams = [...forcedByeTeams, ...byFairness.slice(capacity)];
 
   // Sort from roster order — the same input order the standings tab sorts —
   // not from byFairness order. Head-to-head can be cyclic (A beat B beat C

@@ -31,9 +31,16 @@ export function getDuprEndpoints() {
   return DUPR_CONFIG.endpoints[DUPR_CONFIG.environment];
 }
 
+// Warn once per page load, not on every call — this runs inside render/poll
+// loops and the repeated warning drowns out real console errors.
+let warnedMissingClientKey = false;
+
 export function getEncodedClientId(): string {
   if (!DUPR_CONFIG.clientKey) {
-    console.warn('DUPR client key not configured');
+    if (!warnedMissingClientKey) {
+      warnedMissingClientKey = true;
+      console.warn('DUPR client key not configured');
+    }
     return '';
   }
   // Base64 encode the client ID for the login iframe URL

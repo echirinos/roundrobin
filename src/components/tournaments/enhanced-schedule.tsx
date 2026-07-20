@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings } from "@/src/types/formats";
 import { RoundGameScoreEntry, RoundGamesList } from "@/src/components/scoring/round-game-score-entry";
-import { RoundManager } from "./round-manager";
+import { FormatSummaryCard, RoundManager } from "./round-manager";
 import { getDefaultCourtWeights } from "@/src/lib/formats/scoring";
 import { Eye } from "lucide-react";
 
@@ -31,6 +31,8 @@ interface EnhancedScheduleProps {
   onUpdateGame: (gameId: string, team1Score: number, team2Score: number) => void;
   onAddRound: (newGames: LocalRoundGame[]) => void;
   onRemoveRound?: (roundNumber: number) => void;
+  /** Round 0 only: reopen the setup wizard before any round is confirmed. */
+  onBackToSetup?: () => void;
   readOnly?: boolean;
 }
 
@@ -43,6 +45,7 @@ export function EnhancedSchedule({
   onUpdateGame,
   onAddRound,
   onRemoveRound,
+  onBackToSetup,
   readOnly = false,
 }: EnhancedScheduleProps) {
   const [selectedGame, setSelectedGame] = useState<LocalRoundGame | null>(null);
@@ -119,9 +122,17 @@ export function EnhancedSchedule({
     return players.filter((p) => {
       if (playingIds.has(p.id)) return false;
       // Only count as "sitting out" once they've entered the session — a player
-      // who hasn't debuted by this round wasn't around to sit it out.
+      // who hasn't arrived by this round wasn't around to sit it out. The
+      // joinedRound stamp is authoritative (it's what makes round-1 byes
+      // visible); first-game debut covers legacy sessions without the stamp,
+      // and the earlier of the two wins so an undone round can't hide a player
+      // who demonstrably played it.
       const debut = debutRoundByPlayer.get(p.id);
-      return debut !== undefined && debut <= roundNumber;
+      const presentSince = Math.min(
+        p.joinedRound ?? Infinity,
+        debut ?? Infinity
+      );
+      return presentSince <= roundNumber;
     });
   };
 
@@ -147,19 +158,17 @@ export function EnhancedSchedule({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The hero above already carries live progress — one quiet line here
+          is enough. (This panel used to restate the same count three ways.) */}
       <div className="premium-panel flex flex-col justify-between gap-3 rounded-lg p-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-display text-xl font-semibold tracking-tight">
             Matches
           </h2>
           <p className="text-sm text-muted-foreground">
-            {completedGames} of {totalGames} games completed
-            {settings.numberOfCourts > 1 && ` • ${settings.numberOfCourts} courts`}
+            {completedGames} of {totalGames} games scored
+            {settings.numberOfCourts > 1 && ` on ${settings.numberOfCourts} courts`}
           </p>
-        </div>
-        <div className="flex gap-2">
-          <span className="data-chip">{completedGames}/{totalGames} scored</span>
-          <span className="data-chip">{settings.numberOfCourts} courts</span>
         </div>
       </div>
 
@@ -184,6 +193,7 @@ export function EnhancedSchedule({
           currentRound={currentRound}
           onGenerateRound={handleGenerateRound}
           onRemoveRound={onRemoveRound}
+          onBackToSetup={onBackToSetup}
         />
       )}
 
@@ -206,17 +216,20 @@ export function EnhancedSchedule({
         />
       ))}
 
-      {/* No rounds yet */}
-      {rounds.length === 0 && (
+      {/* No rounds yet. Organizers already see the big "Start Round 1" button
+          right above, so only spectators need an explanation here. */}
+      {rounds.length === 0 && readOnly && (
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-sm text-muted-foreground">
-              No matches yet. Tap &ldquo;Generate Round 1&rdquo; in the Round
-              control card above to make the first round.
+              Waiting for the organizer to start the first round. Matchups will
+              show up here live.
             </p>
           </CardContent>
         </Card>
       )}
+
+      <FormatSummaryCard settings={settings} />
 
       {/* Score Entry Dialog */}
       <RoundGameScoreEntry
@@ -232,6 +245,8 @@ export function EnhancedSchedule({
             ? courtWeights[selectedGame.courtNumber]
             : undefined
         }
+        pointsToWin={settings.pointsToWin}
+        winBy={settings.winBy}
       />
     </div>
   );

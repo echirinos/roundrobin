@@ -43,9 +43,8 @@ interface SessionShareSheetProps {
   onRefresh?: () => Promise<void> | void;
 }
 
-function formatSyncTime(value: string | null): string {
-  if (!value) return "Not synced yet";
-
+// Caller guards on lastSyncedAt before rendering, so no null branch.
+function formatSyncTime(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -129,13 +128,15 @@ export function SessionShareSheet({
     "share" in navigator &&
     Boolean(shareUrl);
 
+  // One vocabulary everywhere: "Share" is the action, "Live" is the state.
+  // (No "publish"/"sync" — three words for one concept was genuinely confusing.)
   const statusCopy = useMemo(() => {
     if (isReadOnly) return "Spectating";
     if (syncStatus === "live") return "Live";
-    if (syncStatus === "publishing") return "Publishing";
-    if (syncStatus === "syncing") return "Syncing";
-    if (syncStatus === "error") return "Not sharing — tap to retry";
-    return "Local only";
+    if (syncStatus === "publishing" || syncStatus === "syncing")
+      return "Sharing…";
+    if (syncStatus === "error") return "Not sharing — retry below";
+    return "Not shared yet";
   }, [isReadOnly, syncStatus]);
 
   const copyValue = async (kind: "code" | "link", value: string) => {
@@ -170,7 +171,7 @@ export function SessionShareSheet({
           data-analytics-state={code ? "published" : "local"}
         >
           <Share2 data-icon="inline-start" />
-          {isReadOnly ? "Session" : code ? "Share" : "Go live"}
+          Share
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -180,9 +181,15 @@ export function SessionShareSheet({
         <SheetHeader>
           <div className="flex items-start justify-between gap-3 pr-8">
             <div className="flex flex-col gap-1">
-              <SheetTitle>Live session</SheetTitle>
+              {/* Spectators don't own the session — for them this sheet is
+                  the code + a way to pass it on. */}
+              <SheetTitle>
+                {isReadOnly ? "Session code" : "Share your session"}
+              </SheetTitle>
               <SheetDescription>
-                Share the scoreboard, schedule, and current round status.
+                {isReadOnly
+                  ? "You're watching live — share the code so others can follow too."
+                  : "Anyone with the code or QR can watch live scores and matchups on their phone."}
               </SheetDescription>
             </div>
             <Badge variant={syncStatus === "error" ? "destructive" : "secondary"}>
@@ -195,7 +202,7 @@ export function SessionShareSheet({
           {syncError && (
             <Alert variant="destructive">
               <AlertTriangle />
-              <AlertTitle>Session sync failed</AlertTitle>
+              <AlertTitle>Sharing failed</AlertTitle>
               <AlertDescription>{syncError}</AlertDescription>
             </Alert>
           )}
@@ -208,15 +215,24 @@ export function SessionShareSheet({
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
+              {/* progressLabel/percent are derived once in getSessionStats so
+                  this sheet and the hero can never show different math. */}
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="text-muted-foreground">{stats.statusLabel}</span>
                 <span className="font-data font-semibold">
-                  {stats.completedGames}/{stats.totalGames || 0} games
+                  {stats.progressLabel}
                 </span>
               </div>
-              <Progress value={stats.completionPercent} />
+              <Progress value={stats.progressPercent} />
               <p className="text-xs text-muted-foreground">
-                Last synced: {formatSyncTime(lastSyncedAt)}
+                {/* A restored session can be live with no update timestamp
+                    yet (reload, bad signal). Only claim "not shared" when
+                    there's truly no code. */}
+                {lastSyncedAt
+                  ? `Updated ${formatSyncTime(lastSyncedAt)}`
+                  : code
+                  ? "Shared — waiting for the next update to sync."
+                  : "Not shared yet — spectators can't see this session."}
               </p>
             </CardContent>
           </Card>
@@ -224,10 +240,10 @@ export function SessionShareSheet({
           {!code && !isReadOnly ? (
             <Alert>
               <QrCode />
-              <AlertTitle>Publish a live session</AlertTitle>
+              <AlertTitle>Get a join code and QR</AlertTitle>
               <AlertDescription>
-                Create a short code and QR link for spectators to follow from
-                their phones.
+                Players scan the QR or type the 6-character code to follow along
+                from their phones.
               </AlertDescription>
             </Alert>
           ) : (
@@ -341,7 +357,7 @@ export function SessionShareSheet({
                   data-icon="inline-start"
                   className={isBusy ? "size-4 animate-spin" : "size-4"}
                 />
-                {code ? "Sync now" : "Publish session"}
+                {code ? "Update now" : "Start sharing"}
               </ShimmerButton>
             )}
             <p className="text-center text-xs text-muted-foreground">

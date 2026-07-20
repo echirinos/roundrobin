@@ -23,11 +23,18 @@ export interface LiveSessionRecord {
 export interface SessionStats {
   completedGames: number;
   totalGames: number;
-  completionPercent: number;
   currentRoundGames: number;
   currentRoundCompleted: number;
   totalPlayers: number;
   statusLabel: string;
+  /**
+   * While a started session has unscored games in its current round, these
+   * track THAT round (matching the "Round N live" statusLabel); otherwise
+   * they cover the whole session. Derived here once so the hero and the
+   * share sheet can never disagree.
+   */
+  progressPercent: number;
+  progressLabel: string;
 }
 
 const CODE_LENGTH = 6;
@@ -104,13 +111,25 @@ export function getSessionStats(snapshot: LiveTournamentSnapshot): SessionStats 
     statusLabel = `Round ${snapshot.currentRound} live`;
   }
 
+  const roundInProgress =
+    snapshot.tournamentStarted &&
+    currentRoundGames.length > 0 &&
+    currentRoundCompleted < currentRoundGames.length;
+  const progressPercent = roundInProgress
+    ? Math.round((currentRoundCompleted / currentRoundGames.length) * 100)
+    : completionPercent;
+  const progressLabel = roundInProgress
+    ? `${currentRoundCompleted}/${currentRoundGames.length} games this round`
+    : `${completedGames}/${totalGames} games`;
+
   return {
     completedGames,
     totalGames,
-    completionPercent,
     currentRoundGames: currentRoundGames.length,
     currentRoundCompleted,
     totalPlayers,
     statusLabel,
+    progressPercent,
+    progressLabel,
   };
 }

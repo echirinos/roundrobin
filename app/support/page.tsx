@@ -14,7 +14,7 @@ const faqs = [
   {
     question: "The link or QR says the session wasn't found.",
     answer:
-      "Live sessions delete themselves 24 hours after their last update, so yesterday's link is gone on purpose. Ask the organizer to publish a fresh link from tonight's session. If it happens during a session, the organizer can open the share screen and publish again — the code stays the same.",
+      "Live sessions delete themselves 24 hours after their last update, so yesterday's link is gone on purpose. Ask the organizer to share a fresh link from tonight's session. If it happens during a session, the organizer can open the share screen and tap Update now — the code stays the same.",
   },
   {
     question: "Do players need to install anything or sign up?",
@@ -29,17 +29,17 @@ const faqs = [
   {
     question: "Someone arrived late or has to leave — do we start over?",
     answer:
-      "Never. Late arrivals, sit-outs, and substitutions only change future rounds; every score already played stays exactly as it was. Look for the roster actions on the scoring screen.",
+      "Never. Roster changes only affect future rounds; every score already played stays exactly as it was. Organizers add late arrivals or fix names from the Players tab (Edit players).",
   },
   {
     question: "How are standings ranked?",
     answer:
-      "Wins first, then head-to-head between tied players, then point difference. Players who are tied on every tiebreaker share a rank — that's the T in T1.",
+      "Most formats rank by wins first, then win rate, then head-to-head between tied players, then point margin — court-climbing formats count court points first. The standings screen spells out the exact order for your format at the bottom.",
   },
   {
     question: "The live page stopped updating.",
     answer:
-      "The organizer's phone pushes updates whenever it has signal; scores save on the phone even offline and sync automatically when the connection returns. If a spectator page looks stale, pull to refresh or reopen the link.",
+      "The organizer's phone pushes updates whenever it has signal; scores save on the phone even offline, and the next score entered (or Update now on the share screen) pushes everything once the connection returns. If a spectator page looks stale, pull to refresh or reopen the link.",
   },
 ];
 
@@ -56,7 +56,7 @@ export default function SupportPage() {
         </h1>
         <p className="mt-3 leading-relaxed text-muted-foreground">
           Everything here assumes the courtside reality: one organizer with a
-          phone, everyone else just playing. If something below doesn't solve
+          phone, everyone else just playing. If something below doesn&apos;t solve
           it, email us — a real person reads it.
         </p>
 
@@ -73,7 +73,7 @@ export default function SupportPage() {
               — paste the group list, pick a format, start Round 1.
             </li>
             <li>
-              Open the share screen and publish — you get a short link and a QR
+              Open the share screen and tap Start sharing — you get a short link and a QR
               anyone can scan.
             </li>
             <li>

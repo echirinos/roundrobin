@@ -3,6 +3,122 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.7.0] - 2026-07-20
+
+You pick who sits. Team Gauntlet organizers can now bench teams by hand, and
+every session — including the very first round — gets reviewed before it goes
+live.
+
+### Added
+- **Choose who sits (Team Gauntlet).** The round preview now has a "Choose who
+  sits" picker: bench up to two teams and the matchups redraw around them
+  instantly. Your picks show as highlighted badges (auto-byes stay muted), a
+  plain-words note explains any extra forced bye ("Kai & Lia also sit this
+  round — 5 teams can't all play on 3 courts"), and "Clear — let the app
+  decide" restores the automatic draw. Benched teams get court priority the
+  next round, so nobody sits twice in a row.
+- **Round 1 gets a review too.** "Start Round 1" in the wizard now opens the
+  same preview card as every later round — check the matchups, change who
+  sits, then confirm to go live. A new "Back to setup" button during the
+  review lets you fix players or the format without losing anything.
+
+### Changed
+- Round cards now show who sat out Round 1 (byes used to be invisible on the
+  first round), and players who join mid-session no longer appear as "sitting
+  out" rounds that happened before they arrived.
+- Fixing a score while a Team Gauntlet preview is open redraws the preview to
+  match the corrected standings — and keeps your benched teams benched.
+- During the first-draw review the header reads "Round 1 draw" and the Round
+  stat tile shows 1 (no more "Round 0").
+
+### Fixed
+- Double-tapping "Confirm Round" could commit the round twice, duplicating
+  games and pushing the round counter ahead for good. One tap, one round, no
+  matter how fast you tap.
+- The console no longer fills with repeated "DUPR client key not configured"
+  warnings.
+
+## [0.6.0] - 2026-07-16
+
+The app says one thing, one way, everywhere — and the biggest button on every
+screen is now the thing you should actually do next.
+
+### Changed
+- Sharing speaks one language. The header button is always **Share**; the
+  sheet is "Share your session" with **Start sharing** / **Update now**, and
+  the status reads "Live · Updated 2:09 PM" or "Not shared yet". The old
+  "publish" / "sync" / "go live" mix is gone from the sharing buttons and the
+  support page's instructions.
+  Spectators get their own sheet ("Session code — share it so others can
+  follow too").
+- The hero stats tell the truth. The old "100% DONE" tile (which read like the
+  event was over after one round) is now a **Games scored** counter that ticks
+  up with every save, and the progress bar tracks the current round ("1/2
+  games this round") — identically in the hero and the share sheet, so they
+  can never disagree.
+- Round control matches your actual next step. While games are unscored:
+  "Round 2 in progress — tap a court card below to enter scores", with a quiet
+  "start early" link for casual formats. Once everything's in: "Round 2 is in
+  the books" and one big **Start Round 3**. Buttons say "Start", not
+  "Generate", and the format explainer moved to the bottom of Matches instead
+  of sitting above your live games.
+- The setup wizard is all wizard. No disabled tab bar, no Share button, and no
+  mutating labels until a session actually exists; the gate steps keep stable
+  buttons ("Next: pick a format", "Start Round 1") while the progress row
+  explains what's missing.
+- Advanced settings look like the rest of the app: the duplicate "Courts in
+  play" field is gone (the stepper above owns it), labels are sentence-case,
+  dropdowns are styled and screen-reader labeled, "Win by" can't exceed
+  "Points to win", and the summary is one readable sentence instead of raw
+  values like "Scoring: win percentage".
+- One standings list. Court-weighted sessions no longer stack a second
+  court-grouped leaderboard under the first — court badges live on each row.
+- Every ranking explanation now matches the actual math (wins first, win rate
+  breaks ties) — format cards, round control, review summary, standings
+  footer, and the support page all agree.
+- Format picker: ranking chips in plain words ("Ranked by wins", "Climb the
+  courts"), sharper descriptions, and Mixed Madness is no longer offered — it
+  promised gender-balanced teams the roster never collects. Old drafts
+  carrying it reopen as Popcorn.
+- Spectators are never told to do organizer things: read-only game cards drop
+  "Tap to enter", an unstarted session shows "Waiting for the organizer", and
+  the roster tab explains who can edit.
+
+### Added
+- **Swap** button in the score dialog — quick scores fill the top team as the
+  winner; one tap flips them when the bottom team won.
+- Unusual-score heads-up: a score that ends early (9-5), too close (11-10),
+  tied (10-10), or overshoots the rules (15-4 in an 11/2 game) gets a gentle
+  warning before saving. Nothing is ever blocked — early-ended and tied games
+  still count, as they always have.
+- Quick-score presets follow your session's rules (a game to 15, win by 2
+  offers 15-0/5/7/13, not hardcoded 11s) and hide when the rules leave no
+  valid preset.
+- When a format has played every possible matchup, the round card now says so
+  ("No new matchups left to draw") instead of freezing with no buttons.
+
+### Fixed
+- Final planned round no longer shows the contradiction "Score all games to
+  unlock Round 4" next to "All 3 planned rounds are done."
+- The score confirmation shows the real final score instantly — the count-up
+  animation used to display a wrong score (even a phantom tie) for its first
+  two seconds. Header stat tiles no longer count up from zero on reload
+  either.
+- Share links: setup docs pointed new deployments at a dead domain
+  (playsync.app) that made QR codes fail with "server can't be found" — all
+  references now use playsync.fun, and the live share flow was verified
+  end-to-end. A live shared session no longer claims "Not shared yet" before
+  its first update, and a stale sharing error can't strand you in the wizard
+  pointing at a hidden button.
+- Reset and undo confirmations, tournament/session wording, "6-character
+  code", and the standings tiebreak description on the support page are all
+  consistent now.
+
+### Removed
+- ~600 lines of dead code: the pre-wizard format selector, two unused
+  leaderboard variants, the unused multi-game score dialog, format-category
+  helpers, and two unused barrel files.
+
 ## [0.5.0] - 2026-07-05
 
 Late arrivals join set-partner sessions without breaking anything, and team

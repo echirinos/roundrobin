@@ -86,9 +86,12 @@ const ROTATING_PRIMARY_FORMATS: EventFormat[] = [
   "up_down_river",
   "round_robin",
 ];
+// mixed_madness is deliberately NOT exposed: it promises gender-balanced
+// teams, but the app never collects gender for manually-added players (only
+// DUPR imports carry it, and DUPR is config-gated off). Re-add when the
+// roster collects what the format needs.
 const ROTATING_MORE_FORMATS: EventFormat[] = [
   "scramble",
-  "mixed_madness",
   "double_header",
   "cream_crop",
   "claim_throne",
@@ -103,30 +106,32 @@ const WIZARD_STEPS: Array<{ step: WizardStep; title: string }> = [
 ];
 
 const PLAY_MODE_HELP_TEXT: Partial<Record<EventFormat, string>> = {
-  popcorn: "Best default for casual groups. Shuffle and play.",
+  popcorn: "Best default for casual groups. Random mix every round.",
   gauntlet: "More competitive. Winners get harder games.",
   king_of_court: "Winners move up. Losers move down.",
   up_down_river: "Top 2 move up, bottom 2 move down.",
   round_robin: "Everyone gets a fresh partner each round, so the group mixes.",
-  scramble: "Small groups stay on one court and rotate partners there.",
+  scramble: "Groups of 4-5 each own a court and rotate partners there.",
   mixed_madness: "Mixed doubles with balanced teams.",
   double_header: "Two games with the same partner.",
-  cream_crop: "Sort by skill, then compete.",
-  claim_throne: "Defend the top court.",
+  cream_crop: "Early rounds sort the courts by results — then compete where you land.",
+  claim_throne: "Win your way to the top court, then defend it.",
   shuffle: "Keep partners. Rotate opponents.",
   team_gauntlet: "Keep partners. Winning teams draw harder opponents.",
   bracket: "Win-and-advance tournament bracket.",
   milp: "Everyone plays everyone; matchups auto-rotate.",
 };
 
+// Chip on each format card saying how you're ranked, in plain words —
+// "Win %" and "Court ladder" assumed vocabulary a first-timer doesn't have.
 function getScoringLabel(format: EventFormat): string {
   const scoringType = FORMAT_DEFINITIONS[format].scoringType;
 
-  if (scoringType === "court_weighted") return "Court ladder";
-  if (scoringType === "games_won") return "Games won";
-  if (scoringType === "points") return "Points";
+  if (scoringType === "court_weighted") return "Climb the courts";
+  if (scoringType === "games_won") return "Ranked by games won";
+  if (scoringType === "points") return "Ranked by points";
 
-  return "Win %";
+  return "Ranked by wins";
 }
 
 function preserveCommonSettings(
@@ -762,11 +767,10 @@ export function EnhancedPlayerSetup({
     100,
     (players.length / STEP1_MIN_PLAYERS) * 100
   );
-  const step1CtaLabel = canLeaveStep1
-    ? "Next: pick a format"
-    : step1MissingCount > 0
-    ? `Add ${pluralize(step1MissingCount, "more player", "more players")}`
-    : "Finish the last team";
+  // The CTA keeps a stable "next step" label even while disabled — a disabled
+  // button reading "Add 4 more players" looked like the button that adds them.
+  // The progress row above it explains what's missing.
+  const step1CtaLabel = "Next: pick a format";
   const liveCourtLine = `${pluralize(players.length, "player")} → ${pluralize(
     selectedCourtCount,
     "court"
@@ -1718,8 +1722,8 @@ export function EnhancedPlayerSetup({
               Edit players
             </h2>
             <p className="text-sm text-muted-foreground">
-              Changes apply to upcoming rounds. Games already played keep their
-              scores.
+              Changes apply to upcoming rounds. Players marked &ldquo;In
+              play&rdquo; stay on the roster — standings need their games.
             </p>
           </div>
           <Button
@@ -1766,7 +1770,7 @@ export function EnhancedPlayerSetup({
               <p className="mt-1 text-sm text-muted-foreground">
                 {readOnly
                   ? "Open Matches to follow live scores and round status."
-                  : "Go to Matches to enter scores or add more rounds."}
+                  : "Scores and rounds live in the Matches tab."}
               </p>
               {canEditRoster && (
                 <Button
@@ -1791,9 +1795,13 @@ export function EnhancedPlayerSetup({
                 : `Players (${players.length})`}
             </CardTitle>
             <CardDescription>
-              {tournamentStarted
-                ? "The roster is locked while the session runs."
-                : "The organizer is still setting up this session."}
+              {/* Organizers CAN edit (button above) — saying "locked" next to
+                  an Edit button was a straight contradiction. */}
+              {!tournamentStarted
+                ? "The organizer is still setting up this session."
+                : canEditRoster
+                ? "Changes apply from the next round. Finished games keep their scores."
+                : "Only the organizer can change the roster."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -1923,7 +1931,9 @@ export function EnhancedPlayerSetup({
                 <div>
                   <div className="flex items-center justify-between gap-3 text-xs">
                     <span className="font-medium text-muted-foreground">
-                      You need at least {STEP1_MIN_PLAYERS} players
+                      {step1MissingCount > 0
+                        ? `You need at least ${STEP1_MIN_PLAYERS} players`
+                        : "Finish the last team to continue"}
                     </span>
                     <span className="font-data font-semibold">
                       {players.length}/{STEP1_MIN_PLAYERS}
@@ -1986,6 +1996,8 @@ export function EnhancedPlayerSetup({
                   {players.length}/{targetPlayerCount} players
                 </Badge>
               </div>
+              {/* Same stable-label rule as step 1: the status row above says
+                  what's missing; the disabled button keeps naming the goal. */}
               <Button
                 type="button"
                 size="lg"
@@ -1997,12 +2009,8 @@ export function EnhancedPlayerSetup({
                 data-analytics-format={settings.format}
                 data-analytics-mode={sessionMode}
               >
-                {canStart ? (
-                  <Play data-icon="inline-start" />
-                ) : (
-                  <UserPlus data-icon="inline-start" />
-                )}
-                {canStart ? "Generate first round" : setupStatus}
+                <Play data-icon="inline-start" />
+                Start Round 1
               </Button>
             </>
           )}
