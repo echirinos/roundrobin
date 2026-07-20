@@ -349,6 +349,11 @@ export interface LocalPlayer {
   // Set-partner formats: the id of this player's fixed partner. Present only
   // while the two are a paired team; absent for players still in the pool.
   partnerId?: string;
+  // First round this player could appear in: 1 for everyone present at start,
+  // currentRound+1 for mid-session arrivals. Lets bye rows tell "sitting out"
+  // from "hadn't arrived yet". Absent on legacy sessions — callers fall back
+  // to inferring presence from the first round the player has a game in.
+  joinedRound?: number;
   // DUPR integration fields
   duprId?: string;
   duprRating?: number;
