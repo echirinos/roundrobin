@@ -21,7 +21,7 @@ const newsreader = Newsreader({
   preload: false,
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://playsync.fun";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://playsync.fun").replace(/\/+$/, "");
 const enableVercelInsights =
   process.env.VERCEL === "1" ||
   process.env.NEXT_PUBLIC_ENABLE_VERCEL_ANALYTICS === "1";
