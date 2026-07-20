@@ -31,6 +31,8 @@ interface EnhancedScheduleProps {
   onUpdateGame: (gameId: string, team1Score: number, team2Score: number) => void;
   onAddRound: (newGames: LocalRoundGame[]) => void;
   onRemoveRound?: (roundNumber: number) => void;
+  /** Round 0 only: reopen the setup wizard before any round is confirmed. */
+  onBackToSetup?: () => void;
   readOnly?: boolean;
 }
 
@@ -43,6 +45,7 @@ export function EnhancedSchedule({
   onUpdateGame,
   onAddRound,
   onRemoveRound,
+  onBackToSetup,
   readOnly = false,
 }: EnhancedScheduleProps) {
   const [selectedGame, setSelectedGame] = useState<LocalRoundGame | null>(null);
@@ -119,9 +122,17 @@ export function EnhancedSchedule({
     return players.filter((p) => {
       if (playingIds.has(p.id)) return false;
       // Only count as "sitting out" once they've entered the session — a player
-      // who hasn't debuted by this round wasn't around to sit it out.
+      // who hasn't arrived by this round wasn't around to sit it out. The
+      // joinedRound stamp is authoritative (it's what makes round-1 byes
+      // visible); first-game debut covers legacy sessions without the stamp,
+      // and the earlier of the two wins so an undone round can't hide a player
+      // who demonstrably played it.
       const debut = debutRoundByPlayer.get(p.id);
-      return debut !== undefined && debut <= roundNumber;
+      const presentSince = Math.min(
+        p.joinedRound ?? Infinity,
+        debut ?? Infinity
+      );
+      return presentSince <= roundNumber;
     });
   };
 
@@ -182,6 +193,7 @@ export function EnhancedSchedule({
           currentRound={currentRound}
           onGenerateRound={handleGenerateRound}
           onRemoveRound={onRemoveRound}
+          onBackToSetup={onBackToSetup}
         />
       )}
 
