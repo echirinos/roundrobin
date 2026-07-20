@@ -3,6 +3,41 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.7.0] - 2026-07-20
+
+You pick who sits. Team Gauntlet organizers can now bench teams by hand, and
+every session — including the very first round — gets reviewed before it goes
+live.
+
+### Added
+- **Choose who sits (Team Gauntlet).** The round preview now has a "Choose who
+  sits" picker: bench up to two teams and the matchups redraw around them
+  instantly. Your picks show as highlighted badges (auto-byes stay muted), a
+  plain-words note explains any extra forced bye ("Kai & Lia also sit this
+  round — 5 teams can't all play on 3 courts"), and "Clear — let the app
+  decide" restores the automatic draw. Benched teams get court priority the
+  next round, so nobody sits twice in a row.
+- **Round 1 gets a review too.** "Start Round 1" in the wizard now opens the
+  same preview card as every later round — check the matchups, change who
+  sits, then confirm to go live. A new "Back to setup" button during the
+  review lets you fix players or the format without losing anything.
+
+### Changed
+- Round cards now show who sat out Round 1 (byes used to be invisible on the
+  first round), and players who join mid-session no longer appear as "sitting
+  out" rounds that happened before they arrived.
+- Fixing a score while a Team Gauntlet preview is open redraws the preview to
+  match the corrected standings — and keeps your benched teams benched.
+- During the first-draw review the header reads "Round 1 draw" and the Round
+  stat tile shows 1 (no more "Round 0").
+
+### Fixed
+- Double-tapping "Confirm Round" could commit the round twice, duplicating
+  games and pushing the round counter ahead for good. One tap, one round, no
+  matter how fast you tap.
+- The console no longer fills with repeated "DUPR client key not configured"
+  warnings.
+
 ## [0.6.0] - 2026-07-16
 
 The app says one thing, one way, everywhere — and the biggest button on every

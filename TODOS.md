@@ -54,6 +54,30 @@
 
 ## UI Polish
 
+### Round preview state doesn't survive tab switches
+
+**What:** Lift the round-preview state (`previewGames`, `manualByeTeamIds`, the round-0 auto-preview marker) out of `RoundManager` so it survives Matches ↔ Standings/Players tab hops, or `forceMount` the schedule tab content.
+
+**Why:** Radix `TabsContent` unmounts inactive tabs, so an organizer who benches a team, flips to Standings to decide, and returns gets a silently redrawn preview with their bench picks dropped — and a deliberately canceled round-0 preview auto-redraws on return. Recoverable in two taps but violates "the draw you confirm is the draw you reviewed." Top finding of the 2026-07-20 adversarial review (Claude + red-team agreement).
+
+**Context:** Touch points: `src/components/tournaments/round-manager.tsx` (state owner today), `src/components/tournaments/enhanced-schedule.tsx` or `app/tournament/page.tsx` (new state home), `components/ui/tabs.tsx` (forceMount alternative).
+
+**Effort:** M
+**Priority:** P1
+**Depends on:** None
+
+### Bracket format dead-ends after round 1
+
+**What:** Either hide `bracket` from the wizard (like `mixed_madness`), wire real bracket progression (`advanceWinner`) into the preview flow, or special-case the empty-draw copy for brackets.
+
+**Why:** The wizard offers Bracket, but `generateBracketRound` rebuilds a fresh bracket every call and winner advancement is never invoked, so Round 2 always draws zero games — and the empty-draw notice then claims "this format has played every combination it can," which is confidently wrong. Pre-existing; surfaced by the 2026-07-20 adversarial review.
+
+**Context:** Touch points: `src/lib/formats/fixed-generators.ts` (generateBracketRound/advanceWinner), `src/components/tournaments/enhanced-player-setup.tsx` (FIXED_FORMATS list), `src/components/tournaments/round-manager.tsx` (empty-draw copy).
+
+**Effort:** M
+**Priority:** P2
+**Depends on:** None
+
 ### Sit-out toggle for players who leave mid-session
 
 **What:** A per-player "sitting out" toggle in the roster editor. Benched players are excluded from new round generation but keep their games and standings. For set-teams formats, benching one player benches the team.
