@@ -23,18 +23,16 @@ export interface LiveSessionRecord {
 export interface SessionStats {
   completedGames: number;
   totalGames: number;
-  completionPercent: number;
   currentRoundGames: number;
   currentRoundCompleted: number;
   totalPlayers: number;
   statusLabel: string;
   /**
-   * True while a started session has unscored games in its current round.
-   * When true, progressPercent/progressLabel track THAT round (matching the
-   * "Round N live" statusLabel); otherwise they cover the whole session.
-   * Derived here once so the hero and the share sheet can never disagree.
+   * While a started session has unscored games in its current round, these
+   * track THAT round (matching the "Round N live" statusLabel); otherwise
+   * they cover the whole session. Derived here once so the hero and the
+   * share sheet can never disagree.
    */
-  roundInProgress: boolean;
   progressPercent: number;
   progressLabel: string;
 }
@@ -127,12 +125,10 @@ export function getSessionStats(snapshot: LiveTournamentSnapshot): SessionStats 
   return {
     completedGames,
     totalGames,
-    completionPercent,
     currentRoundGames: currentRoundGames.length,
     currentRoundCompleted,
     totalPlayers,
     statusLabel,
-    roundInProgress,
     progressPercent,
     progressLabel,
   };
