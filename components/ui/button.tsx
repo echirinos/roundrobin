@@ -16,12 +16,12 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-white shadow-[0_4px_0_var(--destructive-edge)] hover:bg-destructive/92 focus-visible:ring-destructive/25",
         outline:
-          "border-2 border-input bg-card text-(--sidebar-accent-foreground) shadow-[0_4px_0_var(--input)] hover:bg-secondary/50",
+          "border-2 border-input bg-card text-(--cta-outline-text) shadow-[0_4px_0_var(--input)] hover:bg-secondary/50",
         secondary:
           "bg-secondary text-secondary-foreground shadow-[0_4px_0_var(--input)] hover:bg-secondary/80",
         ghost:
           "shadow-none normal-case tracking-normal font-bold active:translate-y-0 hover:bg-secondary/70 hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline normal-case tracking-normal active:translate-y-0",
+        link: "text-success underline-offset-4 hover:underline normal-case tracking-normal active:translate-y-0",
       },
       size: {
         default: "h-11 px-5 py-2 has-[>svg]:px-4",

@@ -462,7 +462,7 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/55 p-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-success">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -501,7 +501,7 @@ function SummaryStepperRow({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/55 p-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-success">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
@@ -1208,7 +1208,7 @@ export function EnhancedPlayerSetup({
             })}
           </div>
           {pendingPartnerId ? (
-            <p className="text-xs font-medium text-primary" role="status">
+            <p className="text-xs font-medium text-success" role="status">
               Tap another player to partner them.
             </p>
           ) : (

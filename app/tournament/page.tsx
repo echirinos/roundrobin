@@ -737,7 +737,7 @@ export default function TournamentPage() {
       label: "Players",
       value: state.players.length,
       icon: Users,
-      tone: "text-primary",
+      tone: "text-success",
     },
     {
       label: "Round",
@@ -792,7 +792,7 @@ export default function TournamentPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="size-8 animate-spin text-primary" />
+          <RefreshCw className="size-8 animate-spin text-success" />
           <p className="text-sm text-muted-foreground">Loading session...</p>
         </div>
       </div>
@@ -881,7 +881,7 @@ export default function TournamentPage() {
           <motion.section
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, ease: [0.22, 1.2, 0.36, 1] }}
             className="premium-panel court-line-surface relative overflow-hidden rounded-lg p-4 sm:p-5"
           >
             <div className="relative z-10 mx-auto flex w-full max-w-md flex-col gap-4 py-4 sm:py-8">
@@ -919,7 +919,7 @@ export default function TournamentPage() {
           <motion.section
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, ease: [0.22, 1.2, 0.36, 1] }}
             className="premium-panel court-line-surface relative overflow-hidden rounded-lg p-4 sm:p-5"
           >
             {isLive && (

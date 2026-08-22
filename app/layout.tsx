@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Baloo_2, Newsreader, Nunito } from "next/font/google";
+import { Baloo_2, Nunito } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnalyticsProvider } from "@/components/analytics/analytics-provider";
@@ -19,15 +19,6 @@ const baloo = Baloo_2({
   subsets: ["latin"],
   variable: "--font-baloo",
   display: "swap",
-});
-
-// Newsreader is only rendered on the landing page (.font-serif-editorial), so
-// skip the route-wide preload; it still loads via CSS where it's used.
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-newsreader",
-  display: "swap",
-  preload: false,
 });
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://playsync.fun").replace(/\/+$/, "");
@@ -114,7 +105,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${nunito.variable} ${baloo.variable} ${newsreader.variable}`}
+      className={`${nunito.variable} ${baloo.variable}`}
     >
       <body className="antialiased">
         <ThemeProvider

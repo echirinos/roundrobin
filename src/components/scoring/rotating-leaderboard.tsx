@@ -99,7 +99,7 @@ export function RotatingLeaderboard({
                   : null;
               const podiumIconColor =
                 index === 0
-                  ? "text-primary"
+                  ? "text-success"
                   : index === 1
                   ? "text-live"
                   : "text-accent";
