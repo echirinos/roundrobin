@@ -592,9 +592,9 @@ function PlayModeChoiceGroup({
             value={formatId}
             aria-label={`Use ${definition.name}${isRecommended ? ", most popular" : ""}`}
             className={cn(
-              "h-auto min-h-[7.5rem] w-full flex-col items-start justify-start gap-2 whitespace-normal rounded-lg border border-border/70 bg-background/60 px-3 py-3 text-left transition-all hover:border-primary/45 hover:bg-background/85 data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:shadow-sm",
+              "h-auto min-h-[7.5rem] w-full flex-col items-start justify-start gap-2 whitespace-normal rounded-lg border border-border/70 bg-background/60 px-3 py-3 text-left transition-all hover:border-primary/45 hover:bg-background/85 data-[state=on]:border-success data-[state=on]:bg-primary/10 data-[state=on]:shadow-sm",
               isRecommended &&
-                "border-primary/60 bg-primary/5 shadow-[0_14px_35px_-28px_var(--primary)]",
+                "border-success/70 bg-primary/5 shadow-[0_14px_35px_-28px_var(--primary)]",
               isSelected && "ring-1 ring-primary/20"
             )}
           >
@@ -1140,7 +1140,7 @@ export function EnhancedPlayerSetup({
                   className={cn(
                     "flex items-center gap-1 rounded-full border py-1 pl-3 pr-1 transition-colors",
                     isPending
-                      ? "border-primary bg-primary/12"
+                      ? "border-success bg-primary/12"
                       : "border-border/70 bg-background/60"
                   )}
                 >

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
   // Playful-kit pills: fully rounded, loud small caps on soft tinted fills.
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-transparent px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.09em] transition-[color,box-shadow,background] [&>svg]:size-3 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-transparent px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.09em] transition-[color,box-shadow,background] [&>svg]:size-3 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
   {
     variants: {
       variant: {

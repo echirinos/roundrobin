@@ -748,7 +748,7 @@ export default function TournamentPage() {
         ? Math.max(1, state.currentRound)
         : state.currentRound || 0,
       icon: Trophy,
-      tone: "text-accent",
+      tone: "text-warning",
     },
     {
       // Cumulative count, not a percentage: "100% done" after round 1 read

@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils"
 const buttonVariants = cva(
   // Chunky playful-kit buttons: flat fill + 4px darker bottom edge, pressed
   // by translating down onto the edge (90ms). Uppercase 800 like the kit.
-  "inline-flex touch-target items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-extrabold uppercase tracking-[0.05em] transition-[transform,box-shadow,background-color,color] duration-100 active:translate-y-[4px] active:shadow-none disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-60 disabled:shadow-none [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
+  "inline-flex touch-target items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-extrabold uppercase tracking-[0.05em] transition-[translate,box-shadow,background-color,color] duration-100 active:translate-y-[4px] active:shadow-none disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-60 disabled:shadow-none [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
           "bg-primary text-primary-foreground shadow-[0_4px_0_var(--primary-edge)] hover:bg-primary/92",
         destructive:
-          "bg-destructive text-white shadow-[0_4px_0_var(--destructive-edge)] hover:bg-destructive/92 focus-visible:ring-destructive/25",
+          "bg-destructive text-white shadow-[0_4px_0_var(--destructive-edge)] hover:bg-[oklch(from_var(--destructive)_calc(l-0.04)_c_h)] focus-visible:ring-destructive/25",
         outline:
           "border-2 border-input bg-card text-(--cta-outline-text) shadow-[0_4px_0_var(--input)] hover:bg-secondary/50",
         secondary:
