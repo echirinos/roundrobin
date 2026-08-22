@@ -16,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShineBorder } from "@/components/ui/shine-border";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
 import { cn } from "@/lib/utils";
 import type { LocalRoundGame, LocalPlayer } from "@/src/types/database";
@@ -278,17 +277,14 @@ function RoundGameScoreForm({
         <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
           Cancel
         </Button>
-        <ShimmerButton
+        <Button
           type="button"
           onClick={handleSave}
           disabled={!score1 || !score2}
-          borderRadius="0.5rem"
-          background="linear-gradient(135deg, var(--primary), var(--accent))"
-          shimmerColor="var(--live)"
-          className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          className="w-full sm:w-auto"
         >
           Save score
-        </ShimmerButton>
+        </Button>
       </DialogFooter>
     </>
   );

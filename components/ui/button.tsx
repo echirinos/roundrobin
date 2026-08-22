@@ -5,30 +5,32 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex touch-target items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold tracking-[0.01em] shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-px disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
+  // Chunky playful-kit buttons: flat fill + 4px darker bottom edge, pressed
+  // by translating down onto the edge (90ms). Uppercase 800 like the kit.
+  "inline-flex touch-target items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-extrabold uppercase tracking-[0.05em] transition-[transform,box-shadow,background-color,color] duration-100 active:translate-y-[4px] active:shadow-none disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-60 disabled:shadow-none [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/45 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "border border-primary/40 bg-primary text-primary-foreground shadow-[0_10px_24px_-16px_var(--primary)] hover:bg-primary/95",
+          "bg-primary text-primary-foreground shadow-[0_4px_0_var(--primary-edge)] hover:bg-primary/92",
         destructive:
-          "border border-destructive/50 bg-destructive text-white shadow-[0_10px_24px_-16px_var(--destructive)] hover:bg-destructive/90 focus-visible:ring-destructive/25",
+          "bg-destructive text-white shadow-[0_4px_0_var(--destructive-edge)] hover:bg-destructive/92 focus-visible:ring-destructive/25",
         outline:
-          "border border-border/75 bg-background/70 text-foreground backdrop-blur hover:bg-secondary/70 hover:text-secondary-foreground",
+          "border-2 border-input bg-card text-(--sidebar-accent-foreground) shadow-[0_4px_0_var(--input)] hover:bg-secondary/50",
         secondary:
-          "border border-secondary/80 bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground shadow-[0_4px_0_var(--input)] hover:bg-secondary/80",
         ghost:
-          "shadow-none hover:bg-accent/75 hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "shadow-none normal-case tracking-normal font-bold active:translate-y-0 hover:bg-secondary/70 hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline normal-case tracking-normal active:translate-y-0",
       },
       size: {
-        default: "h-10 px-4 py-2 has-[>svg]:px-3",
+        default: "h-11 px-5 py-2 has-[>svg]:px-4",
         // Compact sizes keep desktop density; pointer-coarse restores the 44px touch target on phones
-        xs: "h-7 min-h-7 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
-        sm: "h-9 min-h-9 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
-        lg: "h-11 px-6 text-base has-[>svg]:px-4",
-        icon: "size-10",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        xs: "h-7 min-h-7 gap-1 rounded-lg px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        sm: "h-9 min-h-9 rounded-xl gap-1.5 px-3 has-[>svg]:px-2.5 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
+        lg: "h-13 min-h-13 px-6 text-[15px] has-[>svg]:px-4",
+        icon: "size-11",
+        "icon-xs": "size-6 rounded-lg [&_svg:not([class*='size-'])]:size-3 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
         "icon-sm": "size-9 pointer-coarse:min-h-11 pointer-coarse:min-w-11",
         "icon-lg": "size-11",
       },
