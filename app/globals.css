@@ -98,8 +98,8 @@
   --border: #e7e4d4;
   --input: #d9d5c0;
   --ring: #0e7ab5;
-  --live: #0d8579;
-  --live-foreground: #06211d;
+  --live: #0b6e63;
+  --live-foreground: #ffffff;
   --success: #35750a;
   --success-foreground: #fffdf2;
   /* AA-contrast green for small text on pale tints; also the selected-tab text color. */
