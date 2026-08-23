@@ -4,19 +4,6 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import {
-  IconArrowRight,
-  IconCheck,
-  IconLink,
-  IconPhone,
-  IconQr,
-  IconQuietChat,
-  IconRoster,
-  IconRotate,
-  IconScan,
-  IconSpark,
-  IconTrophy,
-} from "@/components/brand/icons";
 
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
@@ -46,88 +33,6 @@ const softwareAppJsonLd = {
     "Automatic next game and standings",
   ],
 };
-
-const composerChips = ["QR ready", "Live scores", "Next game posted"];
-
-const sessionRows = [
-  {
-    label: "Court 1",
-    primary: "Ana / Ben",
-    secondary: "Cara / Diego",
-    status: "Playing",
-    score: "8-6",
-  },
-  {
-    label: "Court 2",
-    primary: "Eli / Fran",
-    secondary: "Gia / Hugo",
-    status: "Next",
-    score: "0-0",
-  },
-  {
-    label: "Sitting",
-    primary: "Ivy",
-    secondary: "Back in round 3",
-    status: "Bye",
-    score: "-",
-  },
-];
-
-const proofPoints = [
-  "No sign-up required to start",
-  "QR scoreboard anyone can follow",
-  "Scores update the next game",
-  "Rotating or set-team sessions",
-];
-
-const laneEvents = [
-  "QR shared",
-  "Players watching",
-  "Score posted",
-  "Next game ready",
-];
-
-const productProof = [
-  {
-    kind: "setup" as const,
-    label: "Setup",
-    title: "Start in 30 seconds",
-    text: "Add players, set your courts, and share one live link before warmups end.",
-    metric: "0:30",
-  },
-  {
-    kind: "join" as const,
-    label: "Follow",
-    title: "Everyone follows live",
-    text: "Players scan the QR to watch live scores, standings, and who’s up next — no sign-up.",
-    metric: "QR",
-  },
-  {
-    kind: "score" as const,
-    label: "Score",
-    title: "The next game posts itself",
-    text: "One score tap updates standings, frees the court, and calls who is up next.",
-    metric: "9-6",
-  },
-];
-
-const surfaceProof = [
-  {
-    icon: IconScan,
-    label: "QR scoreboard",
-    value: "Everyone sees live scores",
-  },
-  {
-    icon: IconQuietChat,
-    label: "Fewer texts",
-    value: "One feed for the group",
-  },
-  {
-    icon: IconPhone,
-    label: "Phone browser",
-    value: "Big taps, no install",
-  },
-];
 
 // The hero scorebug is a working demo, not a picture: tap a team to score,
 // the game closes out at 11, and the ticker calls the next matchup — the
@@ -245,209 +150,6 @@ function ScoreDigits({ value }: { value: number }) {
   );
 }
 
-
-// The court is part of the broadcast frame, not a separate illustration:
-// a flat, honest top-down diagram (real pickleball proportions — kitchen,
-// service boxes, center line) whose ball answers the scorebug. Score a
-// point and the rally ends on the other side with an impact ring.
-function CourtDiagram({ pulse }: { pulse: { side: 0 | 1; count: number } }) {
-  const reduceMotion = useReducedMotion();
-  // Landing spots inside each service box (left court / right court).
-  const landing = pulse.side === 0 ? { x: 320, y: 74 } : { x: 120, y: 126 };
-
-  return (
-    <div className="bframe-court-wrap" aria-hidden="true">
-      <svg viewBox="0 0 440 200" fill="none" className="h-auto w-full">
-        {/* surface + boundary */}
-        <rect x="8" y="8" width="424" height="184" rx="10" className="bframe-surface" />
-        <rect x="28" y="24" width="384" height="152" rx="4" className="bframe-line-strong" />
-        {/* kitchen (non-volley zone) spans net ± 7ft of a 44ft court */}
-        <rect x="159" y="24" width="61" height="152" className="bframe-kitchen" />
-        <rect x="220" y="24" width="61" height="152" className="bframe-kitchen" />
-        <path d="M159 24V176M281 24V176" className="bframe-line" />
-        {/* center lines split the service courts */}
-        <path d="M28 100H159M281 100H420M412 24V176" className="bframe-line" />
-        {/* net */}
-        <path d="M220 16V184" className="bframe-net" />
-        {/* rally ball + impact ring, keyed to the scorebug */}
-        {!reduceMotion && (
-          <AnimatePresence>
-            <motion.circle
-              key={`ring-${pulse.count}`}
-              cx={landing.x}
-              cy={landing.y}
-              className="bframe-ring"
-              initial={{ r: 5, opacity: 0.55 }}
-              animate={{ r: 26, opacity: 0 }}
-              transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            />
-          </AnimatePresence>
-        )}
-        <motion.circle
-          r="7"
-          className="bframe-ball"
-          initial={false}
-          animate={reduceMotion ? { cx: 220, cy: 100 } : { cx: landing.x, cy: landing.y }}
-          transition={{ type: "spring", duration: 0.7, bounce: 0.18 }}
-        />
-      </svg>
-    </div>
-  );
-}
-
-function PlayableScorebug() {
-  const [matchIndex, setMatchIndex] = useState(0);
-  const [score, setScore] = useState<[number, number]>([6, 4]);
-  const [finalFlash, setFinalFlash] = useState(false);
-  const [pulse, setPulse] = useState<{ side: 0 | 1; count: number }>({ side: 0, count: 0 });
-  const tickRef = useRef(0);
-  const lastTouchRef = useRef(0);
-  const featured = useFeaturedSession();
-  const match = demoMatchups[matchIndex % demoMatchups.length];
-  const isReal = featured !== null;
-  const displayCourt = isReal ? featured.court : match.court;
-  const displayTeams = isReal ? featured.teams : match.teams;
-  const displayScore: [number, number] = isReal ? featured.score : score;
-
-  const addPoint = useCallback((side: 0 | 1, fromUser: boolean) => {
-    if (fromUser) lastTouchRef.current = Date.now();
-    setPulse((current) => ({ side, count: current.count + 1 }));
-    setFinalFlash((flashing) => {
-      if (flashing) return flashing;
-      setScore((current) => {
-        const next: [number, number] =
-          side === 0 ? [current[0] + 1, current[1]] : [current[0], current[1] + 1];
-        if (Math.max(next[0], next[1]) >= 11) {
-          setFinalFlash(true);
-          window.setTimeout(() => {
-            setMatchIndex((index) => index + 1);
-            setScore([0, 0]);
-            setFinalFlash(false);
-          }, 1400);
-        }
-        return next;
-      });
-      return flashing;
-    });
-  }, []);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      if (Date.now() - lastTouchRef.current < 9000) return;
-      const side = demoPointPattern[tickRef.current++ % demoPointPattern.length] as 0 | 1;
-      addPoint(side, false);
-    }, 4200);
-    return () => window.clearInterval(interval);
-  }, [addPoint]);
-
-  const leadingSide =
-    displayScore[0] === displayScore[1] ? -1 : displayScore[0] > displayScore[1] ? 0 : 1;
-
-  return (
-    <div className="relative z-10 w-full">
-      <div className="scorebug-shell overflow-hidden rounded-2xl border border-background/20 bg-foreground shadow-lg">
-        <div className="flex items-center justify-between border-b border-background/15 px-4 py-2">
-          <span className="truncate font-data text-[11px] uppercase tracking-[0.18em] text-background/90">
-            {isReal ? `${displayCourt} · ${featured.sessionName}` : displayCourt}
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-data text-[11px] uppercase tracking-[0.18em] text-(--scorebug-accent)">
-            <span className="size-1.5 rounded-full bg-(--scorebug-accent)" aria-hidden="true" />
-            Live
-          </span>
-        </div>
-
-        <div className="grid grid-cols-[1fr_auto_auto]">
-          <div className="flex flex-col">
-            {displayTeams.map((team, side) => (
-              <motion.button
-                key={team}
-                type="button"
-                whileTap={{ scale: 0.97 }}
-                onClick={() =>
-                  isReal
-                    ? window.location.assign(`/tournament?code=${featured.code}`)
-                    : addPoint(side as 0 | 1, true)
-                }
-                aria-label={
-                  isReal
-                    ? `Watch ${featured.sessionName} live`
-                    : `Add a point for ${team} (demo scoreboard)`
-                }
-                className={cn(
-                  "flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
-                  side === 0 ? "border-b border-background/15" : "",
-                  leadingSide === side ? "bg-background/10" : "hover:bg-background/5",
-                )}
-              >
-                <span className="text-sm font-semibold uppercase tracking-wide text-background">
-                  {team}
-                </span>
-                <span
-                  className={cn(
-                    "font-data text-4xl font-bold leading-none sm:text-5xl",
-                    leadingSide === side ? "text-(--scorebug-accent)" : "text-background/80",
-                  )}
-                >
-                  <ScoreDigits value={displayScore[side]} />
-                </span>
-              </motion.button>
-            ))}
-          </div>
-          <div aria-hidden="true" />
-          <div className="flex w-20 flex-col items-center justify-center border-l border-background/15 px-3 text-center">
-            {finalFlash ? (
-              <span className="font-data text-sm font-bold uppercase tracking-[0.14em] text-(--scorebug-accent)">
-                Final
-              </span>
-            ) : (
-              <span className="font-data text-[11px] font-semibold uppercase leading-4 tracking-[0.14em] text-background/70">
-                Game
-                <br />
-                to
-                <br />
-                <span className="text-lg text-background">11</span>
-              </span>
-            )}
-          </div>
-        </div>
-
-        <CourtDiagram pulse={pulse} />
-
-        <div className="h-9 overflow-hidden border-t border-background/15">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={matchIndex}
-            initial={{ transform: "translateY(100%)" }}
-            animate={{ transform: "translateY(0%)" }}
-            exit={{ transform: "translateY(-100%)" }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="flex h-full items-center gap-2 bg-live px-4 font-data text-[11px] font-semibold uppercase tracking-[0.14em] text-live-foreground"
-          >
-            <span aria-hidden="true">▸</span>
-            {isReal ? (
-              <>
-                <span className="truncate">Live now — tap to watch</span>
-                <span className="ml-auto shrink-0">{featured.code}</span>
-              </>
-            ) : (
-              <>
-                <span className="truncate">Next · {match.next}</span>
-                <span className="ml-auto shrink-0">{match.nextCourt}</span>
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
-        </div>
-      </div>
-
-      <p className="mt-2 text-center text-xs text-muted-foreground">
-        {isReal ? "A real session, live right now — tap to watch." : "Live demo — tap a team to score."}
-      </p>
-    </div>
-  );
-}
-
 function Reveal({
   children,
   className,
@@ -468,7 +170,7 @@ function Reveal({
       initial={reduceMotion ? false : { opacity: 0, transform: "translateY(14px)" }}
       whileInView={reduceMotion ? undefined : { opacity: 1, transform: "translateY(0px)" }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay }}
       className={className}
     >
       {children}
@@ -476,332 +178,382 @@ function Reveal({
   );
 }
 
-function MotionRail() {
-  const reduceMotion = useReducedMotion();
+/* ------------------------------------------------------------------ */
+/* Flat illustrations. One shared grammar: thick rounded strokes, flat  */
+/* kit colors, the same dot-eyes-and-smile face on every character.     */
+/* ------------------------------------------------------------------ */
 
-  // One choreographed beat, not scattered reveals: the four events of a real
-  // session light up in order as the rail scrolls in — the night, replayed.
+// The mascot: a pickleball with a sweatband. Face stays clear of the holes.
+function MascotBall({ size = 200 }: { size?: number }) {
   return (
-    <motion.div
-      className="motion-rail"
-      aria-label="Live session progress"
-      initial={reduceMotion ? undefined : "idle"}
-      whileInView={reduceMotion ? undefined : "active"}
-      viewport={{ once: true, margin: "-100px" }}
-      variants={{
-        idle: {},
-        active: { transition: { staggerChildren: 0.55, delayChildren: 0.2 } },
-      }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 200 200"
+      fill="none"
+      aria-hidden="true"
     >
-      {laneEvents.map((event, index) => (
-        <motion.div
-          key={event}
-          className="motion-rail-step"
-          variants={{
-            idle: { opacity: 0.3, transform: "translateY(6px)" },
-            active: {
-              opacity: 1,
-              transform: "translateY(0px)",
-              transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
-            },
-          }}
-        >
-          <span className="motion-rail-index">0{index + 1}</span>
-          <span>{event}</span>
-        </motion.div>
-      ))}
-    </motion.div>
+      <MascotArt />
+    </svg>
   );
 }
 
-function ProductProofVisual({ kind }: { kind: "setup" | "join" | "score" }) {
-  if (kind === "setup") {
-    return (
-      <div className="pp-visual" aria-hidden="true">
-        <div className="pp-link">
-          <IconLink className="size-3.5 text-live" />
-          <span className="pp-link-url">playsync.fun/live</span>
-          <span className="pp-link-copy">Ready</span>
-        </div>
-        <div className="pp-chips">
-          <span>9 players</span>
-          <span>2 courts</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (kind === "join") {
-    return (
-      <div className="pp-visual pp-visual-join" aria-hidden="true">
-        <div className="pp-avatars">
-          {["A", "B", "C"].map((initial) => (
-            <span key={initial} className="pp-avatar">
-              {initial}
-              <IconCheck className="pp-avatar-check size-3" />
-            </span>
-          ))}
-          <span className="pp-avatar pp-avatar-more">+6</span>
-        </div>
-        <div className="pp-qr">
-          <IconQr className="size-6" />
-        </div>
-      </div>
-    );
-  }
-
+function HeroIllustration() {
   return (
-    <div className="pp-visual pp-visual-score" aria-hidden="true">
-      <div className="pp-scoreline">
-        <span className="pp-court">Court 1</span>
-        <span className="pp-score">9&ndash;6</span>
-        <span className="pp-final">
-          <IconTrophy className="size-3" />
-          Final
-        </span>
-      </div>
-      <div className="pp-next">
-        <IconArrowRight className="size-3.5 text-live" />
-        Next up: Ellie &amp; Sam on Court 1
-      </div>
-    </div>
-  );
-}
-
-function ProductProofGrid() {
-  return (
-    <div className="product-proof-grid">
-      {productProof.map((item, index) => (
-        <Reveal key={item.title} delay={index * 0.05}>
-          <div className="product-proof-card">
-            <div className="product-proof-topline">
-              <span>{item.label}</span>
-              <span className="product-proof-metric">{item.metric}</span>
-            </div>
-            <h3>{item.title}</h3>
-            <p>{item.text}</p>
-            <ProductProofVisual kind={item.kind} />
-          </div>
-        </Reveal>
-      ))}
-    </div>
-  );
-}
-
-function SessionComposer() {
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <motion.div
-      initial={reduceMotion ? false : { y: 16 }}
-      animate={reduceMotion ? undefined : { y: 0 }}
-      transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
-      className="session-composer relative mx-auto w-full max-w-3xl overflow-hidden"
+    <svg
+      viewBox="0 0 520 440"
+      fill="none"
+      className="h-auto w-full max-w-[30rem]"
+      role="img"
+      aria-label="A happy pickleball bouncing across a court next to a paddle"
     >
-      <div className="composer-sync-line" aria-hidden="true" />
-      <div className="flex items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
-        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
-          <IconRoster className="size-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-lg leading-7 text-foreground sm:text-xl">
-              Create tonight&apos;s live session in 30 seconds.
-            </p>
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
-              <IconSpark className="size-3 text-live" />
-              Courtside live
-            </span>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {composerChips.map((chip) => (
-              <span key={chip} className="composer-chip">
-                {chip}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-3 p-3 sm:grid-cols-[1fr_auto] sm:p-4">
-        <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border bg-background">
-          {[
-            ["Players", "9"],
-            ["Courts", "2"],
-            ["Mode", "Rotate"],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="border-r border-border px-3 py-3 last:border-r-0"
-            >
-              <p className="text-[0.68rem] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                {label}
-              </p>
-              <p className="mt-1 text-lg font-semibold text-foreground">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="order-first flex flex-col gap-2 sm:order-none sm:min-w-44">
-          <Button asChild size="lg" className="text-base">
-            <Link
-              href="/tournament?new=1&mode=rotating"
-              data-testid="hero-create-session"
-              data-analytics-event="create_session_clicked"
-              data-analytics-location="hero_composer"
-              data-analytics-mode="rotating"
-            >
-              Create live session
-              <IconArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="bg-background text-base"
-          >
-            <Link
-              href="/tournament?join=1"
-              data-testid="hero-join-code"
-              data-analytics-event="join_code_clicked"
-              data-analytics-location="hero_composer"
-            >
-              Join with code
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </motion.div>
+      {/* court */}
+      <rect x="30" y="296" width="460" height="118" rx="18" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
+      <rect x="196" y="296" width="128" height="118" fill="#b5e3f9" opacity="0.55" />
+      <path d="M260 300v110" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 14" />
+      <path d="M196 300v110M324 300v110" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      <path d="M54 355h142M324 355h142" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      {/* bounce trail + impact */}
+      <path
+        d="M64 258c40-84 118-124 196-110"
+        stroke="#8ab818"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeDasharray="1 22"
+      />
+      <path
+        d="M92 322l-10 18M112 330l2 20M74 310l-18 10"
+        stroke="#ffc800"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+      {/* paddle leaning on the court */}
+      <g transform="rotate(14 428 258)">
+        <rect x="416" y="252" width="24" height="74" rx="11" fill="#ffc800" stroke="#243325" strokeWidth="5" />
+        <ellipse cx="428" cy="192" rx="62" ry="74" fill="#a568f5" stroke="#243325" strokeWidth="5" />
+        <ellipse cx="428" cy="192" rx="38" ry="48" fill="#bd8cf7" />
+      </g>
+      {/* mascot mid-bounce */}
+      <g transform="translate(160 88)">
+        <MascotArt />
+      </g>
+      {/* confetti */}
+      <circle cx="96" cy="96" r="9" fill="#1cb0f6" />
+      <rect x="380" y="62" width="16" height="16" rx="5" fill="#ff9600" transform="rotate(18 388 70)" />
+      <rect x="52" y="180" width="14" height="14" rx="5" fill="#a568f5" transform="rotate(-16 59 187)" />
+      <circle cx="474" cy="120" r="8" fill="#ffc800" />
+    </svg>
   );
 }
 
-function HeroAssurance() {
+// Inner mascot artwork shared by HeroIllustration (as a <g>) and MascotBall.
+function MascotArt() {
   return (
-    <p className="hero-action-note mt-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-      <IconPhone className="size-3.5 text-live" />
-      Works from any phone browser, no install
-    </p>
+    <>
+      <circle cx="100" cy="100" r="88" fill="#c8ef44" stroke="#8ab818" strokeWidth="7" />
+      <circle cx="58" cy="52" r="9" fill="#a5cc2e" />
+      <circle cx="100" cy="38" r="9" fill="#a5cc2e" />
+      <circle cx="142" cy="52" r="9" fill="#a5cc2e" />
+      <circle cx="164" cy="92" r="9" fill="#a5cc2e" />
+      <circle cx="36" cy="92" r="9" fill="#a5cc2e" />
+      <path
+        d="M28 78c14-26 42-42 72-42s58 16 72 42"
+        stroke="#ff9600"
+        strokeWidth="16"
+        strokeLinecap="round"
+      />
+      <ellipse cx="76" cy="110" rx="13" ry="16" fill="#ffffff" />
+      <ellipse cx="124" cy="110" rx="13" ry="16" fill="#ffffff" />
+      <circle cx="79" cy="113" r="6.5" fill="#243325" />
+      <circle cx="121" cy="113" r="6.5" fill="#243325" />
+      <path
+        d="M82 146c6 7 12 10 18 10s12-3 18-10"
+        stroke="#243325"
+        strokeWidth="7"
+        strokeLinecap="round"
+      />
+      <circle cx="58" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
+      <circle cx="142" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
+    </>
   );
 }
 
-function LiveBoardPreview({ className }: { className?: string }) {
+function FollowIllustration() {
   return (
-    <div className={cn("product-showcase", className)}>
-      <div className="phone-device" aria-label="Mobile live session preview">
-        <div className="phone-screen">
-          <div className="phone-status-row">
-            <span>7:12</span>
-            <span className="phone-status-dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
+    <svg
+      viewBox="0 0 440 340"
+      fill="none"
+      className="h-auto w-full max-w-[26rem]"
+      role="img"
+      aria-label="Three players looking at a phone showing a QR code"
+    >
+      {/* phone */}
+      <rect x="140" y="24" width="160" height="250" rx="28" fill="var(--card)" stroke="var(--foreground)" strokeWidth="6" />
+      <rect x="172" y="60" width="96" height="96" rx="10" fill="var(--card)" stroke="var(--input)" strokeWidth="4" />
+      {/* QR: three green finders + ink modules */}
+      <rect x="182" y="70" width="22" height="22" rx="4" fill="#54c400" />
+      <rect x="236" y="70" width="22" height="22" rx="4" fill="#54c400" />
+      <rect x="182" y="124" width="22" height="22" rx="4" fill="#54c400" />
+      <rect x="214" y="76" width="10" height="10" fill="var(--foreground)" />
+      <rect x="214" y="96" width="10" height="10" fill="var(--foreground)" />
+      <rect x="236" y="102" width="10" height="10" fill="var(--foreground)" />
+      <rect x="248" y="124" width="10" height="10" fill="var(--foreground)" />
+      <rect x="214" y="130" width="10" height="10" fill="var(--foreground)" />
+      <rect x="248" y="140" width="10" height="10" fill="var(--foreground)" />
+      {/* score rows on the phone */}
+      <rect x="172" y="176" width="96" height="18" rx="9" fill="#e9f8d8" />
+      <rect x="172" y="204" width="96" height="18" rx="9" fill="#dff1fd" />
+      <rect x="172" y="232" width="64" height="18" rx="9" fill="var(--secondary)" />
+      {/* three heads peeking up at it */}
+      <g>
+        <circle cx="72" cy="292" r="44" fill="#f1b98a" />
+        <path d="M32 278c4-26 20-40 40-40s36 14 40 40" fill="#243325" />
+        <circle cx="60" cy="296" r="5" fill="#243325" />
+        <circle cx="86" cy="296" r="5" fill="#243325" />
+        <path d="M62 312c4 4 8 6 11 6s7-2 11-6" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      </g>
+      <g>
+        <circle cx="220" cy="306" r="40" fill="#8d5a3b" />
+        <path d="M184 292c4-22 18-34 36-34s32 12 36 34" fill="#0e7ab5" />
+        <circle cx="209" cy="310" r="5" fill="#243325" />
+        <circle cx="233" cy="310" r="5" fill="#243325" />
+        <path d="M211 324c3 4 6 5 9 5s6-1 9-5" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      </g>
+      <g>
+        <circle cx="366" cy="292" r="44" fill="#edc4b1" />
+        <path d="M326 280c2-28 18-42 40-42s38 14 40 42c-10-10-24-14-40-14s-30 4-40 14z" fill="#a568f5" />
+        <circle cx="354" cy="296" r="5" fill="#243325" />
+        <circle cx="380" cy="296" r="5" fill="#243325" />
+        <path d="M356 312c4 4 8 6 11 6s7-2 11-6" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      </g>
+    </svg>
+  );
+}
+
+function RotationIllustration() {
+  return (
+    <svg
+      viewBox="0 0 440 340"
+      fill="none"
+      className="h-auto w-full max-w-[26rem]"
+      role="img"
+      aria-label="Four players rotating around a court while one rests on the bench"
+    >
+      {/* court */}
+      <rect x="120" y="100" width="200" height="140" rx="16" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
+      <path d="M220 104v132" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 12" />
+      {/* rotation arrows */}
+      <path d="M150 76c40-24 100-24 140 0" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path d="M282 62l14 16-21 5" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M290 264c-40 24-100 24-140 0" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <path d="M158 278l-14-16 21-5" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      {/* players on court corners */}
+      <PlayerDot cx={96} cy={132} fill="#54c400" />
+      <PlayerDot cx={344} cy={132} fill="#1cb0f6" />
+      <PlayerDot cx={96} cy={222} fill="#ffc800" />
+      <PlayerDot cx={344} cy={222} fill="#a568f5" />
+      {/* bench, with the sit-out coming back next */}
+      <rect x="352" y="292" width="72" height="14" rx="7" fill="#d9d5c0" />
+      <rect x="360" y="306" width="10" height="18" rx="4" fill="#d9d5c0" />
+      <rect x="406" y="306" width="10" height="18" rx="4" fill="#d9d5c0" />
+      <PlayerDot cx={388} cy={272} fill="#ff9600" />
+      <path d="M356 258c-12-8-20-18-24-30" stroke="#8ab818" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 12" />
+    </svg>
+  );
+}
+
+function PlayerDot({ cx, cy, fill }: { cx: number; cy: number; fill: string }) {
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r="26" fill={fill} stroke="var(--background)" strokeWidth="5" />
+      <circle cx={cx - 8} cy={cy - 2} r="3.5" fill="#243325" />
+      <circle cx={cx + 8} cy={cy - 2} r="3.5" fill="#243325" />
+      <path
+        d={`M${cx - 7} ${cy + 8}c2.5 3 5 4.5 7 4.5s4.5-1.5 7-4.5`}
+        stroke="#243325"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+function PlayableScorebug() {
+  const [matchIndex, setMatchIndex] = useState(0);
+  const [score, setScore] = useState<[number, number]>([6, 4]);
+  const tickRef = useRef(0);
+  const lastTouchRef = useRef(0);
+  const featured = useFeaturedSession();
+  const match = demoMatchups[matchIndex % demoMatchups.length];
+  const isReal = featured !== null;
+  const displayCourt = isReal ? featured.court : match.court;
+  const displayTeams = isReal ? featured.teams : match.teams;
+  const displayScore: [number, number] = isReal ? featured.score : score;
+
+  // finalFlash is derived, and the updater stays pure (StrictMode
+  // double-invokes updaters, so side effects in them double-score); the
+  // game-over rollover is a timeout keyed on the derived flag.
+  const finalFlash = Math.max(score[0], score[1]) >= 11;
+
+  const addPoint = useCallback((side: 0 | 1, fromUser: boolean) => {
+    if (fromUser) lastTouchRef.current = Date.now();
+    setScore((current) => {
+      if (Math.max(current[0], current[1]) >= 11) return current;
+      return side === 0 ? [current[0] + 1, current[1]] : [current[0], current[1] + 1];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!finalFlash) return;
+    const timeout = window.setTimeout(() => {
+      setMatchIndex((index) => index + 1);
+      setScore([0, 0]);
+    }, 1400);
+    return () => window.clearTimeout(timeout);
+  }, [finalFlash]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      if (Date.now() - lastTouchRef.current < 9000) return;
+      const side = demoPointPattern[tickRef.current++ % demoPointPattern.length] as 0 | 1;
+      addPoint(side, false);
+    }, 4200);
+    return () => window.clearInterval(interval);
+  }, [addPoint]);
+
+  const leadingSide =
+    displayScore[0] === displayScore[1] ? -1 : displayScore[0] > displayScore[1] ? 0 : 1;
+
+  return (
+    <div className="w-full max-w-[26rem]">
+      <div className="overflow-hidden rounded-3xl border-2 border-border bg-card shadow-[0_4px_0_var(--border)]">
+        <div className="flex items-center justify-between gap-3 border-b-2 border-border px-5 py-3">
+          <span className="truncate text-xs font-extrabold uppercase tracking-[0.14em] text-muted-foreground">
+            {isReal ? `${displayCourt} · ${featured.sessionName}` : displayCourt}
+          </span>
+          {finalFlash ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-success">
+              Final
             </span>
-          </div>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-live/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] text-live">
+              <span className="size-1.5 rounded-full bg-live" aria-hidden="true" />
+              Live · to 11
+            </span>
+          )}
+        </div>
 
-          <div className="phone-app-top">
-            <div>
-              <p>Riverside Open Play</p>
-              <span>9 players · 2 courts</span>
-            </div>
-            <span className="phone-live-pill">Live</span>
-          </div>
-
-          <div className="phone-next-card">
-            <div className="phone-next-head">
-              <div>
-                <p>Now scoring</p>
-                <h3>Court 2</h3>
-              </div>
-              <div className="phone-score-stack" aria-label="Score 9 to 6">
-                <span>9</span>
-                <span>6</span>
-              </div>
-            </div>
-            <div className="phone-matchup">
-              <span>Ana / Ben</span>
-              <span>Cara / Diego</span>
-            </div>
-            <div className="phone-score-button" aria-hidden="true">
-              Post score and call next
-              <IconArrowRight className="size-3.5" />
-            </div>
-          </div>
-
-          <div className="phone-qr-card">
-            <div className="phone-qr" aria-hidden="true">
-              {Array.from({ length: 16 }).map((_, index) => (
-                <span key={index} />
-              ))}
-            </div>
-            <div>
-              <p>Join code</p>
-              <strong>P7K4Q9</strong>
-              <span>Scan at the fence</span>
-            </div>
-          </div>
-
-          <div className="phone-feed-list">
-            {["Court 2 finished 11-7", "Court 1 needs a score", "Eli / Fran up next"].map(
-              (item) => (
-                <div key={item} className="phone-feed-row">
-                  <span />
-                  <p>{item}</p>
-                </div>
-              )
+        {displayTeams.map((team, side) => (
+          <motion.button
+            key={team}
+            type="button"
+            whileTap={{ scale: 0.98 }}
+            onClick={() =>
+              isReal
+                ? window.location.assign(`/tournament?code=${featured.code}`)
+                : addPoint(side as 0 | 1, true)
+            }
+            aria-label={
+              isReal
+                ? `Watch ${featured.sessionName} live`
+                : `Add a point for ${team} (demo scoreboard)`
+            }
+            className={cn(
+              "flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left transition-colors",
+              side === 0 ? "border-b-2 border-border" : "",
+              leadingSide === side ? "bg-primary/8" : "hover:bg-secondary/50",
             )}
-          </div>
+          >
+            <span className="text-base font-extrabold text-foreground">{team}</span>
+            <span
+              className={cn(
+                "font-display text-5xl font-bold leading-none",
+                leadingSide === side ? "text-success" : "text-muted-foreground",
+              )}
+            >
+              <ScoreDigits value={displayScore[side]} />
+            </span>
+          </motion.button>
+        ))}
+
+        <div className="h-10 overflow-hidden border-t-2 border-border bg-secondary/50">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={matchIndex}
+              initial={{ transform: "translateY(100%)" }}
+              animate={{ transform: "translateY(0%)" }}
+              exit={{ transform: "translateY(-100%)" }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="flex h-full items-center gap-2 px-5 text-[13px] font-bold text-muted-foreground"
+            >
+              {isReal ? (
+                <>
+                  <span className="truncate">Live now — tap to watch</span>
+                  <span className="ml-auto shrink-0 font-extrabold">{featured.code}</span>
+                </>
+              ) : (
+                <>
+                  <span className="truncate">Next · {match.next}</span>
+                  <span className="ml-auto shrink-0 font-extrabold">{match.nextCourt}</span>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
-      <div className="product-feed-panel">
-        <div className="product-feed-header">
-          <p className="section-kicker">Live product proof</p>
-          <h3>One link becomes the scoreboard, lineup, and group feed.</h3>
-        </div>
-
-        <div className="surface-proof-grid">
-          {surfaceProof.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <div key={item.label} className="surface-proof-card">
-                <Icon className="size-4" />
-                <div>
-                  <p>{item.label}</p>
-                  <span>{item.value}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="live-board compact-live-board">
-          <div className="divide-y divide-border">
-            {sessionRows.map((row) => (
-              <div
-                key={row.label}
-                className="live-board-row grid grid-cols-[0.72fr_1fr_auto] gap-3 px-4 py-3 sm:px-5"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{row.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{row.status}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground">{row.primary}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{row.secondary}</p>
-                </div>
-                <p className="h-fit rounded-md border border-border px-2.5 py-1 text-sm font-semibold text-foreground">
-                  {row.score}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <p className="mt-3 text-center text-sm font-bold text-muted-foreground">
+        {isReal ? "A real session, live right now — tap to watch." : "Live demo — tap a team to score."}
+      </p>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+const FORMATS = [
+  "Popcorn",
+  "Gauntlet",
+  "King of the Court",
+  "Claim the Throne",
+  "Up & Down the River",
+  "Set Teams",
+] as const;
+
+const FORMAT_COLORS = ["#54c400", "#1cb0f6", "#ffc800", "#a568f5", "#ff9600", "#0b6e63"] as const;
+
+function FeatureSection({
+  id,
+  heading,
+  copy,
+  art,
+  flip = false,
+}: {
+  id?: string;
+  heading: string;
+  copy: ReactNode;
+  art: ReactNode;
+  flip?: boolean;
+}) {
+  return (
+    <section id={id} className="mx-auto w-full max-w-5xl px-6 py-16 sm:py-24">
+      <Reveal>
+        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
+          <div className={cn("flex justify-center", flip ? "md:order-2" : "")}>{art}</div>
+          <div className={cn("max-w-md justify-self-center md:justify-self-start", flip ? "md:order-1" : "")}>
+            <h2 className="font-display text-4xl font-bold lowercase leading-tight text-success sm:text-5xl">
+              {heading}
+            </h2>
+            <p className="mt-5 text-lg font-semibold leading-relaxed text-muted-foreground">
+              {copy}
+            </p>
+          </div>
+        </div>
+      </Reveal>
+    </section>
   );
 }
 
@@ -816,176 +568,139 @@ export default function Home() {
       />
       <Header />
 
-      <main className="yc-landing">
-        <section className="yc-hero overflow-hidden border-b border-border/80">
-          <div className="container mx-auto flex max-w-[88rem] flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid lg:grid-cols-[minmax(0,0.52fr)_minmax(31rem,0.48fr)] lg:items-center lg:px-8 lg:py-16 xl:py-20">
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, transform: "translateY(16px)" }}
-              animate={reduceMotion ? undefined : { opacity: 1, transform: "translateY(0px)" }}
-              transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-              className="hero-copy-stack order-1 max-w-3xl lg:col-start-1 lg:row-start-1"
-            >
-              <p className="hero-eyebrow">
-                Casual drop-in pickleball, one shared link
-              </p>
-              <h1 className="hero-headline mt-5 max-w-4xl text-balance font-display text-5xl font-bold leading-[0.94] tracking-[-0.012em] text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
-                Play more. Organize less<span className="text-live">.</span>
-              </h1>
-              <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
-                Open play is casual pickleball where people show up and rotate
-                through games. Run the whole night from one link: players scan a
-                QR to join, you tap scores, and the next game posts itself.
-              </p>
-              <HeroAssurance />
-            </motion.div>
+      <main>
+        {/* Hero: illustration + one sentence + two buttons. Nothing else. */}
+        <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-6 pb-16 pt-12 sm:pt-16 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] md:gap-14 md:pb-24 md:pt-20">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, transform: "scale(0.94)" }}
+            animate={{ opacity: 1, transform: "scale(1)" }}
+            transition={{ duration: 0.6, ease: [0.22, 1.2, 0.36, 1] }}
+            className="flex justify-center"
+          >
+            <HeroIllustration />
+          </motion.div>
 
-            {/* Mobile is the primary device: the broadcast scorebug is the
-                poster moment — playable, with the court running underneath. */}
-            <div className="order-2 relative mx-auto w-full max-w-md sm:max-w-xl lg:order-none lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:self-center">
-              <PlayableScorebug />
-            </div>
-
-            <div className="order-3 lg:order-none lg:col-start-1 lg:row-start-2">
-              <SessionComposer />
-
-              <div className="proof-strip mt-5 flex max-w-3xl flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
-                {proofPoints.map((point) => (
-                  <span key={point} className="inline-flex items-center gap-2">
-                    <IconCheck className="size-3.5 text-live" />
-                    {point}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="section-soft border-b border-border">
-          <div className="container mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-            <Reveal>
-              <MotionRail />
-            </Reveal>
-            <div className="mt-8 grid gap-8 lg:grid-cols-[0.34fr_0.66fr] lg:items-start">
-              <Reveal>
-                <p className="section-kicker">Courtside flow</p>
-                <h2 className="mt-3 max-w-md font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-5xl">
-                  Built for the first five minutes at the fence.
-                </h2>
-                <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground">
-                  Create the session, let players check themselves in, tap a
-                  score, and the next game posts on its own.
-                </p>
-              </Reveal>
-              <ProductProofGrid />
-            </div>
-          </div>
-        </section>
-
-        <section className="section-clean border-b border-border">
-          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
-            <Reveal>
-              <p className="section-kicker">The shared feed</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
-                No app to download. Everyone opens the same link.
-              </h2>
-              <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
-                Players see a live mobile feed, organizers keep court calls in
-                one place, and every score moves the night forward.
-              </p>
-            </Reveal>
-
-            <Reveal delay={0.06}>
-              <LiveBoardPreview />
-            </Reveal>
-          </div>
-        </section>
-
-        <section id="features" className="section-tint border-b border-border">
-          <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.58fr_0.42fr] lg:items-center">
-            <Reveal>
-              <div className="editorial-panel">
-                <div className="flex items-center justify-between gap-4 border-b border-border p-4 sm:p-5">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Setup</p>
-                    <p className="mt-1 text-xl font-semibold tracking-normal">
-                      Tonight open play
-                    </p>
-                  </div>
-                  <IconRotate className="size-5 text-muted-foreground" />
-                </div>
-                <div className="grid grid-cols-3 divide-x divide-border">
-                  {[
-                    ["People", "9"],
-                    ["Courts", "2"],
-                    ["Mode", "Rotate"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="p-3 sm:p-5">
-                      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                        {label}
-                      </p>
-                      <p className="mt-3 font-data text-2xl font-semibold sm:text-3xl">
-                        {value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.06}>
-              <p className="section-kicker">Less running the show</p>
-              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
-                The organizer gets to play instead of becoming the scoreboard.
-              </h2>
-              <p className="mt-5 text-base leading-7 text-muted-foreground">
-                Players check the feed themselves. The organizer only answers
-                the next real question: score in, next game, or who sits.
-              </p>
-            </Reveal>
-          </div>
-        </section>
-
-        <section className="section-cta border-b border-border">
-          <div className="container mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
-            <Reveal className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-              <div>
-                {/* No kicker here — after four labeled sections, the closing
-                    line lands harder standing alone. */}
-                <h2 className="max-w-3xl font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
-                  Start a session before warmups are over.
-                </h2>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="text-base">
-                  <Link
-                    href="/tournament?new=1&mode=rotating"
-                    data-testid="final-create-session"
-                    data-analytics-event="create_session_clicked"
-                    data-analytics-location="final_cta"
-                    data-analytics-mode="rotating"
-                  >
-                    Start session
-                    <IconArrowRight className="size-4" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="bg-background text-base"
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, transform: "translateY(14px)" }}
+            animate={{ opacity: 1, transform: "translateY(0px)" }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+            className="flex flex-col items-center gap-8 md:items-start"
+          >
+            <h1 className="max-w-md text-balance text-center font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl md:text-left">
+              The fun way to run pickleball night!
+            </h1>
+            <div className="flex w-full max-w-[21rem] flex-col gap-3">
+              <Button asChild size="lg" className="w-full">
+                <Link
+                  href="/tournament?new=1&mode=rotating"
+                  data-testid="hero-create-session"
+                  data-analytics-event="create_session_clicked"
+                  data-analytics-location="hero_composer"
+                  data-analytics-mode="rotating"
                 >
-                  <Link
-                    href="/tournament?join=1"
-                    data-testid="final-join-code"
-                    data-analytics-event="join_code_clicked"
-                    data-analytics-location="final_cta"
-                  >
-                    Join with code
-                  </Link>
-                </Button>
-              </div>
-            </Reveal>
+                  Create a session
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="w-full">
+                <Link
+                  href="/tournament?join=1"
+                  data-testid="hero-join-code"
+                  data-analytics-event="join_code_clicked"
+                  data-analytics-location="hero_composer"
+                >
+                  Join with a code
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* Format strip — the "language carousel". Real formats only. */}
+        <div className="border-y-2 border-border">
+          <div className="mx-auto flex max-w-5xl items-center gap-8 overflow-x-auto px-6 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {FORMATS.map((format, index) => (
+              <span
+                key={format}
+                className="flex shrink-0 items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground"
+              >
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ backgroundColor: FORMAT_COLORS[index] }}
+                  aria-hidden="true"
+                />
+                {format}
+              </span>
+            ))}
           </div>
+        </div>
+
+        <FeatureSection
+          id="how-it-works"
+          heading="scores run the night."
+          copy={
+            <>
+              Tap in a score and PlaySync does the rest: standings update, the
+              court frees up, and the next matchup gets called. Go ahead — tap
+              a team.
+            </>
+          }
+          art={<PlayableScorebug />}
+          flip
+        />
+
+        <FeatureSection
+          id="features"
+          heading="everyone follows along."
+          copy={
+            <>
+              Players scan one QR code to watch live scores and see who&apos;s
+              up next, right from the fence. No app to install, no group
+              texts.
+            </>
+          }
+          art={<FollowIllustration />}
+        />
+
+        <FeatureSection
+          heading="fair for everyone."
+          copy={
+            <>
+              Partners rotate every round and sit-outs are tracked, so nobody
+              rides the bench twice while someone else plays all night.
+            </>
+          }
+          art={<RotationIllustration />}
+          flip
+        />
+
+        {/* Final call. One button, mascot cheering it on. */}
+        <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-6 pb-24 pt-8 text-center sm:pb-32">
+          <Reveal className="flex flex-col items-center gap-7">
+            <MascotBall size={120} />
+            <h2 className="font-display text-4xl font-bold lowercase text-foreground sm:text-5xl">
+              ready to play?
+            </h2>
+            <Button asChild size="lg" className="w-full max-w-[21rem]">
+              <Link
+                href="/tournament?new=1&mode=rotating"
+                data-testid="final-create-session"
+                data-analytics-event="create_session_clicked"
+                data-analytics-location="final_cta"
+                data-analytics-mode="rotating"
+              >
+                Create a session
+              </Link>
+            </Button>
+            <Link
+              href="/tournament?join=1"
+              data-testid="final-join-code"
+              data-analytics-event="join_code_clicked"
+              data-analytics-location="final_cta"
+              className="touch-target inline-flex items-center text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              or join with a code
+            </Link>
+          </Reveal>
         </section>
       </main>
 

@@ -1,15 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { IconArrowRight } from "@/components/brand/icons";
 import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-const navItems = [
-  { href: "#features", label: "Product" },
-  { href: "#how-it-works", label: "Flow" },
-];
 
 export function Header() {
   return (
@@ -27,24 +21,6 @@ export function Header() {
             wordmarkClassName="text-[1.15rem] sm:text-[1.22rem]"
           />
         </Link>
-
-        <nav
-          aria-label="Primary navigation"
-          className="site-nav-pill hidden items-center md:flex"
-        >
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="site-nav-link"
-              data-analytics-event="navigation_clicked"
-              data-analytics-location="header"
-              data-analytics-target={item.label}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
 
         <div className="flex min-w-0 items-center justify-end gap-2">
           <ThemeToggle />
@@ -75,7 +51,6 @@ export function Header() {
             >
               <span className="hidden sm:inline">Create session</span>
               <span className="sm:hidden">Create</span>
-              <IconArrowRight className="hidden size-3.5 sm:block" />
             </Link>
           </Button>
         </div>
