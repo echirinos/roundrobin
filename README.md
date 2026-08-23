@@ -65,4 +65,6 @@ non-zero on any failed assertion, so it is CI-ready as-is.
 ## Project Docs
 
 Release notes live in [CHANGELOG.md](CHANGELOG.md). Planned work and known
-gaps are tracked in [TODOS.md](TODOS.md).
+gaps are tracked in [TODOS.md](TODOS.md). The build prompt for the planned
+standalone native mobile app lives in
+[docs/native-build-prompt.md](docs/native-build-prompt.md).
