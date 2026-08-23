@@ -54,6 +54,14 @@
 
 ## UI Polish
 
+### Regenerate og-image.png for the rally-green redesign
+
+**What:** `public/og-image.png` (used by OG/Twitter metadata in `app/layout.tsx`) still renders the pre-redesign identity — serif headline, ink-pill CTA, old teal/mint palette. Every shared link previews a brand that no longer exists in the product. Regenerate it with the playful kit (Baloo display face, #54c400 primary, chunky uppercase CTA), or add a dynamic `opengraph-image` route that renders from live tokens.
+
+**Priority:** P2
+
+**Noticed:** v0.8.0 ship review (red-team), branch `ux-clarity-pass`.
+
 ### Round preview state doesn't survive tab switches
 
 **What:** Lift the round-preview state (`previewGames`, `manualByeTeamIds`, the round-0 auto-preview marker) out of `RoundManager` so it survives Matches ↔ Standings/Players tab hops, or `forceMount` the schedule tab content.
