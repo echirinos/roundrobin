@@ -3,6 +3,28 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.8.1] - 2026-08-23
+
+PlaySync has a mascot. The home page was rebuilt from scratch in the playful
+style — a happy pickleball with a sweatband welcomes you in, and the page
+reads like a game, not a pitch deck.
+
+### Changed
+- **A brand-new home page.** One friendly headline, two big buttons, and a
+  flat illustrated hero — the mascot mid-bounce over a court. Below it: a
+  strip of the formats you can run (Popcorn, Gauntlet, King of the Court,
+  and more), three short sections with hand-drawn scenes for scoring,
+  following along, and fair rotations, and a "ready to play?" send-off.
+  The live tap-to-score demo is still there — now a friendly white card.
+- The header is a clean solid bar, and the footer sheds leftover links and
+  labels from the old design.
+
+### Fixed
+- The demo scoreboard could double-count taps (every score came out even)
+  and skip a matchup between games; one tap is one point now, and games
+  land on real pickleball scores.
+- Trailing scores on the demo card are darker for readability.
+
 ## [0.8.0] - 2026-08-23
 
 PlaySync got a whole new look. The app now feels like a game night, not a
