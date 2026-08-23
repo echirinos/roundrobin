@@ -346,13 +346,13 @@ function PlayableScorebug() {
 
   return (
     <div className="relative z-10 w-full">
-      <div className="scorebug-shell overflow-hidden rounded-2xl border border-white/15 bg-primary shadow-lg">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-          <span className="truncate font-data text-[11px] uppercase tracking-[0.18em] text-live-foreground/90">
+      <div className="scorebug-shell overflow-hidden rounded-2xl border border-background/20 bg-foreground shadow-lg">
+        <div className="flex items-center justify-between border-b border-background/15 px-4 py-2">
+          <span className="truncate font-data text-[11px] uppercase tracking-[0.18em] text-background/90">
             {isReal ? `${displayCourt} · ${featured.sessionName}` : displayCourt}
           </span>
-          <span className="inline-flex items-center gap-1.5 font-data text-[11px] uppercase tracking-[0.18em] text-live">
-            <span className="size-1.5 rounded-full bg-live" aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 font-data text-[11px] uppercase tracking-[0.18em] text-(--scorebug-accent)">
+            <span className="size-1.5 rounded-full bg-(--scorebug-accent)" aria-hidden="true" />
             Live
           </span>
         </div>
@@ -376,17 +376,17 @@ function PlayableScorebug() {
                 }
                 className={cn(
                   "flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
-                  side === 0 ? "border-b border-white/10" : "",
-                  leadingSide === side ? "bg-white/[0.06]" : "hover:bg-white/[0.04]",
+                  side === 0 ? "border-b border-background/15" : "",
+                  leadingSide === side ? "bg-background/10" : "hover:bg-background/5",
                 )}
               >
-                <span className="text-sm font-semibold uppercase tracking-wide text-primary-foreground">
+                <span className="text-sm font-semibold uppercase tracking-wide text-background">
                   {team}
                 </span>
                 <span
                   className={cn(
                     "font-data text-4xl font-bold leading-none sm:text-5xl",
-                    leadingSide === side ? "text-live" : "text-primary-foreground/80",
+                    leadingSide === side ? "text-(--scorebug-accent)" : "text-background/80",
                   )}
                 >
                   <ScoreDigits value={displayScore[side]} />
@@ -395,18 +395,18 @@ function PlayableScorebug() {
             ))}
           </div>
           <div aria-hidden="true" />
-          <div className="flex w-20 flex-col items-center justify-center border-l border-white/10 px-3 text-center">
+          <div className="flex w-20 flex-col items-center justify-center border-l border-background/15 px-3 text-center">
             {finalFlash ? (
-              <span className="font-data text-sm font-bold uppercase tracking-[0.14em] text-live">
+              <span className="font-data text-sm font-bold uppercase tracking-[0.14em] text-(--scorebug-accent)">
                 Final
               </span>
             ) : (
-              <span className="font-data text-[11px] font-semibold uppercase leading-4 tracking-[0.14em] text-primary-foreground/70">
+              <span className="font-data text-[11px] font-semibold uppercase leading-4 tracking-[0.14em] text-background/70">
                 Game
                 <br />
                 to
                 <br />
-                <span className="text-lg text-primary-foreground">11</span>
+                <span className="text-lg text-background">11</span>
               </span>
             )}
           </div>
@@ -414,7 +414,7 @@ function PlayableScorebug() {
 
         <CourtDiagram pulse={pulse} />
 
-        <div className="h-9 overflow-hidden border-t border-white/10">
+        <div className="h-9 overflow-hidden border-t border-background/15">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={matchIndex}
@@ -645,7 +645,7 @@ function SessionComposer() {
         </div>
 
         <div className="order-first flex flex-col gap-2 sm:order-none sm:min-w-44">
-          <Button asChild size="lg" className="h-12 rounded-md text-base">
+          <Button asChild size="lg" className="text-base">
             <Link
               href="/tournament?new=1&mode=rotating"
               data-testid="hero-create-session"
@@ -661,7 +661,7 @@ function SessionComposer() {
             asChild
             size="lg"
             variant="outline"
-            className="h-12 rounded-md bg-background text-base"
+            className="bg-background text-base"
           >
             <Link
               href="/tournament?join=1"
@@ -828,7 +828,7 @@ export default function Home() {
               <p className="hero-eyebrow">
                 Casual drop-in pickleball, one shared link
               </p>
-              <h1 className="hero-headline mt-5 max-w-4xl text-balance font-serif-editorial text-5xl font-medium leading-[0.94] tracking-[-0.012em] text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
+              <h1 className="hero-headline mt-5 max-w-4xl text-balance font-display text-5xl font-bold leading-[0.94] tracking-[-0.012em] text-foreground sm:text-7xl lg:text-[5.6rem] xl:text-[6.1rem]">
                 Play more. Organize less<span className="text-live">.</span>
               </h1>
               <p className="hero-subcopy mt-5 max-w-2xl text-balance text-lg leading-8 text-muted-foreground">
@@ -868,7 +868,7 @@ export default function Home() {
             <div className="mt-8 grid gap-8 lg:grid-cols-[0.34fr_0.66fr] lg:items-start">
               <Reveal>
                 <p className="section-kicker">Courtside flow</p>
-                <h2 className="mt-3 max-w-md font-serif-editorial text-4xl font-medium tracking-[-0.008em] text-foreground sm:text-5xl">
+                <h2 className="mt-3 max-w-md font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-5xl">
                   Built for the first five minutes at the fence.
                 </h2>
                 <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground">
@@ -885,7 +885,7 @@ export default function Home() {
           <div className="container mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[0.42fr_0.58fr] lg:items-center">
             <Reveal>
               <p className="section-kicker">The shared feed</p>
-              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-[-0.008em] text-foreground sm:text-6xl">
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
                 No app to download. Everyone opens the same link.
               </h2>
               <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
@@ -934,7 +934,7 @@ export default function Home() {
 
             <Reveal delay={0.06}>
               <p className="section-kicker">Less running the show</p>
-              <h2 className="mt-3 font-serif-editorial text-4xl font-medium tracking-[-0.008em] text-foreground sm:text-6xl">
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
                 The organizer gets to play instead of becoming the scoreboard.
               </h2>
               <p className="mt-5 text-base leading-7 text-muted-foreground">
@@ -951,12 +951,12 @@ export default function Home() {
               <div>
                 {/* No kicker here — after four labeled sections, the closing
                     line lands harder standing alone. */}
-                <h2 className="max-w-3xl font-serif-editorial text-4xl font-medium tracking-[-0.008em] text-foreground sm:text-6xl">
+                <h2 className="max-w-3xl font-display text-4xl font-bold tracking-[-0.008em] text-foreground sm:text-6xl">
                   Start a session before warmups are over.
                 </h2>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild size="lg" className="h-12 rounded-md text-base">
+                <Button asChild size="lg" className="text-base">
                   <Link
                     href="/tournament?new=1&mode=rotating"
                     data-testid="final-create-session"
@@ -972,7 +972,7 @@ export default function Home() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="h-12 rounded-md bg-background text-base"
+                  className="bg-background text-base"
                 >
                   <Link
                     href="/tournament?join=1"

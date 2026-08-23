@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ShineBorder } from "@/components/ui/shine-border";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextureButton } from "@/components/ui/texture-button";
 import type { LocalPlayer, LocalRoundGame, LocalStanding } from "@/src/types/database";
 import type { EventSettings, ScoringType } from "@/src/types/formats";
@@ -407,19 +406,16 @@ export function RoundManager({
           <p className="text-sm text-muted-foreground">{roundHint}</p>
 
           {!previewGames && showPrimaryGenerate && (
-            <ShimmerButton
+            <Button
               type="button"
               onClick={handleGenerateRound}
               disabled={disabled || !canGenerateNextRound || isGenerating}
-              borderRadius="0.5rem"
-              background="linear-gradient(135deg, var(--primary), var(--accent))"
-              shimmerColor="var(--live)"
-              className="h-11 w-full px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full"
             >
               {isGenerating
                 ? "Drawing matchups..."
                 : `Start Round ${currentRound + 1}`}
-            </ShimmerButton>
+            </Button>
           )}
 
           {/* Ghost styling on purpose: this escape hatch must never look more
@@ -720,16 +716,13 @@ export function RoundManager({
             )}
 
             <div className="flex gap-2">
-              <ShimmerButton
+              <Button
                 type="button"
                 onClick={handleConfirmRound}
-                borderRadius="0.5rem"
-                background="linear-gradient(135deg, var(--primary), var(--accent))"
-                shimmerColor="var(--live)"
-                className="h-11 flex-1 px-5 text-sm font-semibold text-primary-foreground"
+                className="flex-1"
               >
                 Confirm Round {currentRound + 1}
-              </ShimmerButton>
+              </Button>
               <Button variant="outline" onClick={handleCancelPreview}>
                 Cancel
               </Button>

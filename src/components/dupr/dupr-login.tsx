@@ -222,7 +222,7 @@ export function DuprPlayerCard({ player, onRemove, compact = false }: DuprPlayer
         <div
           className={`${
             compact ? 'w-8 h-8 text-sm' : 'w-10 h-10'
-          } rounded-full bg-primary flex items-center justify-center text-white font-bold`}
+          } rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold`}
         >
           {player.name.charAt(0).toUpperCase()}
         </div>

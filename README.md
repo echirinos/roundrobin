@@ -14,7 +14,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Analytics
 
-The app includes two analytics layers:
+The app includes the following analytics layers:
 
 - Vercel Web Analytics for visits, pages, referrers, countries, devices, and
   custom CTA events.
@@ -65,4 +65,6 @@ non-zero on any failed assertion, so it is CI-ready as-is.
 ## Project Docs
 
 Release notes live in [CHANGELOG.md](CHANGELOG.md). Planned work and known
-gaps are tracked in [TODOS.md](TODOS.md).
+gaps are tracked in [TODOS.md](TODOS.md). The build prompt for the planned
+standalone native mobile app lives in
+[docs/native-build-prompt.md](docs/native-build-prompt.md).

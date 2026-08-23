@@ -54,6 +54,14 @@
 
 ## UI Polish
 
+### Regenerate og-image.png for the rally-green redesign
+
+**What:** `public/og-image.png` (used by OG/Twitter metadata in `app/layout.tsx`) still renders the pre-redesign identity — serif headline, ink-pill CTA, old teal/mint palette — and its subhead still advertises "QR check-ins," a feature removed in v0.4.7. Every shared link previews a brand (and a feature) that no longer exists in the product. Regenerate it with the playful kit (Baloo display face, #54c400 primary, chunky uppercase CTA) and current product copy, or add a dynamic `opengraph-image` route that renders from live tokens.
+
+**Priority:** P2
+
+**Noticed:** v0.8.0 ship review (red-team), branch `ux-clarity-pass`.
+
 ### Round preview state doesn't survive tab switches
 
 **What:** Lift the round-preview state (`previewGames`, `manualByeTeamIds`, the round-0 auto-preview marker) out of `RoundManager` so it survives Matches ↔ Standings/Players tab hops, or `forceMount` the schedule tab content.
@@ -122,7 +130,7 @@
 
 **What:** Mint an organizer-only token on publish, require it on `PUT /api/sessions/[code]`, strip it from all public responses, cap payload size.
 
-**Completed:** v0.4.1 (2026-07-04). The token is stored in the organizer's localStorage keyed by code and sent as `x-organizer-token`; PUT returns 401 without it and 403 on mismatch; check-in stays open. An empty-token fixation bug (found by Codex adversarial review) was fixed before ship.
+**Completed:** v0.4.1 (2026-07-04). The token is stored in the organizer's localStorage keyed by code and sent as `x-organizer-token`; PUT returns 401 without it and 403 on mismatch; check-in stayed open at the time (player check-in was later removed in v0.4.7). An empty-token fixation bug (found by Codex adversarial review) was fixed before ship.
 
 ### Move live sessions off per-instance memory
 

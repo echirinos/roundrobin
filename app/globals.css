@@ -44,8 +44,7 @@
   --color-success-strong: var(--success-strong);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --font-display: var(--font-geist-sans);
-  --font-serif-editorial: var(--font-newsreader);
+  --font-display: var(--font-baloo);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -53,28 +52,7 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
-  --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
-  --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
   --animate-shine: shine var(--duration) infinite linear;
-  @keyframes shimmer-slide {
-  to {
-    transform: translate(calc(100cqw - 100%), 0);
-    }
-  }
-  @keyframes spin-around {
-  0% {
-    transform: translateZ(0) rotate(0);
-    }
-  15%, 35% {
-    transform: translateZ(0) rotate(90deg);
-    }
-  65%, 85% {
-    transform: translateZ(0) rotate(270deg);
-    }
-  100% {
-    transform: translateZ(0) rotate(360deg);
-    }
-  }
   @keyframes shine {
   0% {
     background-position: 0% 0%;
@@ -89,103 +67,116 @@
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 1rem;
   /* Brand teal-black shadow/edge tint. Single source of truth; alpha varies per use. */
   --tint-teal: 0 42 48;
-  /* --font-geist-sans and --font-newsreader are set on <html> by next/font
+  /* --font-geist-sans (Nunito) and --font-baloo are set on <html> by next/font
      (app/layout.tsx). Declaring fallbacks here would win the :root cascade
      and shadow the loaded fonts — don't re-add them. */
   --font-geist-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  --background: oklch(0.985 0.014 106);
-  --foreground: oklch(0.14 0.026 154);
-  --card: oklch(0.997 0.006 108);
-  --card-foreground: oklch(0.14 0.026 154);
-  --popover: oklch(0.998 0.006 108);
-  --popover-foreground: oklch(0.14 0.026 154);
-  --primary: oklch(0.15 0.028 154);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.945 0.028 112);
-  --secondary-foreground: oklch(0.18 0.032 152);
-  --muted: oklch(0.948 0.02 112);
-  --muted-foreground: oklch(0.42 0.03 146);
-  --accent: oklch(0.84 0.18 128);
-  --accent-foreground: oklch(0.13 0.02 128);
-  --destructive: oklch(0.62 0.18 24);
-  --border: oklch(0.86 0.034 124);
-  --input: oklch(0.88 0.026 124);
-  --ring: oklch(0.58 0.14 172);
-  --live: oklch(0.6 0.15 176);
-  --live-foreground: oklch(0.99 0.01 176);
-  --success: oklch(0.64 0.17 151);
-  --success-foreground: oklch(0.99 0.01 151);
-  /* AA-contrast green for small text on pale success tints (see .dark twin). */
-  --success-strong: oklch(0.43 0.13 151);
+  /* Playful kit: hex values are the design contract; the oklch(from …)
+     recipes below derive shades from them, so keep these as the source. */
+  --background: #faf8ee;
+  --foreground: #243325;
+  --card: #ffffff;
+  --card-foreground: #243325;
+  --popover: #ffffff;
+  --popover-foreground: #243325;
+  --primary: #54c400;
+  /* Dark ink on the bright green — white fails AA (2.3:1); mirrors dark mode. */
+  --primary-foreground: #10240b;
+  /* Bottom edge of every chunky pressable — the 4px "3D" shadow color. */
+  --primary-edge: #43a002;
+  --secondary: #f1eedd;
+  --secondary-foreground: #3c4a35;
+  --muted: #f0edda;
+  --muted-foreground: #5d6a52;
+  --accent: #c8ef44;
+  --accent-foreground: #35510a;
+  --destructive: #e03131;
+  --destructive-edge: #b02525;
+  --border: #e7e4d4;
+  --input: #d9d5c0;
+  --ring: #0e7ab5;
+  --live: #0b6e63;
+  --live-foreground: #ffffff;
+  --success: #35750a;
+  --success-foreground: #fffdf2;
+  /* AA-contrast green for small text on pale tints; also the selected-tab text color. */
+  --success-strong: #35750a;
   /* Dark enough to pass contrast as body text on the warm-paper background;
      dark mode keeps the brighter yellow (see .dark block). */
-  --warning: oklch(0.55 0.12 70);
-  --warning-foreground: oklch(0.99 0.01 78);
-  --court-teal: oklch(0.72 0.16 186);
-  --court-mint: oklch(0.87 0.18 132);
-  --court-peach: oklch(0.78 0.17 43);
-  --court-violet: oklch(0.57 0.18 292);
-  --chart-1: oklch(0.82 0.18 121);
-  --chart-2: oklch(0.67 0.13 209);
-  --chart-3: oklch(0.91 0.13 91);
-  --chart-4: oklch(0.67 0.16 22);
-  --chart-5: oklch(0.55 0.12 285);
-  --sidebar: oklch(0.955 0.018 111);
-  --sidebar-foreground: oklch(0.17 0.025 150);
-  --sidebar-primary: oklch(0.82 0.18 121);
-  --sidebar-primary-foreground: oklch(0.14 0.035 150);
-  --sidebar-accent: oklch(0.925 0.036 204);
-  --sidebar-accent-foreground: oklch(0.31 0.085 206);
-  --sidebar-border: oklch(0.86 0.026 122);
-  --sidebar-ring: oklch(0.74 0.17 128);
+  --warning: #9a6d00;
+  --warning-foreground: #fffdf2;
+  --court-teal: #1cb0f6;
+  --court-mint: #c8ef44;
+  --court-peach: #ff9600;
+  --court-violet: #a568f5;
+  --chart-1: #54c400;
+  --chart-2: #1cb0f6;
+  --chart-3: #ffc800;
+  --chart-4: #ff4b4b;
+  --chart-5: #a568f5;
+  --sidebar: #f4f1e2;
+  --sidebar-foreground: #243325;
+  --sidebar-primary: #54c400;
+  --sidebar-primary-foreground: #10240b;
+  --sidebar-accent: #e1f3fd;
+  --sidebar-accent-foreground: #0e7ab5;
+  --sidebar-border: #e7e4d4;
+  --sidebar-ring: #54c400;
+  /* Outline-button text and the hero scorebug accent (flips with the ink/cream shell). */
+  --cta-outline-text: #0e7ab5;
+  --scorebug-accent: #2ecfbf;
 }
 
 .dark {
-  --background: oklch(0.15 0.02 154);
-  --foreground: oklch(0.965 0.006 110);
-  --card: oklch(0.19 0.02 154 / 90%);
-  --card-foreground: oklch(0.965 0.006 110);
-  --popover: oklch(0.18 0.02 154);
-  --popover-foreground: oklch(0.965 0.006 110);
-  --primary: oklch(0.965 0.006 110);
-  --primary-foreground: oklch(0.15 0.02 154);
-  --secondary: oklch(0.24 0.025 154);
-  --secondary-foreground: oklch(0.94 0 0);
-  --muted: oklch(0.24 0.022 154);
-  --muted-foreground: oklch(0.73 0.026 120);
-  --accent: oklch(0.76 0.16 132);
-  --accent-foreground: oklch(0.11 0.02 146);
-  --destructive: oklch(0.66 0.17 24);
-  --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.78 0.1 176);
-  --live: oklch(0.72 0.14 176);
-  --live-foreground: oklch(0.12 0.02 176);
-  --success: oklch(0.72 0.16 151);
-  --success-foreground: oklch(0.12 0.03 151);
-  --success-strong: oklch(0.84 0.15 151);
-  --warning: oklch(0.8 0.14 78);
-  --warning-foreground: oklch(0.13 0.03 78);
-  --court-teal: oklch(0.74 0.14 186);
-  --court-mint: oklch(0.82 0.16 132);
-  --court-peach: oklch(0.76 0.15 43);
-  --court-violet: oklch(0.68 0.15 294);
-  --chart-1: oklch(0.84 0.18 121);
-  --chart-2: oklch(0.72 0.12 209);
-  --chart-3: oklch(0.8 0.14 78);
-  --chart-4: oklch(0.69 0.17 24);
-  --chart-5: oklch(0.66 0.14 285);
-  --sidebar: oklch(0.17 0.028 154);
-  --sidebar-foreground: oklch(0.965 0.012 109);
-  --sidebar-primary: oklch(0.84 0.18 121);
-  --sidebar-primary-foreground: oklch(0.12 0.03 154);
-  --sidebar-accent: oklch(0.25 0.048 207);
-  --sidebar-accent-foreground: oklch(0.9 0.05 207);
-  --sidebar-border: oklch(1 0 0 / 11%);
-  --sidebar-ring: oklch(0.76 0.15 128);
+  --background: #151f18;
+  --foreground: #f3f2e8;
+  --card: #1c281f;
+  --card-foreground: #f3f2e8;
+  --popover: #1b271e;
+  --popover-foreground: #f3f2e8;
+  --primary: #63d90e;
+  --primary-foreground: #10240b;
+  --primary-edge: #3c8f04;
+  --secondary: #243226;
+  --secondary-foreground: #f0efe4;
+  --muted: #243226;
+  --muted-foreground: #a8b39c;
+  --accent: #b1e33b;
+  --accent-foreground: #14210f;
+  --destructive: #e03131;
+  --destructive-edge: #8f1f1f;
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: #4cc2f8;
+  --live: #2ecfbf;
+  --live-foreground: #0b2622;
+  --success: #63d90e;
+  --success-foreground: #10240b;
+  --success-strong: #8fe75a;
+  --warning: #ffc800;
+  --warning-foreground: #332800;
+  --court-teal: #4cc2f8;
+  --court-mint: #b1e33b;
+  --court-peach: #ffa53c;
+  --court-violet: #bd8cf7;
+  --chart-1: #63d90e;
+  --chart-2: #4cc2f8;
+  --chart-3: #ffc800;
+  --chart-4: #ff5252;
+  --chart-5: #bd8cf7;
+  --sidebar: #1a2519;
+  --sidebar-foreground: #f3f2e8;
+  --sidebar-primary: #63d90e;
+  --sidebar-primary-foreground: #10240b;
+  --sidebar-accent: #1e3341;
+  --sidebar-accent-foreground: #9ed9f9;
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: #63d90e;
+  --cta-outline-text: #9ed9f9;
+  --scorebug-accent: #0a6e64;
 }
 
 @layer base {
@@ -196,28 +187,28 @@
     @apply bg-background text-foreground;
     font-feature-settings: "ss01" 1, "cv01" 1, "tnum" 0;
   }
+  /* Score fields: the native spinner strip breaks the chunky rounded inputs. */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
 }
 
 /* Custom utilities for PlaySync's court-control visual system */
 @layer utilities {
   .font-display {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-family: var(--font-display), "Arial Rounded MT Bold", var(--font-sans), sans-serif;
     letter-spacing: 0;
   }
 
   .font-data {
     font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
     font-variant-numeric: tabular-nums;
-  }
-
-  .font-serif-editorial {
-    font-family: var(--font-newsreader), Georgia, serif;
-    font-feature-settings: "ss01" 0, "cv01" 0, "tnum" 0;
-  }
-
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(110deg, var(--primary), var(--accent), var(--live));
   }
 
   .bg-grid {
@@ -369,16 +360,12 @@
   }
 
   .premium-panel {
-    @apply border border-border/70 bg-card/90 backdrop-blur-xl;
-    box-shadow:
-      0 18px 60px -42px rgb(17 39 21 / 0.42),
-      inset 0 1px 0 rgb(255 255 255 / 0.58);
+    @apply border-2 border-border bg-card;
+    box-shadow: 0 4px 0 var(--border);
   }
 
   .dark .premium-panel {
-    box-shadow:
-      0 18px 70px -44px rgb(0 0 0 / 0.82),
-      inset 0 1px 0 rgb(255 255 255 / 0.08);
+    box-shadow: 0 4px 0 oklch(0 0 0 / 0.4);
   }
 
   .data-chip {
@@ -453,6 +440,7 @@
   }
 
   .site-header-secondary {
+    font-weight: 800;
     border-color: oklch(from var(--border) l c h / 0.86);
     background: oklch(from var(--card) l c h / 0.72);
     box-shadow:
@@ -461,16 +449,13 @@
   }
 
   .site-header-primary {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.04) c h), var(--primary));
-    box-shadow:
-      0 16px 30px -24px rgb(0 0 0 / 0.72),
-      0 1px 0 rgb(255 255 255 / 0.16) inset;
+    font-weight: 800;
+    background: var(--primary);
+    box-shadow: 0 4px 0 var(--primary-edge);
   }
 
   .site-header-primary:hover {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.07) c h), var(--primary));
+    background: oklch(from var(--primary) calc(l + 0.04) c h);
   }
 
   .yc-landing {
@@ -538,26 +523,6 @@
     align-items: stretch;
   }
 
-  .hero-primary-cta {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.05) c h), var(--primary));
-    box-shadow:
-      0 18px 34px -24px rgb(0 0 0 / 0.68),
-      0 1px 0 rgb(255 255 255 / 0.16) inset;
-  }
-
-  .hero-primary-cta:hover {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.08) c h), var(--primary));
-  }
-
-  .hero-secondary-cta {
-    border-color: oklch(from var(--border) l c h / 0.84);
-    box-shadow:
-      0 14px 28px -26px rgb(var(--tint-teal) /0.38),
-      0 1px 0 rgb(255 255 255 / 0.74) inset;
-  }
-
   .hero-action-note {
     min-height: 3rem;
     justify-content: center;
@@ -608,15 +573,13 @@
 
   .session-composer [data-testid="hero-create-session"],
   .section-cta [data-testid="final-create-session"] {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.04) c h), var(--primary));
-    box-shadow: 0 18px 34px -24px rgb(0 0 0 / 0.65);
+    background: var(--primary);
+    box-shadow: 0 4px 0 var(--primary-edge);
   }
 
   .session-composer [data-testid="hero-create-session"]:hover,
   .section-cta [data-testid="final-create-session"]:hover {
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.07) c h), var(--primary));
+    background: oklch(from var(--primary) calc(l + 0.04) c h);
   }
 
   .composer-sync-line {
@@ -859,16 +822,16 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 2.65rem));
     overflow: hidden;
-    border: 1px solid oklch(from var(--primary) l c h / 0.12);
+    border: 1px solid oklch(from var(--foreground) l c h / 0.12);
     border-radius: 0.78rem;
-    background: var(--primary);
+    background: var(--foreground);
   }
 
   .phone-score-stack span {
     display: grid;
     min-height: 3.2rem;
     place-items: center;
-    color: var(--primary-foreground);
+    color: var(--background);
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 1.5rem;
     font-weight: 900;
@@ -902,11 +865,13 @@
     justify-content: center;
     gap: 0.5rem;
     border-radius: 0.82rem;
-    background:
-      linear-gradient(180deg, oklch(from var(--primary) calc(l + 0.04) c h), var(--primary));
+    background: var(--primary);
+    box-shadow: 0 4px 0 var(--primary-edge);
     color: var(--primary-foreground);
-    font-size: 0.85rem;
-    font-weight: 800;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     padding-inline: 0.9rem;
     white-space: nowrap;
   }
@@ -1138,7 +1103,7 @@
   }
 
   .bframe-surface {
-    fill: oklch(from var(--primary) calc(l + 0.045) c h);
+    fill: oklch(from var(--foreground) calc(l + 0.045) c h);
   }
 
   .bframe-line {
@@ -1172,15 +1137,15 @@
   /* Dark theme flips the scorebug shell to cream, so the court flips with
      it: ink lines on a shaded cream field, kitchen a touch stronger. */
   .dark .bframe-surface {
-    fill: oklch(from var(--primary) calc(l - 0.06) c h);
+    fill: oklch(from var(--foreground) calc(l - 0.06) c h);
   }
 
   .dark .bframe-line {
-    stroke: oklch(from var(--primary-foreground) l c h / 0.4);
+    stroke: oklch(from var(--background) l c h / 0.4);
   }
 
   .dark .bframe-line-strong {
-    stroke: oklch(from var(--primary-foreground) l c h / 0.55);
+    stroke: oklch(from var(--background) l c h / 0.55);
   }
 
   .dark .bframe-kitchen {
@@ -1192,7 +1157,7 @@
   }
 
   .dark .bframe-ball {
-    stroke: oklch(from var(--primary-foreground) l c h / 0.35);
+    stroke: oklch(from var(--background) l c h / 0.35);
   }
 
   .bframe-ring {
@@ -1232,7 +1197,7 @@
   }
 
   .score-bug-shell {
-    fill: oklch(from var(--primary) calc(l + 0.02) c h / 0.94);
+    fill: oklch(from var(--foreground) calc(l + 0.02) c h / 0.94);
     stroke: rgb(255 255 255 / 0.16);
     stroke-width: 1;
   }
@@ -1293,18 +1258,18 @@
   }
 
   .score-team-label {
-    fill: var(--primary-foreground);
+    fill: var(--background);
     font-family: var(--font-geist-sans), var(--font-sans), sans-serif;
     font-size: 14px;
     font-weight: 800;
   }
 
   .score-team-muted {
-    fill: oklch(from var(--primary-foreground) l c h / 0.72);
+    fill: oklch(from var(--background) l c h / 0.72);
   }
 
   .score-number {
-    fill: var(--primary-foreground);
+    fill: var(--background);
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 32px;
     font-weight: 800;
@@ -1332,7 +1297,7 @@
   }
 
   .score-next-up text {
-    fill: var(--primary-foreground);
+    fill: var(--background);
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 9px;
     font-weight: 800;
@@ -1355,14 +1320,14 @@
     display: grid;
     gap: 0;
     overflow: hidden;
-    border: 1px solid oklch(from var(--primary) l c h / 0.16);
+    border: 2px solid var(--border);
     border-radius: var(--radius);
-    background:
-      linear-gradient(100deg, oklch(from var(--primary) calc(l + 0.02) c h), oklch(from var(--live) calc(l - 0.22) c h)),
-      var(--primary);
-    box-shadow:
-      0 24px 72px -56px rgb(0 0 0 / 0.55),
-      inset 0 1px 0 rgb(255 255 255 / 0.12);
+    background: var(--card);
+    box-shadow: 0 4px 0 var(--border);
+  }
+
+  .dark .motion-rail {
+    box-shadow: 0 4px 0 oklch(0 0 0 / 0.4);
   }
 
   .motion-rail::before {
@@ -1371,7 +1336,7 @@
     inset-block: 0;
     left: 0;
     width: 22%;
-    background: linear-gradient(90deg, transparent, oklch(from var(--court-mint) l c h / 0.2), transparent);
+    background: linear-gradient(90deg, transparent, oklch(from var(--primary) l c h / 0.1), transparent);
     animation: rail-sweep 7s ease-in-out infinite;
   }
 
@@ -1381,10 +1346,11 @@
     min-height: 4rem;
     align-items: center;
     gap: 1rem;
-    border-bottom: 1px solid rgb(255 255 255 / 0.14);
+    border-bottom: 2px solid var(--border);
     padding: 1rem;
     font-size: 0.9375rem;
-    color: var(--primary-foreground);
+    font-weight: 700;
+    color: var(--foreground);
   }
 
   .motion-rail-step:last-child {
@@ -1395,13 +1361,14 @@
     display: inline-flex;
     min-width: 2.2rem;
     justify-content: center;
-    border: 1px solid oklch(from var(--court-teal) l c h / 0.48);
+    border: 2px solid oklch(from var(--primary) l c h / 0.3);
     border-radius: 999px;
-    background: oklch(from var(--court-teal) l c h / 0.18);
+    background: oklch(from var(--primary) l c h / 0.12);
     padding: 0.25rem 0.45rem;
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 0.75rem;
-    color: oklch(from var(--primary-foreground) l c h / 0.74);
+    font-weight: 800;
+    color: var(--success-strong);
   }
 
   .product-proof-grid {
@@ -1689,7 +1656,7 @@
     }
 
     .motion-rail-step {
-      border-right: 1px solid rgb(255 255 255 / 0.14);
+      border-right: 2px solid var(--border);
       border-bottom: 0;
     }
 

@@ -3,6 +3,43 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.8.0] - 2026-08-23
+
+PlaySync got a whole new look. The app now feels like a game night, not a
+spreadsheet: warm paper backgrounds, a rally-green kit, rounded display type,
+and chunky buttons that physically press down when you tap them.
+
+### Changed
+- **A playful new design, everywhere.** Every screen — landing page, setup
+  wizard, live rounds, standings, score entry — now runs on one system: warm
+  paper and deep-ink themes, rally green with sky/sun/peach/violet accents,
+  Baloo 2 rounded headings with Nunito body text, and pill-shaped badges and
+  tabs. Light and dark mode both got the full treatment.
+- **Buttons you can feel.** Primary actions are chunky green buttons with a
+  3D bottom edge that press down on tap; court cards, inputs, and the round
+  progress bar (now with a glossy highlight strip) follow the same language.
+- **The hero scoreboard reads better.** The landing page's live demo
+  scoreboard keeps its broadcast-style ink shell (cream in dark mode) with a
+  brighter score accent, and the "Confirm round", "Save score", and "Start
+  sharing" buttons now match the rest of the app instead of using their own
+  gradient style.
+- Share previews aside, the installed-app splash and status bar colors now
+  match the new palette.
+
+### Fixed
+- **Readability throughout light mode.** Button labels, live badges, winner
+  names, standings margins, avatar initials, muted body text, and selection
+  highlights all meet accessibility contrast now — including on the bright
+  green surfaces — and keyboard focus rings are easier to see.
+- Score fields no longer show the browser's native up/down spinner inside
+  the rounded inputs, long names in badges trim with an ellipsis instead of
+  clipping mid-letter, and the big Create buttons no longer sink twice as
+  far as their shadow edge on press.
+
+### Removed
+- The old shimmer-gradient button, the serif editorial headline font, and
+  other leftover pieces of the previous design no longer ship with the app.
+
 ## [0.7.0] - 2026-07-20
 
 You pick who sits. Team Gauntlet organizers can now bench teams by hand, and

@@ -99,10 +99,10 @@ export function RotatingLeaderboard({
                   : null;
               const podiumIconColor =
                 index === 0
-                  ? "text-primary"
+                  ? "text-success"
                   : index === 1
                   ? "text-live"
-                  : "text-accent";
+                  : "text-warning";
 
               // Court assignment (for court-weighted formats)
               const courtAssignment = showCourtAssignments
@@ -123,7 +123,7 @@ export function RotatingLeaderboard({
                   className={cn(
                     "relative overflow-hidden rounded-lg border p-3",
                     isLeader
-                      ? "border-primary/55 bg-primary/10"
+                      ? "border-success/70 bg-primary/10"
                       : index === 1 && hasGames
                       ? "border-live/40 bg-live/10"
                       : index === 2 && hasGames

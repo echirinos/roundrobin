@@ -167,7 +167,7 @@ export function DuprSearch({ onPlayerSelect, disabled = false }: DuprSearchProps
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold">
                         {player.name.charAt(0).toUpperCase()}
                       </div>
                     )}

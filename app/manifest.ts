@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Create a live pickleball session, share a QR code, post the next game, and collect courtside scores from one mobile-friendly link.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f8fbef",
-    theme_color: "#162119",
+    background_color: "#faf8ee",
+    theme_color: "#151f18",
     icons: [
       {
         src: "/playsync-logo-icon.png",

@@ -26,7 +26,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ShineBorder } from "@/components/ui/shine-border";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
 import type { SessionStats } from "@/src/lib/live-session";
 
 export type LiveSyncStatus = "local" | "publishing" | "syncing" | "live" | "error";
@@ -340,7 +339,7 @@ export function SessionShareSheet({
                 Refresh now
               </Button>
             ) : (
-              <ShimmerButton
+              <Button
                 type="button"
                 onClick={onPublish}
                 disabled={isBusy}
@@ -348,17 +347,14 @@ export function SessionShareSheet({
                   code ? "live_session_sync_clicked" : "live_session_publish_clicked"
                 }
                 data-analytics-location="live_session_sheet"
-                borderRadius="0.5rem"
-                background="linear-gradient(135deg, var(--primary), var(--accent))"
-                shimmerColor="var(--live)"
-                className="h-11 w-full gap-2 px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full gap-2"
               >
                 <RefreshCw
                   data-icon="inline-start"
                   className={isBusy ? "size-4 animate-spin" : "size-4"}
                 />
                 {code ? "Update now" : "Start sharing"}
-              </ShimmerButton>
+              </Button>
             )}
             <p className="text-center text-xs text-muted-foreground">
               Anyone with the link or code can watch the scores but can&apos;t
