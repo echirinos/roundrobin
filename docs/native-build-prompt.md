@@ -77,8 +77,10 @@ and low-friction at the one moment that matters. The four things to be visibly b
   matchmaking, scoring, standings, and formats. Source files:
   src/lib/formats/{scoring,fixed-generators,rotating-generators,court-optimizer,index}.ts,
   src/lib/dupr/*, src/lib/live-session.ts, src/types/{formats,database}.ts. VENDOR
-  these into the mobile repo as an internal /engine module (they drop in unchanged
-  because they're framework-agnostic). Do not rewrite the round-robin math — porting a
+  these into the mobile repo as an internal /engine module (they're
+  framework-agnostic; the only mechanical change is remapping the web repo's `@/`
+  import alias, and the DUPR module's env/fetch touchpoints need thin native
+  adapters). Do not rewrite the round-robin math — porting a
   battle-tested engine beats reinventing it. The engine ships with a passing sim suite
   (`npm run sim` in the web repo); bring those sims across and keep them green. If the
   web engine changes later, re-vendor; if drift becomes painful, extract the engine to
@@ -90,7 +92,7 @@ and low-friction at the one moment that matters. The four things to be visibly b
 - Reuse the web design tokens (app/globals.css: --primary, --live, --success,
   --warning, the court theme, fonts) as the seed for a typed native theme — then
   elevate them to native-app quality.
-- Feature parity target: all 15+ formats, rotating + fixed partners, the setup wizard,
+- Feature parity target: every format the web wizard exposes (13 today), rotating + fixed partners, the setup wizard,
   DUPR add/search, the late-add flow, live spectator + QR, score entry, and standings.
 
 ## Recommended stack (strong default; override only with written justification)
