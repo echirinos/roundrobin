@@ -3,6 +3,27 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.8.4] - 2026-08-24
+
+The page came alive. The mascots bob and blink, the formats glide by on
+their own, and the whole landing page feels fuller without a word added.
+
+### Changed
+- **Ambient motion everywhere it counts.** The hero players idle-bounce
+  and blink, the rally ball floats, the sky-panel stickers drift, and the
+  mascot bobs at the final call-to-action. Everything respects your
+  reduced-motion setting.
+- **The format strip glides.** It's now a slow, seamless ticker across the
+  full width of the page — no more names cut off mid-word.
+- The hero art is bigger, sections sit closer together, a mascot peeks
+  over the live demo card, and a one-liner under the buttons answers the
+  first question ("Free · no app · any phone browser").
+
+### Fixed
+- One animation engine instead of two: the app now imports from the
+  `motion` package directly and the duplicate `framer-motion` dependency
+  is gone.
+
 ## [0.8.3] - 2026-08-24
 
 The session screen got the app-native treatment: a bold color-block header
