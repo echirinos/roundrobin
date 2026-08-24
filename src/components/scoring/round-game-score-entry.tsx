@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { MascotBall } from "@/components/brand/mascot";
 import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -327,82 +328,72 @@ function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewPr
     { name: team2, score: s2, won: s2 > s1 },
   ];
   const winner = rows.find((r) => r.won);
+  const scoreline = `${Math.max(s1, s2)}\u2013${Math.min(s1, s2)}`;
+
+  // The Duolingo "match complete" grammar: mascot reacting, a loud colored
+  // headline, one quip, and outlined stat chips with the label on the border.
+  const chips = [
+    winner
+      ? { label: "Winner", value: winner.name, color: "var(--sun-headline)" }
+      : { label: "Result", value: "Tie game", color: "var(--sun-headline)" },
+    { label: "Score", value: scoreline, color: "var(--success-strong)" },
+  ];
 
   return (
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
       animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="relative flex flex-col items-center gap-5 py-6 text-center"
+      className="relative flex flex-col items-center gap-5 py-4 text-center"
       aria-live="polite"
     >
       <ConfettiBurst fireKey={`${team1}-${s1}-${s2}`} fireOnMount />
-      <div className="relative flex size-14 items-center justify-center">
-        {!reduceMotion && (
-          <motion.span
-            className="absolute inset-0 rounded-full bg-live/30"
-            initial={{ scale: 0.6, opacity: 0.7 }}
-            animate={{ scale: 1.9, opacity: 0 }}
-            transition={{ duration: 0.9, ease: "easeOut" }}
-          />
-        )}
-        <motion.span
-          className="relative flex size-14 items-center justify-center rounded-full bg-live text-live-foreground shadow-sm"
-          initial={reduceMotion ? false : { scale: 0.5 }}
-          animate={reduceMotion ? undefined : { scale: 1 }}
-          transition={{ type: "spring", stiffness: 420, damping: 18 }}
-        >
-          <Check className="size-7" strokeWidth={2.5} />
-        </motion.span>
+      <motion.div
+        initial={reduceMotion ? false : { scale: 0.6, rotate: -8 }}
+        animate={reduceMotion ? undefined : { scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 16 }}
+      >
+        <MascotBall size={132} medal={Boolean(winner)} />
+      </motion.div>
+
+      <div className="space-y-1.5">
+        <p className="font-display text-3xl font-bold text-(--sun-headline)">
+          Game posted!
+        </p>
+        <p className="text-sm font-bold text-muted-foreground">
+          {winner ? (
+            <>
+              <span className="text-foreground">{winner.name}</span> take it{" "}
+              {scoreline}. The next game is up.
+            </>
+          ) : (
+            "Dead even. The next game is up."
+          )}
+        </p>
       </div>
 
-      <div className="w-full space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          Final
-        </p>
-        {rows.map((row, i) => (
+      <div className="flex w-full justify-center gap-3">
+        {chips.map((chip) => (
           <div
-            key={i}
-            className={cn(
-              "flex items-center justify-between gap-3 rounded-lg border px-3 py-2",
-              row.won
-                ? "border-live/45 bg-live/10"
-                : "border-border/60 bg-background/50"
-            )}
+            key={chip.label}
+            className="min-w-0 flex-1 rounded-2xl border-2 pt-0 text-center"
+            style={{ borderColor: chip.color }}
           >
-            <span
-              className={cn(
-                "min-w-0 break-words text-left text-sm font-semibold",
-                row.won ? "text-foreground" : "text-muted-foreground"
-              )}
+            <p
+              className="rounded-t-[0.85rem] py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-white"
+              style={{ backgroundColor: chip.color }}
             >
-              {row.name}
-            </span>
-            <span
-              className={cn(
-                "font-display text-3xl font-semibold tabular-nums tracking-tight",
-                row.won ? "text-success" : "text-muted-foreground"
-              )}
+              {chip.label}
+            </p>
+            <p
+              className="truncate px-2 py-2.5 font-display text-lg font-bold leading-none"
+              style={{ color: chip.color }}
             >
-              {/* No count-up here: this view CONFIRMS what was saved, and a
-                  mid-animation "7–7" under "Felix & Carla take it" read like
-                  the app saved the wrong score. The check pulse is the beat. */}
-              <NumberTicker value={row.score} />
-            </span>
+              {chip.value}
+            </p>
           </div>
         ))}
       </div>
-
-      <p className="text-sm text-muted-foreground">
-        {winner ? (
-          <>
-            <span className="font-semibold text-foreground">{winner.name}</span> take
-            it. The next game is up.
-          </>
-        ) : (
-          "Score saved. The next game is up."
-        )}
-      </p>
     </motion.div>
   );
 }

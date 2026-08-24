@@ -15,13 +15,13 @@ import {
   WifiOff,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MascotPeek } from "@/components/brand/mascot";
 import { PlaySyncLogo } from "@/components/brand/playsync-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { ShineBorder } from "@/components/ui/shine-border";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -920,22 +920,18 @@ export default function TournamentPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1.2, 0.36, 1] }}
-            className="premium-panel court-line-surface relative overflow-hidden rounded-lg p-4 sm:p-5"
+            className="session-band relative overflow-hidden rounded-3xl p-4 sm:p-5"
           >
-            {isLive && (
-              <ShineBorder
-                borderWidth={1}
-                duration={12}
-                shineColor={["var(--live)", "var(--primary)", "var(--accent)"]}
-              />
-            )}
+            <div className="pointer-events-none absolute -right-2 -top-7 hidden rotate-[165deg] opacity-90 sm:block" aria-hidden="true">
+              <MascotPeek width={104} />
+            </div>
             <div className="relative z-10 flex flex-col gap-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
                       variant={isLive ? "default" : "secondary"}
-                      className={isLive ? "bg-live text-live-foreground" : undefined}
+                      className="border-transparent bg-black/15 text-current"
                     >
                       {isLive ? (
                         <Wifi className="size-3" />
@@ -948,7 +944,7 @@ export default function TournamentPage() {
                         ? "Live session"
                         : "Local session"}
                     </Badge>
-                    <Badge variant="outline">{formatDefinition.name}</Badge>
+                    <Badge variant="outline" className="border-current/25 bg-white/15 text-current">{formatDefinition.name}</Badge>
                   </div>
                   {/* Spectators on an unstarted session get watcher copy —
                       "add names and start the round" is an organizer's job. */}
@@ -959,7 +955,7 @@ export default function TournamentPage() {
                       ? "Waiting for the organizer"
                       : "Create round robin"}
                   </h1>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 opacity-80">
                     {state.tournamentStarted
                       ? `${state.players.length} players, ${sessionStats.statusLabel.toLowerCase()}`
                       : isSpectator
@@ -982,7 +978,7 @@ export default function TournamentPage() {
                           duration: 0.3,
                           ease: [0.22, 1, 0.36, 1],
                         }}
-                        className="rounded-lg border border-border/70 bg-background/65 p-3 text-center shadow-sm backdrop-blur"
+                        className="rounded-2xl bg-card p-3 text-center text-card-foreground shadow-[0_3px_0_rgb(0_0_0/0.18)]"
                       >
                         <StatIcon className={`mx-auto size-4 ${item.tone}`} />
                         {/* No mount count-up: these numbers are authoritative
@@ -1001,17 +997,20 @@ export default function TournamentPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/70 bg-background/55 p-3 shadow-inner backdrop-blur">
+              <div className="rounded-2xl bg-black/10 p-3">
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium text-muted-foreground">
+                  <span className="font-bold opacity-85">
                     {sessionStats.statusLabel}
                   </span>
                   <span className="font-data font-semibold">
                     {sessionStats.progressLabel}
                   </span>
                 </div>
-                <Progress value={sessionStats.progressPercent} className="mt-2" />
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <Progress
+                  value={sessionStats.progressPercent}
+                  className="mt-2 bg-black/15 [&_[data-slot=progress-indicator]]:bg-(--band-fg) [&_[data-slot=progress-indicator]]:after:bg-white/25"
+                />
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold opacity-75">
                   <span>
                     {/* Only point at the Share button when it's actually
                         rendered (started sessions). */}

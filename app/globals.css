@@ -128,6 +128,11 @@
   /* Outline-button text and the hero scorebug accent (flips with the ink/cream shell). */
   --cta-outline-text: #0d6da1;
   --scorebug-accent: #2ecfbf;
+  /* Celebration headline gold — AA on white; dark mode brightens to sun. */
+  --sun-headline: #b07b00;
+  /* Colored session-band pairing (Yik Yak-style header block). */
+  --band-bg: #54c400;
+  --band-fg: #10240b;
 }
 
 .dark {
@@ -280,6 +285,16 @@
 
   .touch-target {
     min-height: 44px;
+  }
+
+  .session-band {
+    background: var(--band-bg);
+    color: var(--band-fg);
+    box-shadow: 0 4px 0 var(--primary-edge);
+  }
+
+  .dark .session-band {
+    box-shadow: 0 4px 0 oklch(0 0 0 / 0.4);
   }
 
   .site-header {
