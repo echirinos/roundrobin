@@ -192,6 +192,74 @@
     @apply bg-background text-foreground;
     font-feature-settings: "ss01" 1, "cv01" 1, "tnum" 0;
   }
+  /* Ambient motion: idle bobs and floats that make whitespace feel alive.
+     All of it dies under prefers-reduced-motion. */
+  .bob {
+    animation: bob 3.4s ease-in-out infinite;
+  }
+
+  .bob-late {
+    animation: bob 3.4s ease-in-out 1.1s infinite;
+  }
+
+  .float-slow {
+    animation: bob 5.5s ease-in-out infinite;
+  }
+
+  .float-slower {
+    animation: bob 7s ease-in-out 0.8s infinite;
+  }
+
+  @keyframes bob {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -9px;
+    }
+  }
+
+  .mascot-blink {
+    animation: mascot-blink 4.6s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  @keyframes mascot-blink {
+    0%,
+    93%,
+    100% {
+      transform: scaleY(1);
+    }
+    95%,
+    97% {
+      transform: scaleY(0.1);
+    }
+  }
+
+  /* Duolingo-style format marquee: track holds two copies, slides one. */
+  .marquee-track {
+    animation: marquee 30s linear infinite;
+  }
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bob,
+    .bob-late,
+    .float-slow,
+    .float-slower,
+    .mascot-blink,
+    .marquee-track {
+      animation: none;
+    }
+  }
+
   /* Confetti pieces for ConfettiBurst — pop up, tumble down, fade out. */
   .confetti-piece {
     position: absolute;

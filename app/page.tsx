@@ -3,9 +3,9 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { MascotArt, MascotBall } from "@/components/brand/mascot";
+import { MascotArt, MascotBall, MascotPeek } from "@/components/brand/mascot";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -163,7 +163,7 @@ function Reveal({
   const reduceMotion = useReducedMotion();
 
   return (
-    // Full `transform` strings stay hardware-accelerated (framer-motion's
+    // Full `transform` strings stay hardware-accelerated (motion's
     // x/y shorthands run on the main thread and drop frames during page
     // load), and entrances pair the rise with opacity — nothing should slide
     // while fully visible.
@@ -203,7 +203,7 @@ function HeroIllustration() {
     <svg
       viewBox="0 0 560 480"
       fill="none"
-      className="h-auto w-full max-w-[32rem]"
+      className="h-auto w-full max-w-[35rem]"
       role="img"
       aria-label="Two happy pickleballs mid-rally over a net"
     >
@@ -223,15 +223,19 @@ function HeroIllustration() {
       <ellipse cx="292" cy="352" rx="16" ry="4" fill="#243325" opacity="0.1" />
       {/* left player: leaping for the shot */}
       <path d="M28 210h34M20 240h42M32 270h30" stroke="#8ab818" strokeWidth="7" strokeLinecap="round" opacity="0.6" />
-      <g transform="translate(62 128) rotate(-10 100 100) scale(0.94)">
-        <MascotArt band="#ff9600" />
+      <g className="bob">
+        <g transform="translate(62 128) rotate(-10 100 100) scale(0.94)">
+          <MascotArt band="#ff9600" />
+        </g>
       </g>
       <g transform="translate(224 318) rotate(-38) scale(0.82)">
         <Paddle face="#a568f5" faceInner="#bd8cf7" />
       </g>
       {/* right player: hyped for the return */}
-      <g transform="translate(346 178) rotate(7 100 100) scale(0.76)">
-        <MascotArt band="#1cb0f6" expression="open" />
+      <g className="bob-late">
+        <g transform="translate(346 178) rotate(7 100 100) scale(0.76)">
+          <MascotArt band="#1cb0f6" expression="open" />
+        </g>
       </g>
       <g transform="translate(514 336) rotate(30) scale(0.82)">
         <Paddle face="#ffc800" faceInner="#ffd84d" />
@@ -244,7 +248,9 @@ function HeroIllustration() {
         strokeLinecap="round"
         strokeDasharray="1 20"
       />
-      <circle cx="342" cy="190" r="15" fill="#c8ef44" stroke="#8ab818" strokeWidth="5" />
+      <g className="float-slow">
+        <circle cx="342" cy="190" r="15" fill="#c8ef44" stroke="#8ab818" strokeWidth="5" />
+      </g>
       <path d="M368 176l16-8M370 192l18 0M366 206l15 8" stroke="#ffc800" strokeWidth="6" strokeLinecap="round" />
       {/* confetti */}
       <circle cx="84" cy="84" r="9" fill="#1cb0f6" />
@@ -261,7 +267,7 @@ function PhoneIllustration() {
     <svg
       viewBox="0 0 300 340"
       fill="none"
-      className="h-auto w-full max-w-[17rem]"
+      className="h-auto w-full max-w-[18rem]"
       role="img"
       aria-label="A phone showing a QR code and live scores"
     >
@@ -308,7 +314,7 @@ function RotationIllustration() {
     <svg
       viewBox="0 0 440 340"
       fill="none"
-      className="h-auto w-full max-w-[26rem]"
+      className="h-auto w-full max-w-[28rem]"
       role="img"
       aria-label="Four players rotating around a court while one rests on the bench"
     >
@@ -402,8 +408,11 @@ function PlayableScorebug() {
     displayScore[0] === displayScore[1] ? -1 : displayScore[0] > displayScore[1] ? 0 : 1;
 
   return (
-    <div className="w-full max-w-[26rem]">
-      <div className="overflow-hidden rounded-3xl border-2 border-border bg-card shadow-[0_4px_0_var(--border)]">
+    <div className="relative w-full max-w-[26rem]">
+      <div className="pointer-events-none absolute -top-11 right-6 hidden sm:block" aria-hidden="true">
+        <MascotPeek width={88} />
+      </div>
+      <div className="relative overflow-hidden rounded-3xl border-2 border-border bg-card shadow-[0_4px_0_var(--border)]">
         <div className="flex items-center justify-between gap-3 border-b-2 border-border px-5 py-3">
           <span className="truncate text-xs font-extrabold uppercase tracking-[0.14em] text-muted-foreground">
             {isReal ? `${displayCourt} · ${featured.sessionName}` : displayCourt}
@@ -553,7 +562,7 @@ function FeatureSection({
   flip?: boolean;
 }) {
   return (
-    <section id={id} className="mx-auto w-full max-w-5xl px-6 py-16 sm:py-24">
+    <section id={id} className="mx-auto w-full max-w-5xl px-6 py-14 sm:py-20">
       <Reveal>
         <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">
           <div className={cn("flex justify-center", flip ? "md:order-2" : "")}>{art}</div>
@@ -584,7 +593,7 @@ export default function Home() {
 
       <main>
         {/* Hero: illustration + one sentence + two buttons. Nothing else. */}
-        <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-6 pb-16 pt-12 sm:pt-16 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] md:gap-14 md:pb-24 md:pt-20">
+        <section className="mx-auto grid w-full max-w-5xl items-center gap-10 px-6 pb-12 pt-12 sm:pt-14 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:gap-12 md:pb-16 md:pt-16">
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, transform: "scale(0.94)" }}
             animate={{ opacity: 1, transform: "scale(1)" }}
@@ -600,7 +609,7 @@ export default function Home() {
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
             className="flex flex-col items-center gap-8 md:items-start"
           >
-            <h1 className="max-w-md text-balance text-center font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl md:text-left">
+            <h1 className="max-w-lg text-balance text-center font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl md:text-left">
               The fun way to run pickleball night!
             </h1>
             <div className="flex w-full max-w-[21rem] flex-col gap-3">
@@ -625,21 +634,34 @@ export default function Home() {
                   Join with a code
                 </Link>
               </Button>
+              <p className="mt-1 text-center text-sm font-bold text-muted-foreground">
+                Free &middot; no app &middot; any phone browser
+              </p>
             </div>
           </motion.div>
         </section>
 
-        {/* Format strip — the "language carousel". Real formats only. */}
-        <div className="border-y-2 border-border">
-          <div className="mx-auto flex max-w-5xl items-center gap-x-8 gap-y-3 overflow-x-auto px-6 py-4 [scrollbar-width:none] md:flex-wrap md:justify-center md:overflow-visible [&::-webkit-scrollbar]:hidden">
-            {FORMATS.map((format) => (
-              <span
-                key={format.name}
-                className="flex shrink-0 items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground"
+        {/* Format strip — the "language carousel", as a slow full-bleed
+            marquee. The track holds two copies of the list and slides by
+            exactly one copy; reduced motion parks it as a static strip. */}
+        <div className="overflow-hidden border-y-2 border-border py-4">
+          <div className="marquee-track flex w-max items-center">
+            {[0, 1].map((copy) => (
+              <div
+                key={copy}
+                aria-hidden={copy === 1 || undefined}
+                className="flex items-center gap-10 pr-10"
               >
-                <FormatGlyph glyph={format.glyph} color={format.color} />
-                {format.name}
-              </span>
+                {FORMATS.map((format) => (
+                  <span
+                    key={format.name}
+                    className="flex shrink-0 items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground"
+                  >
+                    <FormatGlyph glyph={format.glyph} color={format.color} />
+                    {format.name}
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -675,23 +697,23 @@ export default function Home() {
               <PhoneIllustration />
             </Reveal>
             {/* floating stickers, desktop garnish only */}
-            <div className="absolute left-8 top-24 hidden w-16 -rotate-12 lg:block" aria-hidden="true">
+            <div className="float-slow absolute left-8 top-24 hidden w-16 -rotate-12 sm:block" aria-hidden="true">
               <StickerTile color="#54c400" side="#3f8a06">
                 <path d="M28 46l10 10 22-24" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </StickerTile>
             </div>
-            <div className="absolute right-10 top-32 hidden w-[4.5rem] rotate-6 lg:block" aria-hidden="true">
+            <div className="float-slower absolute right-10 top-32 hidden w-[4.5rem] rotate-6 sm:block" aria-hidden="true">
               <StickerTile color="#ffc800" side="#e0a500">
                 <path d="M26 26h32v10a16 16 0 01-32 0zM36 56h12M32 64h20" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
               </StickerTile>
             </div>
-            <div className="absolute bottom-28 left-14 hidden w-14 rotate-6 lg:block" aria-hidden="true">
+            <div className="float-slower absolute bottom-28 left-14 hidden w-14 rotate-6 sm:block" aria-hidden="true">
               <StickerTile color="#a568f5" side="#7440c9">
                 <ellipse cx="42" cy="36" rx="17" ry="20" stroke="#ffffff" strokeWidth="6" fill="none" />
                 <path d="M42 56v10" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
               </StickerTile>
             </div>
-            <div className="absolute bottom-24 right-12 hidden -rotate-6 lg:block" aria-hidden="true">
+            <div className="float-slow absolute bottom-24 right-12 hidden -rotate-6 sm:block" aria-hidden="true">
               <span className="inline-block rounded-full border-2 border-[#b6dff5] bg-white px-4 py-2 font-display text-lg font-bold tracking-[0.14em] text-[#0b4f79] shadow-[0_4px_0_#b6dff5] dark:border-[#1d3c50] dark:bg-[#0c1b26] dark:text-[#9ed9f9] dark:shadow-[0_4px_0_#1d3c50]">
                 PLAY42
               </span>
@@ -714,7 +736,9 @@ export default function Home() {
         {/* Final call. One button, mascot cheering it on. */}
         <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-7 px-6 pb-24 pt-8 text-center sm:pb-32">
           <Reveal className="flex flex-col items-center gap-7">
-            <MascotBall size={120} />
+            <div className="bob">
+              <MascotBall size={120} />
+            </div>
             <h2 className="font-display text-4xl font-bold lowercase text-foreground sm:text-5xl">
               ready to play?
             </h2>

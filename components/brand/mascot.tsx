@@ -23,10 +23,12 @@ export function MascotArt({
         strokeWidth="16"
         strokeLinecap="round"
       />
-      <ellipse cx="76" cy="110" rx="13" ry="16" fill="#ffffff" />
-      <ellipse cx="124" cy="110" rx="13" ry="16" fill="#ffffff" />
-      <circle cx="79" cy="113" r="6.5" fill="#243325" />
-      <circle cx="121" cy="113" r="6.5" fill="#243325" />
+      <g className="mascot-blink">
+        <ellipse cx="76" cy="110" rx="13" ry="16" fill="#ffffff" />
+        <ellipse cx="124" cy="110" rx="13" ry="16" fill="#ffffff" />
+        <circle cx="79" cy="113" r="6.5" fill="#243325" />
+        <circle cx="121" cy="113" r="6.5" fill="#243325" />
+      </g>
       {expression === "smile" ? (
         <path
           d="M82 146c6 7 12 10 18 10s12-3 18-10"
