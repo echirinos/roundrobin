@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
+import { MascotArt, MascotBall } from "@/components/brand/mascot";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -184,67 +185,6 @@ function Reveal({
 /* face on every character. Fixed art colors on purpose — they read as  */
 /* stickers in both themes.                                             */
 /* ------------------------------------------------------------------ */
-
-// The mascot: a pickleball with a sweatband. Band color and expression
-// vary per character; the face stays clear of the holes.
-function MascotArt({
-  band = "#ff9600",
-  expression = "smile",
-}: {
-  band?: string;
-  expression?: "smile" | "open";
-}) {
-  return (
-    <>
-      <circle cx="100" cy="100" r="88" fill="#c8ef44" stroke="#8ab818" strokeWidth="7" />
-      <circle cx="58" cy="52" r="9" fill="#a5cc2e" />
-      <circle cx="100" cy="38" r="9" fill="#a5cc2e" />
-      <circle cx="142" cy="52" r="9" fill="#a5cc2e" />
-      <circle cx="164" cy="92" r="9" fill="#a5cc2e" />
-      <circle cx="36" cy="92" r="9" fill="#a5cc2e" />
-      <path
-        d="M28 78c14-26 42-42 72-42s58 16 72 42"
-        stroke={band}
-        strokeWidth="16"
-        strokeLinecap="round"
-      />
-      <ellipse cx="76" cy="110" rx="13" ry="16" fill="#ffffff" />
-      <ellipse cx="124" cy="110" rx="13" ry="16" fill="#ffffff" />
-      <circle cx="79" cy="113" r="6.5" fill="#243325" />
-      <circle cx="121" cy="113" r="6.5" fill="#243325" />
-      {expression === "smile" ? (
-        <path
-          d="M82 146c6 7 12 10 18 10s12-3 18-10"
-          stroke="#243325"
-          strokeWidth="7"
-          strokeLinecap="round"
-        />
-      ) : (
-        <>
-          <ellipse cx="100" cy="150" rx="15" ry="12" fill="#243325" />
-          <ellipse cx="100" cy="155" rx="8" ry="5" fill="#ff8a7a" />
-        </>
-      )}
-      <circle cx="58" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
-      <circle cx="142" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
-    </>
-  );
-}
-
-function MascotBall({ size = 200 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size * 1.04}
-      viewBox="0 0 200 208"
-      fill="none"
-      aria-hidden="true"
-    >
-      <ellipse cx="100" cy="199" rx="62" ry="8" fill="#243325" opacity="0.08" />
-      <MascotArt />
-    </svg>
-  );
-}
 
 // A paddle with a 2.5D face inset, reusable at any angle.
 function Paddle({ face, faceInner }: { face: string; faceInner: string }) {
