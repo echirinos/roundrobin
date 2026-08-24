@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "motion/react";
 
 // One playful burst per fireKey change (null = armed but quiet). Pieces are
 // pure CSS animation (confetti-pop in globals.css) and clean themselves up,
