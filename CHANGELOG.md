@@ -3,6 +3,35 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.8.2] - 2026-08-24
+
+Scoring feels like a game now. Big plus buttons, confetti when a score
+posts, and a setup flow that works like a lesson — one fat progress bar,
+one step at a time.
+
+### Changed
+- **Score entry is a tap, not a form.** Each team gets a big card with a
+  giant green **+** (and a small **−**), the leading team highlights as you
+  go, and the quick-score buttons are big enough for real thumbs. You can
+  still type a score directly.
+- **Confetti.** Posting a score and finishing a round both get a burst of
+  it. It only plays for the person who just did the thing — reloading the
+  page doesn't re-celebrate.
+- **Setup reads like a lesson.** A single fat progress bar spans the top of
+  the wizard, and the partner-mode switch now clearly shows which mode is
+  on (the active side is a raised card with green text).
+- **A livelier front door.** The hero is now a two-player rally — both
+  mascots, a net, and the ball mid-flight — the "every phone is the
+  scoreboard" section became a full-width sky panel with sticker art, and
+  each format in the strip has its own little icon. On desktop the strip
+  wraps instead of cutting off mid-word.
+
+### Fixed
+- Hovering an unselected toggle no longer paints it brighter than the
+  selected one (the old accent color made "Set teams" look active when it
+  wasn't).
+- "Join with a code" text is a touch darker to pass contrast checks.
+
 ## [0.8.1] - 2026-08-23
 
 PlaySync has a mascot. The home page was rebuilt from scratch in the playful

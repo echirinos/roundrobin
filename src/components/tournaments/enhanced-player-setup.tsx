@@ -1517,7 +1517,7 @@ export function EnhancedPlayerSetup({
           <ToggleGroupItem
             value="rotating"
             aria-label="Use rotating partners"
-            className="h-12 justify-center gap-2 rounded-md border-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            className="h-12 justify-center gap-2 rounded-md border-0 data-[state=on]:bg-card data-[state=on]:text-(--success-strong) data-[state=on]:shadow-sm"
           >
             <UsersRound />
             <span className="font-semibold">Rotating partners</span>
@@ -1525,7 +1525,7 @@ export function EnhancedPlayerSetup({
           <ToggleGroupItem
             value="fixed"
             aria-label="Use set teams"
-            className="h-12 justify-center gap-2 rounded-md border-0 data-[state=on]:bg-background data-[state=on]:shadow-sm"
+            className="h-12 justify-center gap-2 rounded-md border-0 data-[state=on]:bg-card data-[state=on]:text-(--success-strong) data-[state=on]:shadow-sm"
           >
             <Users />
             <span className="font-semibold">Set teams</span>
@@ -1829,72 +1829,50 @@ export function EnhancedPlayerSetup({
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="flex items-center gap-1">
-        {wizardStep > 1 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-lg"
-            className="-ml-2 shrink-0"
-            onClick={() => goToStep((wizardStep - 1) as WizardStep)}
-            aria-label={`Back to step ${wizardStep - 1}: ${
-              WIZARD_STEPS[wizardStep - 2].title
-            }`}
+      {/* Lesson chrome: back + one fat progress bar across the top, then the
+          step title. The bar is the step indicator — no "Step N of 3" text. */}
+      <div className="flex flex-col gap-2.5">
+        <div className="flex items-center gap-2">
+          {wizardStep > 1 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-lg"
+              className="-ml-2 shrink-0"
+              onClick={() => goToStep((wizardStep - 1) as WizardStep)}
+              aria-label={`Back to step ${wizardStep - 1}: ${
+                WIZARD_STEPS[wizardStep - 2].title
+              }`}
+            >
+              <ChevronLeft />
+            </Button>
+          )}
+          <div
+            className="min-w-0 flex-1"
+            role="progressbar"
+            aria-label="Setup progress"
+            aria-valuemin={1}
+            aria-valuemax={3}
+            aria-valuenow={wizardStep}
+            aria-valuetext={`Step ${wizardStep} of 3: ${currentStepTitle}`}
           >
-            <ChevronLeft />
-          </Button>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Step {wizardStep} of 3
-          </p>
-          <h2
-            ref={stepHeadingRef}
-            tabIndex={-1}
-            className="font-display truncate text-xl font-semibold tracking-tight outline-none"
-          >
-            {currentStepTitle}
-          </h2>
-        </div>
-        <div
-          className="flex shrink-0 items-center"
-          role="group"
-          aria-label="Setup steps"
-        >
-          {WIZARD_STEPS.map(({ step, title }) => {
-            const isCompleted = step < wizardStep;
-            const isCurrent = step === wizardStep;
-
-            return (
-              <button
-                key={step}
-                type="button"
-                onClick={() => {
-                  if (isCompleted) goToStep(step);
-                }}
-                disabled={!isCompleted}
-                aria-label={
-                  isCompleted
-                    ? `Back to step ${step}: ${title}`
-                    : `Step ${step}: ${title}`
-                }
-                aria-current={isCurrent ? "step" : undefined}
-                className="touch-target -mx-0.5 flex size-11 items-center justify-center rounded-full disabled:cursor-default"
+            <div className="h-4 overflow-hidden rounded-full bg-input">
+              <div
+                className="relative h-full rounded-full bg-primary transition-[width] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
+                style={{ width: `${(wizardStep / 3) * 100}%` }}
               >
-                <span
-                  className={cn(
-                    "rounded-full transition-all",
-                    isCurrent
-                      ? "h-2 w-5 bg-primary"
-                      : isCompleted
-                      ? "size-2 bg-primary/60"
-                      : "size-2 bg-border"
-                  )}
-                />
-              </button>
-            );
-          })}
+                <div className="absolute inset-x-2 top-[3px] h-1 rounded-full bg-white/40" />
+              </div>
+            </div>
+          </div>
         </div>
+        <h2
+          ref={stepHeadingRef}
+          tabIndex={-1}
+          className="font-display truncate text-2xl font-bold tracking-tight outline-none"
+        >
+          {currentStepTitle}
+        </h2>
       </div>
 
       <AnimatePresence mode="wait" initial={false} custom={stepDirection}>

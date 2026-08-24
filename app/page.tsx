@@ -179,75 +179,21 @@ function Reveal({
 }
 
 /* ------------------------------------------------------------------ */
-/* Flat illustrations. One shared grammar: thick rounded strokes, flat  */
-/* kit colors, the same dot-eyes-and-smile face on every character.     */
+/* Illustrations. One shared grammar: chunky flat shapes with a 2.5D    */
+/* side face for depth, soft ground shadows, and the same dot-eyes      */
+/* face on every character. Fixed art colors on purpose — they read as  */
+/* stickers in both themes.                                             */
 /* ------------------------------------------------------------------ */
 
-// The mascot: a pickleball with a sweatband. Face stays clear of the holes.
-function MascotBall({ size = 200 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 200 200"
-      fill="none"
-      aria-hidden="true"
-    >
-      <MascotArt />
-    </svg>
-  );
-}
-
-function HeroIllustration() {
-  return (
-    <svg
-      viewBox="0 0 520 440"
-      fill="none"
-      className="h-auto w-full max-w-[30rem]"
-      role="img"
-      aria-label="A happy pickleball bouncing across a court next to a paddle"
-    >
-      {/* court */}
-      <rect x="30" y="296" width="460" height="118" rx="18" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
-      <rect x="196" y="296" width="128" height="118" fill="#b5e3f9" opacity="0.55" />
-      <path d="M260 300v110" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 14" />
-      <path d="M196 300v110M324 300v110" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
-      <path d="M54 355h142M324 355h142" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
-      {/* bounce trail + impact */}
-      <path
-        d="M64 258c40-84 118-124 196-110"
-        stroke="#8ab818"
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray="1 22"
-      />
-      <path
-        d="M92 322l-10 18M112 330l2 20M74 310l-18 10"
-        stroke="#ffc800"
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
-      {/* paddle leaning on the court */}
-      <g transform="rotate(14 428 258)">
-        <rect x="416" y="252" width="24" height="74" rx="11" fill="#ffc800" stroke="#243325" strokeWidth="5" />
-        <ellipse cx="428" cy="192" rx="62" ry="74" fill="#a568f5" stroke="#243325" strokeWidth="5" />
-        <ellipse cx="428" cy="192" rx="38" ry="48" fill="#bd8cf7" />
-      </g>
-      {/* mascot mid-bounce */}
-      <g transform="translate(160 88)">
-        <MascotArt />
-      </g>
-      {/* confetti */}
-      <circle cx="96" cy="96" r="9" fill="#1cb0f6" />
-      <rect x="380" y="62" width="16" height="16" rx="5" fill="#ff9600" transform="rotate(18 388 70)" />
-      <rect x="52" y="180" width="14" height="14" rx="5" fill="#a568f5" transform="rotate(-16 59 187)" />
-      <circle cx="474" cy="120" r="8" fill="#ffc800" />
-    </svg>
-  );
-}
-
-// Inner mascot artwork shared by HeroIllustration (as a <g>) and MascotBall.
-function MascotArt() {
+// The mascot: a pickleball with a sweatband. Band color and expression
+// vary per character; the face stays clear of the holes.
+function MascotArt({
+  band = "#ff9600",
+  expression = "smile",
+}: {
+  band?: string;
+  expression?: "smile" | "open";
+}) {
   return (
     <>
       <circle cx="100" cy="100" r="88" fill="#c8ef44" stroke="#8ab818" strokeWidth="7" />
@@ -258,7 +204,7 @@ function MascotArt() {
       <circle cx="36" cy="92" r="9" fill="#a5cc2e" />
       <path
         d="M28 78c14-26 42-42 72-42s58 16 72 42"
-        stroke="#ff9600"
+        stroke={band}
         strokeWidth="16"
         strokeLinecap="round"
       />
@@ -266,66 +212,153 @@ function MascotArt() {
       <ellipse cx="124" cy="110" rx="13" ry="16" fill="#ffffff" />
       <circle cx="79" cy="113" r="6.5" fill="#243325" />
       <circle cx="121" cy="113" r="6.5" fill="#243325" />
-      <path
-        d="M82 146c6 7 12 10 18 10s12-3 18-10"
-        stroke="#243325"
-        strokeWidth="7"
-        strokeLinecap="round"
-      />
+      {expression === "smile" ? (
+        <path
+          d="M82 146c6 7 12 10 18 10s12-3 18-10"
+          stroke="#243325"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+      ) : (
+        <>
+          <ellipse cx="100" cy="150" rx="15" ry="12" fill="#243325" />
+          <ellipse cx="100" cy="155" rx="8" ry="5" fill="#ff8a7a" />
+        </>
+      )}
       <circle cx="58" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
       <circle cx="142" cy="138" r="8" fill="#ffb14d" opacity="0.55" />
     </>
   );
 }
 
-function FollowIllustration() {
+function MascotBall({ size = 200 }: { size?: number }) {
   return (
     <svg
-      viewBox="0 0 440 340"
+      width={size}
+      height={size * 1.04}
+      viewBox="0 0 200 208"
       fill="none"
-      className="h-auto w-full max-w-[26rem]"
-      role="img"
-      aria-label="Three players looking at a phone showing a QR code"
+      aria-hidden="true"
     >
-      {/* phone */}
-      <rect x="140" y="24" width="160" height="250" rx="28" fill="var(--card)" stroke="var(--foreground)" strokeWidth="6" />
-      <rect x="172" y="60" width="96" height="96" rx="10" fill="var(--card)" stroke="var(--input)" strokeWidth="4" />
-      {/* QR: three green finders + ink modules */}
-      <rect x="182" y="70" width="22" height="22" rx="4" fill="#54c400" />
-      <rect x="236" y="70" width="22" height="22" rx="4" fill="#54c400" />
-      <rect x="182" y="124" width="22" height="22" rx="4" fill="#54c400" />
-      <rect x="214" y="76" width="10" height="10" fill="var(--foreground)" />
-      <rect x="214" y="96" width="10" height="10" fill="var(--foreground)" />
-      <rect x="236" y="102" width="10" height="10" fill="var(--foreground)" />
-      <rect x="248" y="124" width="10" height="10" fill="var(--foreground)" />
-      <rect x="214" y="130" width="10" height="10" fill="var(--foreground)" />
-      <rect x="248" y="140" width="10" height="10" fill="var(--foreground)" />
-      {/* score rows on the phone */}
-      <rect x="172" y="176" width="96" height="18" rx="9" fill="#e9f8d8" />
-      <rect x="172" y="204" width="96" height="18" rx="9" fill="#dff1fd" />
-      <rect x="172" y="232" width="64" height="18" rx="9" fill="var(--secondary)" />
-      {/* three heads peeking up at it */}
-      <g>
-        <circle cx="72" cy="292" r="44" fill="#f1b98a" />
-        <path d="M32 278c4-26 20-40 40-40s36 14 40 40" fill="#243325" />
-        <circle cx="60" cy="296" r="5" fill="#243325" />
-        <circle cx="86" cy="296" r="5" fill="#243325" />
-        <path d="M62 312c4 4 8 6 11 6s7-2 11-6" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      <ellipse cx="100" cy="199" rx="62" ry="8" fill="#243325" opacity="0.08" />
+      <MascotArt />
+    </svg>
+  );
+}
+
+// A paddle with a 2.5D face inset, reusable at any angle.
+function Paddle({ face, faceInner }: { face: string; faceInner: string }) {
+  return (
+    <>
+      <rect x="-12" y="58" width="24" height="72" rx="11" fill="#ffc800" stroke="#243325" strokeWidth="5" />
+      <ellipse cx="0" cy="0" rx="58" ry="70" fill={face} stroke="#243325" strokeWidth="5" />
+      <ellipse cx="0" cy="0" rx="36" ry="46" fill={faceInner} />
+    </>
+  );
+}
+
+// The hero: a rally in progress. Two characters, a net, a ball mid-flight.
+function HeroIllustration() {
+  return (
+    <svg
+      viewBox="0 0 560 480"
+      fill="none"
+      className="h-auto w-full max-w-[32rem]"
+      role="img"
+      aria-label="Two happy pickleballs mid-rally over a net"
+    >
+      {/* court slab with a 2.5D side face */}
+      <rect x="38" y="446" width="484" height="18" rx="9" fill="#b8d891" />
+      <rect x="30" y="330" width="500" height="124" rx="18" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
+      <rect x="216" y="332" width="128" height="120" fill="#b5e3f9" opacity="0.55" />
+      <path d="M216 334v116M344 334v116" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      <path d="M52 392h150M358 392h150" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      {/* net */}
+      <rect x="262" y="300" width="36" height="58" rx="6" fill="#ffffff" stroke="#cdeba4" strokeWidth="3" />
+      <path d="M262 318h36M262 338h36M274 300v58M286 300v58" stroke="#cdeba4" strokeWidth="2" />
+      <rect x="256" y="292" width="48" height="13" rx="6.5" fill="#243325" />
+      {/* ground shadows */}
+      <ellipse cx="150" cy="446" rx="78" ry="9" fill="#243325" opacity="0.08" />
+      <ellipse cx="428" cy="450" rx="66" ry="8" fill="#243325" opacity="0.08" />
+      <ellipse cx="292" cy="352" rx="16" ry="4" fill="#243325" opacity="0.1" />
+      {/* left player: leaping for the shot */}
+      <path d="M28 210h34M20 240h42M32 270h30" stroke="#8ab818" strokeWidth="7" strokeLinecap="round" opacity="0.6" />
+      <g transform="translate(62 128) rotate(-10 100 100) scale(0.94)">
+        <MascotArt band="#ff9600" />
       </g>
-      <g>
-        <circle cx="220" cy="306" r="40" fill="#8d5a3b" />
-        <path d="M184 292c4-22 18-34 36-34s32 12 36 34" fill="#0e7ab5" />
-        <circle cx="209" cy="310" r="5" fill="#243325" />
-        <circle cx="233" cy="310" r="5" fill="#243325" />
-        <path d="M211 324c3 4 6 5 9 5s6-1 9-5" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      <g transform="translate(224 318) rotate(-38) scale(0.82)">
+        <Paddle face="#a568f5" faceInner="#bd8cf7" />
       </g>
-      <g>
-        <circle cx="366" cy="292" r="44" fill="#edc4b1" />
-        <path d="M326 280c2-28 18-42 40-42s38 14 40 42c-10-10-24-14-40-14s-30 4-40 14z" fill="#a568f5" />
-        <circle cx="354" cy="296" r="5" fill="#243325" />
-        <circle cx="380" cy="296" r="5" fill="#243325" />
-        <path d="M356 312c4 4 8 6 11 6s7-2 11-6" stroke="#243325" strokeWidth="5" strokeLinecap="round" />
+      {/* right player: hyped for the return */}
+      <g transform="translate(346 178) rotate(7 100 100) scale(0.76)">
+        <MascotArt band="#1cb0f6" expression="open" />
       </g>
+      <g transform="translate(514 336) rotate(30) scale(0.82)">
+        <Paddle face="#ffc800" faceInner="#ffd84d" />
+      </g>
+      {/* the ball, mid-flight over the net */}
+      <path
+        d="M236 244c24-42 60-58 96-52"
+        stroke="#8ab818"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeDasharray="1 20"
+      />
+      <circle cx="342" cy="190" r="15" fill="#c8ef44" stroke="#8ab818" strokeWidth="5" />
+      <path d="M368 176l16-8M370 192l18 0M366 206l15 8" stroke="#ffc800" strokeWidth="6" strokeLinecap="round" />
+      {/* confetti */}
+      <circle cx="84" cy="84" r="9" fill="#1cb0f6" />
+      <rect x="452" y="98" width="16" height="16" rx="5" fill="#ff9600" transform="rotate(18 460 106)" />
+      <rect x="140" y="52" width="14" height="14" rx="5" fill="#a568f5" transform="rotate(-16 147 59)" />
+      <circle cx="522" cy="180" r="8" fill="#ffc800" />
+    </svg>
+  );
+}
+
+// The scoreboard phone, drawn as a chunky sticker with a side face.
+function PhoneIllustration() {
+  return (
+    <svg
+      viewBox="0 0 300 340"
+      fill="none"
+      className="h-auto w-full max-w-[17rem]"
+      role="img"
+      aria-label="A phone showing a QR code and live scores"
+    >
+      <rect x="78" y="34" width="160" height="264" rx="30" fill="#9db08e" />
+      <rect x="70" y="26" width="160" height="264" rx="30" fill="var(--card)" stroke="var(--foreground)" strokeWidth="6" />
+      <rect x="100" y="58" width="100" height="100" rx="12" fill="var(--card)" stroke="var(--input)" strokeWidth="4" />
+      <rect x="110" y="68" width="24" height="24" rx="5" fill="#54c400" />
+      <rect x="166" y="68" width="24" height="24" rx="5" fill="#54c400" />
+      <rect x="110" y="124" width="24" height="24" rx="5" fill="#54c400" />
+      <rect x="144" y="74" width="11" height="11" fill="var(--foreground)" />
+      <rect x="144" y="96" width="11" height="11" fill="var(--foreground)" />
+      <rect x="166" y="102" width="11" height="11" fill="var(--foreground)" />
+      <rect x="178" y="124" width="11" height="11" fill="var(--foreground)" />
+      <rect x="144" y="130" width="11" height="11" fill="var(--foreground)" />
+      <rect x="100" y="176" width="100" height="20" rx="10" fill="#e9f8d8" />
+      <rect x="100" y="206" width="100" height="20" rx="10" fill="#dff1fd" />
+      <rect x="100" y="236" width="66" height="20" rx="10" fill="var(--secondary)" />
+      <ellipse cx="150" cy="316" rx="76" ry="9" fill="#243325" opacity="0.1" />
+    </svg>
+  );
+}
+
+// Sticker tiles floating around the sky band, Duolingo app-icon style.
+function StickerTile({
+  color,
+  side,
+  children,
+}: {
+  color: string;
+  side: string;
+  children: ReactNode;
+}) {
+  return (
+    <svg viewBox="0 0 88 92" fill="none" className="h-auto w-full" aria-hidden="true">
+      <rect x="10" y="14" width="72" height="72" rx="20" fill={side} />
+      <rect x="6" y="6" width="72" height="72" rx="20" fill={color} />
+      {children}
     </svg>
   );
 }
@@ -339,9 +372,10 @@ function RotationIllustration() {
       role="img"
       aria-label="Four players rotating around a court while one rests on the bench"
     >
-      {/* court */}
-      <rect x="120" y="100" width="200" height="140" rx="16" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
-      <path d="M220 104v132" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 12" />
+      {/* court with a side face */}
+      <rect x="126" y="230" width="188" height="14" rx="7" fill="#b8d891" />
+      <rect x="120" y="100" width="200" height="136" rx="16" fill="#e9f8d8" stroke="#cdeba4" strokeWidth="4" />
+      <path d="M220 104v128" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeDasharray="2 12" />
       {/* rotation arrows */}
       <path d="M150 76c40-24 100-24 140 0" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" fill="none" />
       <path d="M282 62l14 16-21 5" stroke="var(--foreground)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -515,15 +549,55 @@ function PlayableScorebug() {
 /* ------------------------------------------------------------------ */
 
 const FORMATS = [
-  "Popcorn",
-  "Gauntlet",
-  "King of the Court",
-  "Claim the Throne",
-  "Up & Down the River",
-  "Set Teams",
+  { name: "Popcorn", color: "#54c400", glyph: "popcorn" },
+  { name: "Gauntlet", color: "#1cb0f6", glyph: "paddles" },
+  { name: "King of the Court", color: "#e0a500", glyph: "crown" },
+  { name: "Claim the Throne", color: "#a568f5", glyph: "flag" },
+  { name: "Up & Down the River", color: "#ff9600", glyph: "wave" },
+  { name: "Set Teams", color: "#0b6e63", glyph: "rings" },
 ] as const;
 
-const FORMAT_COLORS = ["#54c400", "#1cb0f6", "#ffc800", "#a568f5", "#ff9600", "#0b6e63"] as const;
+function FormatGlyph({ glyph, color }: { glyph: string; color: string }) {
+  const stroke = { stroke: color, strokeWidth: 2.4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+      {glyph === "popcorn" && (
+        <>
+          <circle cx="6.5" cy="7" r="3" fill={color} />
+          <circle cx="13.5" cy="6" r="2.6" fill={color} />
+          <circle cx="10" cy="12.5" r="3.4" fill={color} />
+        </>
+      )}
+      {glyph === "paddles" && (
+        <>
+          <path d="M5 3.5c2.4 0 4 1.8 4 4.2S7.6 12 5.6 12L4 16.5" {...stroke} />
+          <path d="M15 3.5c-2.4 0-4 1.8-4 4.2s1.4 4.3 3.4 4.3L16 16.5" {...stroke} />
+        </>
+      )}
+      {glyph === "crown" && (
+        <path d="M3.5 14.5l-1-8 4.2 3L10 4l3.3 5.5 4.2-3-1 8z" fill={color} />
+      )}
+      {glyph === "flag" && (
+        <>
+          <path d="M5 17V3" {...stroke} />
+          <path d="M5 4h10l-2.6 3.5L15 11H5z" fill={color} />
+        </>
+      )}
+      {glyph === "wave" && (
+        <>
+          <path d="M3 8c2-3 4-3 6 0s4 3 6 0" {...stroke} />
+          <path d="M3 13c2-3 4-3 6 0s4 3 6 0" {...stroke} />
+        </>
+      )}
+      {glyph === "rings" && (
+        <>
+          <circle cx="7.5" cy="10" r="4.5" {...stroke} />
+          <circle cx="12.5" cy="10" r="4.5" {...stroke} />
+        </>
+      )}
+    </svg>
+  );
+}
 
 function FeatureSection({
   id,
@@ -617,18 +691,14 @@ export default function Home() {
 
         {/* Format strip — the "language carousel". Real formats only. */}
         <div className="border-y-2 border-border">
-          <div className="mx-auto flex max-w-5xl items-center gap-8 overflow-x-auto px-6 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {FORMATS.map((format, index) => (
+          <div className="mx-auto flex max-w-5xl items-center gap-x-8 gap-y-3 overflow-x-auto px-6 py-4 [scrollbar-width:none] md:flex-wrap md:justify-center md:overflow-visible [&::-webkit-scrollbar]:hidden">
+            {FORMATS.map((format) => (
               <span
-                key={format}
+                key={format.name}
                 className="flex shrink-0 items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted-foreground"
               >
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: FORMAT_COLORS[index] }}
-                  aria-hidden="true"
-                />
-                {format}
+                <FormatGlyph glyph={format.glyph} color={format.color} />
+                {format.name}
               </span>
             ))}
           </div>
@@ -648,18 +718,46 @@ export default function Home() {
           flip
         />
 
-        <FeatureSection
-          id="features"
-          heading="everyone follows along."
-          copy={
-            <>
-              Players scan one QR code to watch live scores and see who&apos;s
-              up next, right from the fence. No app to install, no group
-              texts.
-            </>
-          }
-          art={<FollowIllustration />}
-        />
+        {/* Full-bleed sky band — every phone at the court is the scoreboard. */}
+        <section id="features" className="w-full bg-[#dff3fd] dark:bg-[#10222e]">
+          <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-6 py-16 text-center sm:py-24">
+            <Reveal className="flex flex-col items-center gap-5">
+              <h2 className="max-w-xl font-display text-4xl font-bold lowercase leading-tight text-[#0b4f79] dark:text-[#9ed9f9] sm:text-5xl">
+                every phone is the scoreboard.
+              </h2>
+              <p className="max-w-md text-lg font-semibold leading-relaxed text-[#3c6a87] dark:text-[#8fb6cc]">
+                Players scan one QR code to watch live scores and see
+                who&apos;s up next, right from the fence. No app to install,
+                no group texts.
+              </p>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <PhoneIllustration />
+            </Reveal>
+            {/* floating stickers, desktop garnish only */}
+            <div className="absolute left-8 top-24 hidden w-16 -rotate-12 lg:block" aria-hidden="true">
+              <StickerTile color="#54c400" side="#3f8a06">
+                <path d="M28 46l10 10 22-24" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </StickerTile>
+            </div>
+            <div className="absolute right-10 top-32 hidden w-[4.5rem] rotate-6 lg:block" aria-hidden="true">
+              <StickerTile color="#ffc800" side="#e0a500">
+                <path d="M26 26h32v10a16 16 0 01-32 0zM36 56h12M32 64h20" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </StickerTile>
+            </div>
+            <div className="absolute bottom-28 left-14 hidden w-14 rotate-6 lg:block" aria-hidden="true">
+              <StickerTile color="#a568f5" side="#7440c9">
+                <ellipse cx="42" cy="36" rx="17" ry="20" stroke="#ffffff" strokeWidth="6" fill="none" />
+                <path d="M42 56v10" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+              </StickerTile>
+            </div>
+            <div className="absolute bottom-24 right-12 hidden -rotate-6 lg:block" aria-hidden="true">
+              <span className="inline-block rounded-full border-2 border-[#b6dff5] bg-white px-4 py-2 font-display text-lg font-bold tracking-[0.14em] text-[#0b4f79] shadow-[0_4px_0_#b6dff5] dark:border-[#1d3c50] dark:bg-[#0c1b26] dark:text-[#9ed9f9] dark:shadow-[0_4px_0_#1d3c50]">
+                PLAY42
+              </span>
+            </div>
+          </div>
+        </section>
 
         <FeatureSection
           heading="fair for everyone."
