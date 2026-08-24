@@ -3,6 +3,21 @@
 All notable changes to PlaySync are documented here. This project follows
 [Keep a Changelog](https://keepachangelog.com/) and Semantic Versioning.
 
+## [0.8.3] - 2026-08-24
+
+The session screen got the app-native treatment: a bold color-block header
+like the social apps, and a real victory screen when a score goes in.
+
+### Changed
+- **The session header is a big green banner now** — session name, live
+  badge, and format on the color, white stat tiles raised on top, the
+  round progress bar set into a darker well, and the mascot peeking in
+  from the corner on bigger screens.
+- **Posting a score earns a victory screen.** The mascot shows up wearing
+  a medal, "Game posted!" lands in gold with confetti, and the winner and
+  score sit in framed stat chips — then one tap continues to the next
+  game.
+
 ## [0.8.2] - 2026-08-24
 
 Scoring feels like a game now. Big plus buttons, confetti when a score
