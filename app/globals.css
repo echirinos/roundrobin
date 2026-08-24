@@ -126,7 +126,7 @@
   --sidebar-border: #e7e4d4;
   --sidebar-ring: #54c400;
   /* Outline-button text and the hero scorebug accent (flips with the ink/cream shell). */
-  --cta-outline-text: #0e7ab5;
+  --cta-outline-text: #0d6da1;
   --scorebug-accent: #2ecfbf;
 }
 
@@ -187,6 +187,33 @@
     @apply bg-background text-foreground;
     font-feature-settings: "ss01" 1, "cv01" 1, "tnum" 0;
   }
+  /* Confetti pieces for ConfettiBurst — pop up, tumble down, fade out. */
+  .confetti-piece {
+    position: absolute;
+    top: 0;
+    width: 11px;
+    height: 16px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: confetti-pop 2.2s cubic-bezier(0.22, 0.8, 0.4, 1) forwards;
+  }
+
+  @keyframes confetti-pop {
+    0% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    12% {
+      opacity: 1;
+      translate: 0 -34px;
+    }
+    100% {
+      opacity: 0;
+      translate: 0 150px;
+      rotate: 320deg;
+    }
+  }
+
   /* Score fields: the native spinner strip breaks the chunky rounded inputs. */
   input[type="number"] {
     appearance: textfield;

@@ -6,6 +6,7 @@ import { Armchair, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { TextureButton } from "@/components/ui/texture-button";
@@ -391,7 +392,11 @@ export function RoundManager({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="overflow-hidden">
+      <Card className="relative overflow-hidden">
+        {/* One burst the moment every court in the round is scored. */}
+        <ConfettiBurst
+          fireKey={currentRound > 0 && currentRoundComplete ? currentRound : null}
+        />
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base">{roundTitle}</CardTitle>

@@ -11,12 +11,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ConfettiBurst } from "@/components/ui/confetti-burst";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShineBorder } from "@/components/ui/shine-border";
-import { TextureButton } from "@/components/ui/texture-button";
 import { cn } from "@/lib/utils";
 import type { LocalRoundGame, LocalPlayer } from "@/src/types/database";
 
@@ -113,6 +113,12 @@ function RoundGameScoreForm({
   // Overshoots are flagged too: past points-to-win a real game ends the
   // moment the lead hits win-by, so 12-5 or 111-4 is almost surely a typo
   // while overtime scores like 12-10 pass.
+  const bumpScore = (which: 1 | 2, delta: number) => {
+    const raw = which === 1 ? score1 : score2;
+    const next = Math.max(0, (parseInt(raw) || 0) + delta);
+    (which === 1 ? setScore1 : setScore2)(next.toString());
+  };
+
   const s1Num = parseInt(score1);
   const s2Num = parseInt(score2);
   const bothEntered = !isNaN(s1Num) && !isNaN(s2Num);
@@ -169,34 +175,73 @@ function RoundGameScoreForm({
       </DialogHeader>
       <div className="flex flex-col gap-5 py-2">
         <div className="grid gap-3">
-          <motion.div
-            layout
-            className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
-          >
-            <label className="block text-center text-sm font-semibold">
-              <span className="break-words">
-                {game.team1[0].name} & {game.team1[1].name}
-              </span>
-            </label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min="0"
-              value={score1}
-              onChange={(e) => setScore1(e.target.value)}
-              placeholder="0"
-              className="font-display mt-2 h-16 text-center text-5xl font-semibold tracking-tight"
-              autoFocus
-            />
-          </motion.div>
+          {([1, 2] as const).map((which) => {
+            const teamPlayers = which === 1 ? game.team1 : game.team2;
+            const value = which === 1 ? score1 : score2;
+            const setValue = which === 1 ? setScore1 : setScore2;
+            const mine = parseInt(value);
+            const theirs = parseInt(which === 1 ? score2 : score1);
+            const leading =
+              !Number.isNaN(mine) && (Number.isNaN(theirs) || mine > theirs);
+            return (
+              <div
+                key={which}
+                className={cn(
+                  "rounded-2xl border-2 p-4 transition-colors",
+                  leading
+                    ? "border-success bg-primary/8"
+                    : "border-border bg-card",
+                )}
+              >
+                <p
+                  className={cn(
+                    "break-words text-center text-sm font-extrabold",
+                    leading ? "text-success" : "text-foreground",
+                  )}
+                >
+                  {teamPlayers[0].name} & {teamPlayers[1].name}
+                </p>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => bumpScore(which, -1)}
+                    disabled={!value || parseInt(value) <= 0}
+                    aria-label={`Take a point from ${teamPlayers[0].name} & ${teamPlayers[1].name}`}
+                    className="size-12 rounded-full text-xl"
+                  >
+                    −
+                  </Button>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    min="0"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="0"
+                    autoFocus={which === 1}
+                    className={cn(
+                      "h-16 w-24 border-0 bg-transparent text-center font-display text-6xl font-bold shadow-none focus-visible:ring-0",
+                      leading ? "text-success" : "text-foreground",
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={() => bumpScore(which, 1)}
+                    aria-label={`Add a point for ${teamPlayers[0].name} & ${teamPlayers[1].name}`}
+                    className="size-14 rounded-full text-2xl"
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
 
-          <div className="flex items-center justify-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            <span className="h-px w-12 bg-border" />
-            vs
-            <span className="h-px w-12 bg-border" />
-            {/* Quick scores fill the top team as the winner; this flips them
-                in one tap when the bottom team actually won. */}
+          <div className="flex items-center justify-center">
             <Button
               type="button"
               variant="ghost"
@@ -206,34 +251,13 @@ function RoundGameScoreForm({
                 setScore2(score1);
               }}
               disabled={!score1 && !score2}
-              className="h-8 gap-1 px-2 text-xs font-semibold normal-case tracking-normal text-muted-foreground"
+              className="h-9 gap-1.5 px-3 text-xs font-bold text-muted-foreground"
               aria-label="Swap the two scores"
             >
               <ArrowUpDown className="size-3.5" />
-              Swap
+              Swap scores
             </Button>
           </div>
-
-          <motion.div
-            layout
-            className="rounded-lg border border-border/70 bg-background/65 p-3 shadow-inner"
-          >
-            <label className="block text-center text-sm font-semibold">
-              <span className="break-words">
-                {game.team2[0].name} & {game.team2[1].name}
-              </span>
-            </label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min="0"
-              value={score2}
-              onChange={(e) => setScore2(e.target.value)}
-              placeholder="0"
-              className="font-display mt-2 h-16 text-center text-5xl font-semibold tracking-tight"
-            />
-          </motion.div>
         </div>
 
         {/* Presets follow the session's rules — hardcoded 11s would trip the
@@ -249,19 +273,18 @@ function RoundGameScoreForm({
             </p>
             <div className="grid grid-cols-4 gap-2">
               {quickScorePresets.map(([s1, s2]) => (
-                <TextureButton
+                <Button
                   key={`${s1}-${s2}`}
                   type="button"
-                  variant="minimal"
-                  size="sm"
+                  variant="outline"
                   onClick={() => {
                     setScore1(s1.toString());
                     setScore2(s2.toString());
                   }}
-                  className="text-xs"
+                  className="min-h-11 rounded-xl px-0 text-sm tracking-normal"
                 >
                   {s1}-{s2}
-                </TextureButton>
+                </Button>
               ))}
             </div>
           </div>
@@ -310,9 +333,10 @@ function ScoreSavedView({ team1, team2, s1, s2, reduceMotion }: ScoreSavedViewPr
       initial={reduceMotion ? false : { opacity: 0, scale: 0.97 }}
       animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col items-center gap-5 py-6 text-center"
+      className="relative flex flex-col items-center gap-5 py-6 text-center"
       aria-live="polite"
     >
+      <ConfettiBurst fireKey={`${team1}-${s1}-${s2}`} fireOnMount />
       <div className="relative flex size-14 items-center justify-center">
         {!reduceMotion && (
           <motion.span
